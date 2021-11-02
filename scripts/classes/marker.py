@@ -1,5 +1,6 @@
 from scripts.classes.imports import *
 
+
 class Marker(Base):
     __tablename__ = 'marker'
 

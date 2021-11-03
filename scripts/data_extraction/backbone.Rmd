@@ -1,0 +1,261 @@
+---
+title: "Custom Databases: Classification & Analyses"
+author: "Bastiaan"
+date: "27 March 2021"
+output: html_document
+runtime: shiny
+---
+
+Introduction
+------------
+
+The following R markdown file performs the steps needed to:
+
+1. Obtain taxonomic information and Naturalis specimen records for selected taxa,
+2. Create a data structure capable of providing highly visual representations
+and at the same time maintaining integrity of each data set’s origin,
+3. Search out and visualize the overlap / discrepancies between obtained public
+reference data and records readily available at Naturalis Biodiversity Center.
+
+The following libraries need to be loaded:
+
+```{r libraries, include=FALSE, message=FALSE, warning=FALSE}
+library(rmarkdown)
+library(data.table)
+library(taxizedb)
+library(myTAI)
+library(tidyr)
+library(shiny)
+library(DT)
+library(plyr)
+library(dplyr)
+library(stringr)
+library(d3Tree)
+library(billboarder)
+library(nbaR)
+```
+
+In addition, here We define the global variables that we will reuse throughout
+the code:
+
+```{r globals, include=FALSE}
+# This should define the root folder of the local copy of the git repository at:
+# https://github.com/naturalis/Custom-databases-DNA-sequences, which is
+# automatically defined correctly if we run the present code from within a
+# local clone of the repo and have set the working directory to the script
+# source (in RStudio: Session > Set working directory > To source file location)
+REPO_HOME <- paste(dirname(getwd()), sep = "")
+getwd()
+```
+
+### Load data
+
+We now load the following data sets:
+
+1. Reference Data Set (NSR),
+2. Obtained Public specimen records and sequence data (BOLD),
+3. List of Marker Codes,
+4. List of Public Databases
+
+Both the reference data set (1) and the obtained public reference data (2) are
+output from the [script](../script/custom_databases.py)
+
+```{r datasets, include=FALSE}
+## Load species and synonyms from the NSR files, respectively
+nsrSpecies.file <- sprintf('%s/data/in_files/nsr_species.csv', REPO_HOME)
+nsrSpecies <- read.csv(nsrSpecies.file, encoding="UTF-8")
+
+nsrSynonyms.file <- sprintf('%s/data?in_files/nsr_synonyms.csv', REPO_HOME)
+nsrSynonyms <- read.csv(nsrSynonyms.file, encoding="UTF-8")
+
+```
+
+### NSR Backbone
+
+To facilitate taxonomic estimation by lowest common ancestor approach, the 
+complete classification of species should ideally be present in a reference 
+taxonomic data set. As the NSR export only held the scientific names of all
+species of interest, the Netherlands Biodiversity API will be queried to obtain
+their higher classification.
+
+```{r nsrBackbone, include=FALSE}
+## Select species for taxon data retrieval
+nsrIn <- tolower(nsrSpecies[, "species_name"])
+head(nsrIn, 3)
+
+## Query NSR taxon records (duration: ~40m)
+## Method: nbaR 'taxon_query'
+## Parameters: NSR source code and list of selected species
+queryParams <- list("sourceSystem.code"="NSR")
+nsrSpecimens <- data.frame()
+for(x in 1:length(nsrIn)){
+  queryParams[["acceptedName.scientificNameGroup"]] <- nsrIn[x]
+  nsrSpecimens <- bind_rows(nsrSpecimens, taxon_query(queryParams))
+}
+
+## Access and extract required taxonomic fields from retrieved taxon records
+nsrBackbone = data.frame()
+for(x in 1:nrow(nsrSpecimens)){
+  tryCatch({
+    c.id=nsrSpecimens$sourceSystemId[x]
+    c.kingdom=nsrSpecimens$defaultClassification$kingdom[x]
+    c.phylum=nsrSpecimens$defaultClassification$phylum[x]
+    c.class=nsrSpecimens$defaultClassification$className[x]
+    c.order=nsrSpecimens$defaultClassification$order[x]
+    c.family=nsrSpecimens$defaultClassification$family[x]
+    c.genus=nsrSpecimens$defaultClassification$genus[x]
+    c.species=nsrSpecimens$acceptedName$specificEpithet[x]
+    c.authority=nsrSpecimens$acceptedName$authorshipVerbatim[x]
+
+    row <- data.frame(cbind(tax_id=c.id,kingdom=c.kingdom,phylum=c.phylum,class=c.class,
+                        order=c.order,family=c.family,genus=c.genus,
+                        species=paste(c.genus,c.species),identification_reference=c.authority))
+    nsrBackbone <- bind_rows(nsrBackbone, row)
+  }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+}
+## Remove parenthesis around the authority for consistency across data sets
+nsrBackbone$identification_reference = gsub("[()]", "", nsrBackbone$identification_reference)
+
+head(nsrBackbone,3)
+
+## Match taxonomic data to respective species ID, by species name
+nsrBackbone <- left_join(nsrBackbone, nsrSpecies[1:2], by=c("species"="species_name")) %>%
+  .[,c(1,10,2,3,4,5,6,7,8,9)]
+nsrBackbone <- unique(nsrBackbone)
+## nsrBackbone after binding them to their species id by name (nsrSpecies), 10 columns (tax_id got added)
+
+## Write NSR data to file
+write.csv(nsrBackbone, file=sprintf('%s/data/in_files/tree_nsr.csv', REPO_HOME),
+          row.names=FALSE, fileEncoding="utf-8")
+
+## Clean up query variables
+rm(x, row, queryParams, list = ls()[grep("^c.", ls())])
+
+```
+
+### Naturalis Coverage
+
+To determine the overlap / discrepancies between the obtained public sequence data
+and the reference at Naturalis Biodiversity Center, in relation to the NSR, we now
+query the Naturalis specimen records (using the Netherlands Biodiversity API).
+
+```{r natCoverage, include=FALSE}
+## Select species for taxon data retrieval
+## Ensuring to select only binomial names
+natIn <- unique(gsub("([A-Za-z]+).*", "\\1", nsrSpecies$species_name))
+## Query Naturalis specimen records (duration: ~20m)
+## Method: nbaR 'specimen_query'
+## Parameters: CRS source code and list of selected species
+
+queryParams <- list("sourceSystem.code"="CRS") #removed queryParams <- list(queryparams) before <- list(sourceS.. etc)
+natSpecimens <- data.frame()
+for(x in 1:length(natIn)){
+  queryParams[["identifications.defaultClassification.genus"]] <- natIn[x]
+  specimen_query(queryParams)
+  natSpecimens <- bind_rows(natSpecimens, specimen_query(queryParams))
+}
+
+## natSpecimens (13 rows, with @CRS!!)
+
+## Access and extract required data fields from retrieved specimen records
+natSpecies = data.frame()
+for(x in 1:nrow(natSpecimens)){
+  tryCatch({
+    c.genus=natSpecimens$identifications[[x]]$defaultClassification$genus
+    c.species=natSpecimens$identifications[[x]]$defaultClassification$specificEpithet
+    c.count=natSpecimens$numberOfSpecimen[[x]]
+    c.id=natSpecimens$sourceSystemId[[x]]
+    row <- data.frame(cbind(species=paste(c.genus,c.species),counts=c.count,sequenceID=c.id))
+    natSpecies <- bind_rows(natSpecies, row)
+  }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+}
+## Remove NAs
+natSpecies$counts[is.na(natSpecies$counts)] <- 0
+## Update data type and sum unique species record counts
+natSpecies$counts <- as.numeric(as.character(natSpecies$counts))
+natSpecies <- aggregate(natSpecies$counts,
+                        by=list(natSpecies$species,natSpecies$sequenceID),sum)
+## Rename columns
+colnames(natSpecies) <- c("species", "sequenceID", "counts")
+## Adopt respective taxonomic unit for synonymous names
+natSpecies <- left_join(natSpecies, nsrSynonyms[2:3], by=c("species"="synonym_name"))
+natSpecies <- left_join(natSpecies, nsrSpecies[1:2], by=c("species_id"))
+natSpecies$species_name <- coalesce(natSpecies$species_name, natSpecies$species)
+natSpecies <- natSpecies[,c(5,2,3)]
+## Match species against the NSR
+natCoverage <- merge(natSpecies, nsrSpecies[c(2:3)], by="species_name")
+
+write.csv(nsrBackbone, file=sprintf('%s/data/exports/naturalis.csv', REPO_HOME),
+          row.names=FALSE, fileEncoding="utf-8")
+
+## Clean up query variables
+rm(x, row, queryParams, list = ls()[grep("^c.", ls())])
+```
+
+### Additional taxonomy
+
+The ability to divert to a different backbone provides additional insight into a
+specimens classification or serves as a filter for specific taxa (e.g., marine: WoRMS).
+Additional taxonomic hierarchies can be retrieved from various databases.
+
+```{r tree_ncbi, include=FALSE}
+## Download taxonomic database (options: ncbi, itis, gbif, col, wfo)
+## Used data source: NCBI
+db_download_ncbi()
+
+## Load species names from the NSR data set
+taxidIn <- nsrSpecies[, "species_name"]
+
+## Match species names to NCBI taxon IDs
+taxidOut <- taxizedb::name2taxid(taxidIn, db="ncbi", out_type="summary")
+head(taxidOut,3)
+## NCBI taxon ID's
+
+## Isolate taxon IDs from output, save as vector
+treeIn <- as.vector(taxidOut$id)
+head(treeIn,3)
+## Only id's
+
+## Retrieve taxonomic hierarchy for each taxon ID
+treeOut <- taxizedb::classification(treeIn, db="ncbi", row=1, verbose=FALSE)
+head(treeOut,3)
+## Parse out the taxonomy levels/factors that you require
+taxdata = data.frame()
+for(x in 1:length(treeOut)){
+  tryCatch({
+    for(i in 1:length(treeOut[[x]][[1]])) {
+      c.tax_id=filter(treeOut[[x]])$id[[i]]
+      c.parent_tax_id=NULL
+      c.rank=filter(treeOut[[x]])$rank[[i]]
+      c.name=filter(treeOut[[x]])$name[[i]]
+
+      tryCatch({
+        c.parent_tax_id=filter(treeOut[[x]])$id[[i-1]]
+        }, error=function(e){c.parent_tax_id=NULL})
+      
+      row <- data.frame(cbind(tax_id=c.tax_id,parent_tax_id=c.parent_tax_id,
+                            rank=c.rank, name=c.name))
+
+      # Check if record exists
+      if (nrow(merge(row,taxdata))==0) {
+        taxdata <- bind_rows(taxdata, row)
+      }
+    }
+  }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+}
+
+## Match hierarchies to NSR species names by taxon IDs
+## (Accounting for use of synonymous names within NCBI)
+ncbiBackbone <- left_join(taxdata, taxidOut, by=c("tax_id"="id"),
+                       suffix=c("","_nsr")) %>%
+  left_join(., nsrSpecies[1:2], by=c("name_nsr" = "species_name")) %>%
+  .[, c(1,6,4,2,3)] # Reaarange columns, drop 'name_nsr' column
+ncbiBackbone <- unique(ncbiBackbone)
+
+## Write NCBI data to file
+write.csv(ncbiBackbone, file=sprintf('%s/data/in_files/tree_ncbi.csv', REPO_HOME),
+          row.names=FALSE, fileEncoding="utf-8", na="")
+
+## Clean up query variables
+rm(x, i, row, list = ls()[grep("^c.", ls())])
+```

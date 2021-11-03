@@ -15,7 +15,7 @@ meta = MetaData()
 
 # Set path to csv files used to populate the database
 RESULTS_PATH = fileDir = os.path.join(os.path.dirname(
-    os.path.realpath('__file__')), '../data/insert_files/')
+    os.path.realpath('__file__')), '../data/insert_files_banker/')
 
 
 def populate_tables(engine, csv_file, table_name):
@@ -82,7 +82,8 @@ if __name__ == '__main__':
     # Create tables if they do not exist
     Base.metadata.create_all(engine)
 
-    # Populate tables using tables() function
+    # Populate tables using populate_tables() function
+    # dir path?
     populate_tables(engine, "tree_ncbi.csv", "tree_ncbi")
     populate_tables(engine, "tree_nsr.csv", "tree_nsr")
     populate_tables(engine, "species_markers.csv", "species_marker")

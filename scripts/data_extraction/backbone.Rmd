@@ -82,6 +82,58 @@ species of interest, the Netherlands Biodiversity API will be queried to obtain
 their higher classification.
 
 ```{r nsrBackbone, include=FALSE}
+## Removed the last empty row by hand (error)
+nsrTaxonomy.file <- sprintf('%s/data/input_files/NSR_taxonomy1.csv', REPO_HOME)
+## Skip first few lines untill header
+nsrTaxonomy <- read.csv(nsrTaxonomy.file, encoding="UTF-8", skip = 4, sep = "",  na.strings="NA")
+## Get the necessary rows (scientific_name, common_name, rank, nsr_id)
+nsrTaxonomy <- subset(nsrTaxonomy, select = c(1,2,4,6))  
+nsrTaxonomy <- nsrTaxonomy %>% filter(rank == "soort")
+
+## Split genus, species and identification reference
+nieuw <- str_split_fixed(nsrTaxonomy$scientific_name., " ", 3)
+## Drop empty lines (CHECK)
+df_mtx <- as.data.frame(nieuw) %>% drop_na()
+## Give columnnames
+colnames(df_mtx) <- c("genus", "species", "identification_reference")
+ 
+## Remove parentheses for every identification reference 
+df_mtx$identification_reference <- gsub('[()]','',df_mtx$identification_reference) 
+
+## Merge the genus and species to binomial in new column
+df_mtx$species_name <- paste(df_mtx$genus, df_mtx$species)
+
+## Keep rows where species do not dots or parenthesis in their name
+df_mtx <-  df_mtx[grep('[()\\.]', df_mtx$species, invert = TRUE),]
+
+## Remove the × symbol in species_name from all the rows (are there for three species names)
+df_mtx$species_name <- gsub('[\\×]','',df_mtx$species_name)
+
+## Keep rows where identification references do not have [] in their name (for an instance with [unknown])
+df_mtx <-  df_mtx[grep('[\\[\\]', df_mtx$identification_reference, invert = TRUE),]
+
+## Fill empty strings with NA's so these rows can be dropped
+df_mtx <- df_mtx  %>% mutate_all(na_if,"")
+
+## Drop rows containing NA's
+x <- na.omit(df_mtx)
+
+## Add unique identifier counting from 0
+x$species_id <- seq.int(from = 0, to = nrow(x)-1)
+
+## Keep and rearrange columns (species_id, species_name, identification_reference)
+x <- subset(x, select = c(5, 4, 3))  
+
+
+## Temp: Check what the differences are from B. Ankers to this one.
+difference <- (!nsrSpecies$species_name %in% x$species_name)
+not.in.x <- nsrSpecies[difference,]
+difference <- (!x$species_name %in% nsrSpecies$species_name)
+not.in.nsr <- x[difference,]
+
+
+
+nsrSpecies[,"species_name"] # can now be x[,"species_name"]
 ## Select species for taxon data retrieval
 nsrIn <- tolower(nsrSpecies[, "species_name"])
 head(nsrIn, 3)

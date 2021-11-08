@@ -44,7 +44,9 @@ the code:
 # automatically defined correctly if we run the present code from within a
 # local clone of the repo and have set the working directory to the script
 # source (in RStudio: Session > Set working directory > To source file location)
+setwd('..')
 REPO_HOME <- paste(dirname(getwd()), sep = "")
+
 getwd()
 ```
 
@@ -62,11 +64,12 @@ output from the [script](../script/custom_databases.py)
 
 ```{r datasets, include=FALSE}
 ## Load species and synonyms from the NSR files, respectively
-nsrSpecies.file <- sprintf('%s/data/in_files/nsr_species.csv', REPO_HOME)
+
+nsrSynonyms.file <- sprintf('%s/data/insert_files/nsr_synonym.csv', REPO_HOME)
+nsrSynonyms <- read.csv(nsrSynonyms.file, encoding="UTF-8")
+nsrSpecies.file <- sprintf("%s/data/insert_files/nsr_species.csv", REPO_HOME)
 nsrSpecies <- read.csv(nsrSpecies.file, encoding="UTF-8")
 
-nsrSynonyms.file <- sprintf('%s/data?in_files/nsr_synonyms.csv', REPO_HOME)
-nsrSynonyms <- read.csv(nsrSynonyms.file, encoding="UTF-8")
 
 ```
 
@@ -125,7 +128,7 @@ nsrBackbone <- unique(nsrBackbone)
 ## nsrBackbone after binding them to their species id by name (nsrSpecies), 10 columns (tax_id got added)
 
 ## Write NSR data to file
-write.csv(nsrBackbone, file=sprintf('%s/data/in_files/tree_nsr.csv', REPO_HOME),
+write.csv(nsrBackbone, file=sprintf('%s/data/insert_files/tree_nsr.csv', REPO_HOME),
           row.names=FALSE, fileEncoding="utf-8")
 
 ## Clean up query variables
@@ -253,7 +256,7 @@ ncbiBackbone <- left_join(taxdata, taxidOut, by=c("tax_id"="id"),
 ncbiBackbone <- unique(ncbiBackbone)
 
 ## Write NCBI data to file
-write.csv(ncbiBackbone, file=sprintf('%s/data/in_files/tree_ncbi.csv', REPO_HOME),
+write.csv(ncbiBackbone, file=sprintf('%s/data/insert_files/tree_ncbi.csv', REPO_HOME),
           row.names=FALSE, fileEncoding="utf-8", na="")
 
 ## Clean up query variables

@@ -87,13 +87,6 @@ def nsrTaxonomy():
             taxonList.append(parser)
     # Write taxonomy to file
     index = 0
-    with io.open("../../data/insert_files/nsr_species.csv", "w+", encoding="utf-8") as outfile:
-        outfile.write('"species_id","species_name","identification_reference"\n')
-        for i in taxonList:
-            binomial = ' '.join(str(i).split()[:2])
-            authorship = ' '.join(str(i).split()[2:])
-            outfile.write('%s,%s,"%s"\n' % (index, binomial, authorship))
-            index += 1
 
     return taxonList
 # nsr_species.csv met kopjes species_id (index beginnend bij 0),
@@ -102,7 +95,7 @@ def nsrTaxonomy():
 # Geparsed met TaxonParser()
 # Eerst "Ablaxia megachlora (Walker, 1835)"
 # nsr id wordt niet gebruikt?
-
+# naar inlezen file!!
 
 def nsrSynonyms():
     """ Captures and writes all binomial synonyms to a CSV file.
@@ -155,7 +148,7 @@ def nsrSynonyms():
 # Veranderd in .rmd script  (?) naar synonym_id,"species_id,synonym_name,identification_reference
 #return list van synonym (is het eigelijk de taxon die wordt gereturned met [*dict]?
 
-def nsrGenera(taxonList, synonymList):
+def nsrGenera(synonymList):
     """ Extracts the unique genera from both taxonomy and synonym lists.
 
     Combines the scientific names of obtained taxonomy and synonyms to
@@ -166,10 +159,13 @@ def nsrGenera(taxonList, synonymList):
     Return:
         generaList: List of all unique genera
     """
+    taxon = pd.read_csv("../../data/insert_files/nsr_species.csv")
+    taxonList = list(taxon["species_name"])
     species = list(filter(None, sorted(taxonList + synonymList)))
     generaList = [i.split()[0] for i in species]
     generaList = list(dict.fromkeys(generaList))
-    return generaList
+    print(generaList)
+    return taxonList, generaList
 
 
 def taxonParser(taxon):
@@ -303,7 +299,11 @@ def boldOutput(file, line):
         f.write("\n")
 
 
-def create_database_files():
+def create_nsr_synonym():
+    #creates nsr_synonym.csv.
+    #merge nsr export synonyms (this script) with nsr species (made in R)
+    # merged when taxon name and taxon author are the same as species name
+    # identification reference
     df_synonyms = pd.read_csv("../../data/exports/nsr_export_synoynyms.csv")
     df_species = pd.read_csv("../../data/insert_files/nsr_species.csv")
     df_joined = pd.merge(df_synonyms, df_species, how="inner",
@@ -313,7 +313,36 @@ def create_database_files():
     df_joined = df_joined[["synonym_id", "species_id", "synonym_name",
                      "identification_reference_x"]].rename(
         columns={'identification_reference_x':'identification_reference'})
-    df_joined.to_csv("../../data/insert_files/nsr_synonym.csv", sep=",", index=False)
+    df_joined.to_csv("../../data/insert_files/nsr_synonym.csv",
+                     sep=",", index=False)
+
+def create_database_and_marker():
+    # make database csv
+    database_data = {'database_name': ['NATURALIS', 'BOLD', 'NCBI',
+                                   'WFIB', 'NSR', 'SILVA',
+                                   'UNITE']}
+
+    database_df = pd.DataFrame(database_data)
+    database_df.insert(0, "database_id", database_df.index)
+    database_df.to_csv("../../data/insert_files/database.csv",
+                     sep=",", index=False)
+    # make marker csv
+    marker_data = {'marker_name': ['UNKNOWN', 'COI-3P', 'COI-5P',
+                                  '16S', '12S', '18S',
+                                  'ITS', 'matK', 'rbcL', 'trnL']}
+    marker_df = pd.DataFrame(marker_data)
+    marker_df.insert(0, 'marker_id', marker_df.index)
+    marker_df.to_csv("../../data/insert_files/marker.csv",
+                       sep=",", index=False)
+
+def create_species_marker():
+    df_species = pd.read_csv("../../data/insert_files/nsr_species.csv")
+    df_bold  = pd.read_csv("../../data/exports/bold_match.tsv",
+                                       usecols=['species_name', 'markercode',
+                                                'sequenceID',
+                                                'identification_reference'])
+    print(df_bold)
+
 
 def main():
     """ Main logic. Powers each function with their respective input. """
@@ -323,12 +352,15 @@ def main():
     open(args.outdir1 + "/" + "bold_all.tsv", 'w+').close()
 
     # Run functions
-    taxonList = nsrTaxonomy()
+
     synonymList, synonymDict = nsrSynonyms()
-    generaList = nsrGenera(taxonList, synonymList)
+    taxonList, generaList = nsrGenera(synonymList)
     boldExtract(generaList)
-    boldNSR(taxonList, synonymList, synonymDict)
-    create_database_files()
+    # boldNSR(taxonList, synonymList, synonymDict)
+    # create_nsr_synonym()
+    # create_database_and_marker()
+    create_species_marker()
+
     print("Done")
 
 

@@ -9,3 +9,7 @@ class Database(Base):
     def __repr__(self):
         return "<Database(database_name='%s')>" % (
                          self.database_name)
+
+
+    #extra table idea: this one to marker_database
+    # new one database with info of database (link, full name etc)

@@ -46,7 +46,7 @@ the code:
 # source (in RStudio: Session > Set working directory > To source file location)
 setwd('..')
 REPO_HOME <- paste(dirname(getwd()), sep = "")
-
+REPO_HOME
 getwd()
 ```
 
@@ -65,10 +65,10 @@ output from the [script](../script/custom_databases.py)
 ```{r datasets, include=FALSE}
 ## Load species and synonyms from the NSR files, respectively
 
-nsrSynonyms.file <- sprintf('%s/data/insert_files/nsr_synonym.csv', REPO_HOME)
-nsrSynonyms <- read.csv(nsrSynonyms.file, encoding="UTF-8")
-nsrSpecies.file <- sprintf("%s/data/insert_files/nsr_species.csv", REPO_HOME)
-nsrSpecies <- read.csv(nsrSpecies.file, encoding="UTF-8")
+# nsrSynonyms.file <- sprintf('%s/data/insert_files/nsr_synonym.csv', REPO_HOME)
+# nsrSynonyms <- read.csv(nsrSynonyms.file, encoding="UTF-8")
+# nsrSpecies.file <- sprintf("%s/data/insert_files/nsr_species.csv", REPO_HOME)
+# nsrSpecies <- read.csv(nsrSpecies.file, encoding="UTF-8")
 
 
 ```
@@ -83,53 +83,102 @@ their higher classification.
 
 ```{r nsrBackbone, include=FALSE}
 ## Removed the last empty row by hand (error)
-nsrTaxonomy.file <- sprintf('%s/data/input_files/NSR_taxonomy1.csv', REPO_HOME)
+nsrTaxonomy.file <- sprintf('%s/data/input_files/NSR_taxonomy.csv', REPO_HOME)
 ## Skip first few lines untill header
-nsrTaxonomy <- read.csv(nsrTaxonomy.file, encoding="UTF-8", skip = 4, sep = "",  na.strings="NA")
+nsrTaxonomy <- read.csv(nsrTaxonomy.file, encoding="UTF-8", skip = 4, sep = "\t",  na.strings="NA")
 ## Get the necessary rows (scientific_name, common_name, rank, nsr_id)
-nsrTaxonomy <- subset(nsrTaxonomy, select = c(1,2,4,6))  
+nsrTaxonomy <- subset(nsrTaxonomy, select = c(1,2,3))  
 nsrTaxonomy <- nsrTaxonomy %>% filter(rank == "soort")
 
 ## Split genus, species and identification reference
-nieuw <- str_split_fixed(nsrTaxonomy$scientific_name., " ", 3)
+nsrTaxonomy <- str_split_fixed(nsrTaxonomy$scientific_name, " ", 3)
 ## Drop empty lines (CHECK)
-df_mtx <- as.data.frame(nieuw) %>% drop_na()
+nsrTaxonomy <- as.data.frame(nsrTaxonomy) %>% drop_na()
 ## Give columnnames
-colnames(df_mtx) <- c("genus", "species", "identification_reference")
+colnames(nsrTaxonomy) <- c("genus", "species", "identification_reference")
  
 ## Remove parentheses for every identification reference 
-df_mtx$identification_reference <- gsub('[()]','',df_mtx$identification_reference) 
+nsrTaxonomy$identification_reference <- gsub('[()]','',nsrTaxonomy$identification_reference) 
 
 ## Merge the genus and species to binomial in new column
-df_mtx$species_name <- paste(df_mtx$genus, df_mtx$species)
+nsrTaxonomy$species_name <- paste(nsrTaxonomy$genus, nsrTaxonomy$species)
 
 ## Keep rows where species do not dots or parenthesis in their name
-df_mtx <-  df_mtx[grep('[()\\.]', df_mtx$species, invert = TRUE),]
+nsrTaxonomy <-  nsrTaxonomy[grep('[()\\.]', nsrTaxonomy$species, invert = TRUE),]
 
 ## Remove the × symbol in species_name from all the rows (are there for three species names)
-df_mtx$species_name <- gsub('[\\×]','',df_mtx$species_name)
+nsrTaxonomy$species_name <- gsub('[\\×]','',nsrTaxonomy$species_name)
 
 ## Keep rows where identification references do not have [] in their name (for an instance with [unknown])
-df_mtx <-  df_mtx[grep('[\\[\\]', df_mtx$identification_reference, invert = TRUE),]
+nsrTaxonomy <-  nsrTaxonomy[grep('[\\[\\]', nsrTaxonomy$identification_reference, invert = TRUE),]
 
 ## Fill empty strings with NA's so these rows can be dropped
-df_mtx <- df_mtx  %>% mutate_all(na_if,"")
+nsrTaxonomy <- nsrTaxonomy  %>% mutate_all(na_if,"")
 
 ## Drop rows containing NA's
-x <- na.omit(df_mtx)
+nsrTaxonomy <- na.omit(nsrTaxonomy)
 
 ## Add unique identifier counting from 0
-x$species_id <- seq.int(from = 0, to = nrow(x)-1)
+nsrTaxonomy$species_id <- seq.int(from = 0, to = nrow(nsrTaxonomy)-1)
 
 ## Keep and rearrange columns (species_id, species_name, identification_reference)
-x <- subset(x, select = c(5, 4, 3))  
+nsrSpecies <- subset(nsrTaxonomy, select = c(5, 4, 3))  
+nsrSpecies$species_name <- gsub("\t", '', nsrSpecies$species_name)
+nsrSpecies$identification_reference <- gsub("\t", '', nsrSpecies$identification_reference)
 
 
+write.csv(nsrSpecies, file=sprintf('%s/data/insert_files/nsr_species.csv', REPO_HOME), fileEncoding="utf-8", row.names = FALSE)
 ## Temp: Check what the differences are from B. Ankers to this one.
-difference <- (!nsrSpecies$species_name %in% x$species_name)
-not.in.x <- nsrSpecies[difference,]
-difference <- (!x$species_name %in% nsrSpecies$species_name)
-not.in.nsr <- x[difference,]
+##difference <- (!nsrSpecies$species_name %in% x$species_name)
+##not.in.x <- nsrSpecies[difference,]
+#difference <- (!x$species_name %in% nsrSpecies$species_name)
+#not.in.nsr <- x[difference,]
+
+
+
+
+# ## Removed the last empty row by hand (error)
+# nsrSynonyms.file <- sprintf('%s/data/input_files/NSR_synonyms.csv', REPO_HOME)
+# ## Skip first few lines untill header
+# nsrSynonyms <- read.csv(nsrSynonyms.file, encoding="UTF-8", skip = 4, sep = "",  na.strings="NA")
+# ## Get the necessary rows (scientific_name, common_name, rank, nsr_id)
+# nsrSynonyms <- subset(nsrSynonyms, select = c(1,3,4)) %>% filter(language == "Scientific") 
+# 
+# ## Split genus, species and identification reference
+# synonym_df <- str_split_fixed(nsrSynonyms$synonym, " ", 3)
+# taxon_df <- str_split_fixed(nsrSynonyms$taxon, " ", 3)
+# ## Drop empty lines (CHECK)
+# nsrSynonyms <- as.data.frame(cbind(synonym_df, taxon_df)) %>% drop_na()
+# nsrSynonyms$synonym_name <- paste(nsrSynonyms$V1, nsrSynonyms$V2)
+# nsrSynonyms$identification_reference <- nsrSynonyms$V3
+# nsrSynonyms$taxon_name <- paste(nsrSynonyms$V4, nsrSynonyms$V5)
+# nsrSynonyms$taxon_author <- nsrSynonyms$V6 
+# nsrSynonyms <- subset(nsrSynonyms, select = c("synonym_name", "identification_reference", "taxon_name", "taxon_author"))
+# 
+# ## Remove parentheses for every identification reference 
+# nsrSynonyms$identification_reference <- gsub('[()]','', nsrSynonyms$identification_reference) 
+# nsrSynonyms$taxon_author <- gsub('[()]','', nsrSynonyms$taxon_author) 
+# ## Keep rows where species do not dots or parenthesis in their name
+# nsrSynonyms <-  nsrSynonyms[grep('[()\\.]', nsrSynonyms$synonym_name, invert = TRUE),] 
+# nsrSynonyms <- nsrSynonyms[grep('[()\\.]', nsrSynonyms$taxon_name, invert = TRUE),]
+# 
+# ## Keep rows where identification references do not have [] in their name (for an instance with [unknown])
+# nsrSynonyms <-  nsrSynonyms[grep('[\\[\\]]', nsrSynonyms$identification_reference, invert = TRUE),]
+# nsrSynonyms <-  nsrSynonyms[grep('[\\[\\]', nsrSynonyms$taxon_author, invert = TRUE),]
+# 
+# ## Fill empty strings with NA's so these rows can be dropped
+# nsrSynonyms <- nsrSynonyms  %>% mutate_all(na_if,"")
+# 
+# ## Drop rows containing NA's
+# nsrSynonyms <- na.omit(nsrSynonyms)
+# 
+# ## Add unique identifier counting from 1
+# 
+# 
+# ## Keep and rearrange columns (species_id, species_name, identification_reference)
+# nsr_table <- inner_join(nsrSynonyms, nsrSpecies, by=c("taxon_name"="species_name",
+#            "taxon_author"="identification_reference"))
+
 
 
 
@@ -231,16 +280,16 @@ natSpecies$counts <- as.numeric(as.character(natSpecies$counts))
 natSpecies <- aggregate(natSpecies$counts,
                         by=list(natSpecies$species,natSpecies$sequenceID),sum)
 ## Rename columns
-colnames(natSpecies) <- c("species", "sequenceID", "counts")
+colnames(natSpecies) <- c("species", "sequence_id", "counts")
 ## Adopt respective taxonomic unit for synonymous names
-natSpecies <- left_join(natSpecies, nsrSynonyms[2:3], by=c("species"="synonym_name"))
-natSpecies <- left_join(natSpecies, nsrSpecies[1:2], by=c("species_id"))
-natSpecies$species_name <- coalesce(natSpecies$species_name, natSpecies$species)
-natSpecies <- natSpecies[,c(5,2,3)]
-## Match species against the NSR
-natCoverage <- merge(natSpecies, nsrSpecies[c(2:3)], by="species_name")
+# natSpecies <- left_join(natSpecies, nsrSynonyms[2:3], by=c("species"="synonym_name"))
+# natSpecies <- left_join(natSpecies, nsrSpecies[1:2], by=c("species_id"))
+# natSpecies$species_name <- coalesce(natSpecies$species_name, natSpecies$species)
+# natSpecies <- natSpecies[,c(5,2,3)]
+# ## Match species against the NSR
+# natCoverage <- merge(natSpecies, nsrSpecies[c(2:3)], by="species_name")
 
-write.csv(nsrBackbone, file=sprintf('%s/data/exports/naturalis.csv', REPO_HOME),
+write.csv(natSpecies, file=sprintf('%s/data/exports/naturalis.csv', REPO_HOME),
           row.names=FALSE, fileEncoding="utf-8")
 
 ## Clean up query variables

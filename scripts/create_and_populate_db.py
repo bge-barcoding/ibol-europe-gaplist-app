@@ -104,9 +104,10 @@ def bold_formatting_data(bfd_marker, bfd_species):
     # Merge dataframe with marker on marker_name
     df_joined = pd.merge(df_joined, bfd_marker, on="marker_name")
 
-    # Drop unessecary columns
+    # Drop unessecary columns and NA rows
     df_bold_species = df_joined.drop(
-        ['identification_reference', 'species_name', "marker_name"], axis=1)
+        ['identification_reference', 'species_name', "marker_name"], axis=1)\
+        .dropna()
 
     # Create new column database_id and give all bold data id 1 (corresponds to
     # database_name BOLD in database.csv)
@@ -129,24 +130,24 @@ def crs_formatting_data(cfd_species, cfd_synonym):
     # Drop the column counts from CRS data
     df_naturalis = pd.merge(df_naturalis, cfd_synonym[['species_id',
                                                        'synonym_name']],
-                            right_on="synonym_name", left_on="species").drop(
-        ['counts'], axis=1)
+                            right_on="synonym_name", left_on="species",
+                            how='left').drop(['counts'], axis=1)
 
     # Merge dataframe with nsr_species on species_id
     df_naturalis_species = pd.merge(df_naturalis,
                                     cfd_species[['species_id', 'species_name']],
-                                    on="species_id")
+                                    on="species_id", how='left')
 
-    # Keep values in species_name the same, unless it is NA. It then puts the
-    # value of species into species_name
-    df_naturalis['species_name'] = df_naturalis_species[
+    # Put values of column species in species_name if species_name is NA.
+    df_naturalis_species['species_name'] = df_naturalis_species[
         'species_name'].combine_first(
         df_naturalis_species['species'])
 
-    # ^ WHY? species name not used in merging?
-
-    # Keep columns species_id and sequence_id
-    df_naturalis_species = df_naturalis_species[["species_id", 'sequence_id']]
+    # Keep columns species_id and sequence_id, merge nsr_species by species_name
+    # to get corresponding species_id
+    df_naturalis_species = df_naturalis_species[['sequence_id', 'species_name']]
+    df_naturalis_species = pd.merge(df_naturalis_species, cfd_species,
+                                    on="species_name")
 
     # Create new column database_id and give all CRS data id 0 (corresponds to
     # database_name NATURALIS in database.csv)
@@ -156,6 +157,14 @@ def crs_formatting_data(cfd_species, cfd_synonym):
     # database_name UNKNOWN in marker.csv)
     df_naturalis_species.insert(2, 'marker_id', 0)
 
+    # Change species_id from float to string
+    df_naturalis_species["species_id"] = df_naturalis_species['species_id']\
+        .astype('Int64').astype('str')
+
+    # Select needed coluymns in the right order
+    df_naturalis_species = df_naturalis_species[['species_id',
+                                                 'database_id',
+                                                 'marker_id', "sequence_id"]]
     # Return merged and formatted dataframe
     return df_naturalis_species
 
@@ -181,8 +190,15 @@ def create_species_marker():
     df_species_markers = df_crs.append(df_bold)
 
     # Drop rows if the column species_id is empty and drop duplicate rows
-    df_species_markers = df_species_markers.dropna(
-        subset=['species_id']).drop_duplicates()
+    df_species_markers = df_species_markers.dropna().drop_duplicates()
+
+    # Change species_id from string to int
+    df_species_markers['species_id'] = df_species_markers['species_id']\
+        .astype('float').astype("Int64")
+
+    # Sort dataframe by species_id
+    df_species_markers = df_species_markers.sort_values(["species_id"],
+                                                        ignore_index=True)
 
     # Create column species_marker_id and use dataframe index to create
     # the values

@@ -230,27 +230,27 @@ def populate_tables(engine, csv_file, table_name):
     )
 
 
-def temp_relations_temp():
+def temp_relations():
     # Test if relationships between tables work properly (temp)
-    obj = session.query(SpeciesMarker, NsrSpecies) \
+    obj = session.query(SpeciesMarker, NsrSpecies)\
         .join(NsrSpecies) \
         .filter(SpeciesMarker.sequence_id == "RMNH.INS.710961@CRS")
     for i in obj:
         print(i.NsrSpecies.species_name + "\t" + i.SpeciesMarker.sequence_id)
-    obj = session.query(TreeNcbi, NsrSpecies, SpeciesMarker) \
-        .join(NsrSpecies, TreeNcbi.species_id == NsrSpecies.species_id) \
-        .join(SpeciesMarker, SpeciesMarker.species_id == NsrSpecies.species_id) \
+    obj = session.query(TreeNcbi, NsrSpecies, SpeciesMarker)\
+        .join(NsrSpecies, TreeNcbi.species_id == NsrSpecies.species_id)\
+        .join(SpeciesMarker, SpeciesMarker.species_id == NsrSpecies.species_id)\
         .filter(SpeciesMarker.sequence_id == "RMNH.INS.710961@CRS")
     for i in obj:
         print(i.TreeNcbi.name + "\t" + i.NsrSpecies.species_name)
-    obj = session.query(NsrSynonym, NsrSpecies, SpeciesMarker) \
-        .join(NsrSpecies, NsrSynonym.species_id == NsrSpecies.species_id) \
-        .join(SpeciesMarker, NsrSpecies.species_id == SpeciesMarker.species_id) \
+    obj = session.query(NsrSynonym, NsrSpecies, SpeciesMarker)\
+        .join(NsrSpecies, NsrSynonym.species_id == NsrSpecies.species_id)\
+        .join(SpeciesMarker, NsrSpecies.species_id == SpeciesMarker.species_id)\
         .filter(SpeciesMarker.species_id == 3)
     for i in obj:
         print(
-            i.NsrSpecies.species_name + "\t" + i.NsrSynonym.synonym_name + "\t" +
-            i.SpeciesMarker.sequence_id)
+            i.NsrSpecies.species_name + "\t" + i.NsrSynonym.synonym_name + "\t"
+            + i.SpeciesMarker.sequence_id)
     session.commit()
 
 
@@ -293,4 +293,4 @@ if __name__ == '__main__':
     session.commit()
 
     # Test if relationships between tables work properly (temp)
-    temp_relations_temp()
+    temp_relations()

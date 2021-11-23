@@ -130,14 +130,17 @@ def nsrSynonyms():
             pass
         else:
             synonymDict[synonym] = taxon
-    list = []
-    #print(pd.DataFrame(list, columns=["synonym_name", "identification_reference", "taxon_name", "taxon_author"]))
     # Write dictionary to file
-    with io.open("../../data/exports/nsr_export_synoynyms.csv", "w+", encoding="utf-8") as outfile:
-        outfile.write("synonym_name,identification_reference,taxon_name,taxon_author\n")
+    with io.open("../../data/exports/nsr_export_synoynyms.csv", "w+",
+                 encoding="utf-8") as outfile:
+        outfile.write("synonym_name,identification_reference,"
+                      "taxon_name,taxon_author\n")
         for key, value in synonymDict.items():
-            outfile.write('"%s","%s","%s","%s"' % (' '.join(str(key).split()[:2]), ' '.join(str(key).split()[2:]),
-                                                   ' '.join(str(value).split()[:2]), ' '.join(str(value).split()[2:])))
+            outfile.write('"%s","%s","%s","%s"'
+                          % (' '.join(str(key).split()[:2]),
+                             ' '.join(str(key).split()[2:]),
+                             ' '.join(str(value).split()[:2]),
+                             ' '.join(str(value).split()[2:])))
             outfile.write("\n")
     return [*synonymDict], synonymDict
 #NSR_synonyms.csv (handmatige download?)
@@ -160,7 +163,8 @@ def nsrGenera(synonymList):
         generaList: List of all unique genera
     """
     taxon = pd.read_csv("../../data/insert_files/nsr_species.csv")
-    taxonList = list(taxon["species_name"] + " " + taxon["identification_reference"])
+    taxonList = list(taxon["species_name"] + " " +
+                     taxon["identification_reference"])
     species = list(filter(None, sorted(taxonList + synonymList)))
     generaList = [i.split()[0] for i in species]
     generaList = list(dict.fromkeys(generaList))
@@ -189,7 +193,8 @@ def taxonParser(taxon):
     try:
         parsed_name = parser.parse()
         if parsed_name.isBinomial() is True:
-            scientific_name = str(parsed_name.genus) + " " + str(parsed_name.specificEpithet)
+            scientific_name = str(parsed_name.genus) + " " +\
+                              str(parsed_name.specificEpithet)
             if str(parsed_name.combinationAuthorship) != "<unknown>":
                 scientific_name += " " + str(parsed_name.combinationAuthorship)
             elif str(parsed_name.basionymAuthorship) != "<unknown>":
@@ -225,12 +230,17 @@ def boldExtract(genera):
     final = [genera[i * subset_size:(i + 1) * subset_size] for i in
              range((len(genera) + subset_size - 1) // subset_size)]
     for subset_genera in final:
-        source_urls = base_url + "|".join(subset_genera)[:-1:] +'&geo=Netherlands&format=tsv'
+        source_urls = base_url + "|".join(subset_genera)[:-1:]\
+                      +'&geo=Netherlands&format=tsv'
         # Download sequence data from BOLD using list of url's
         print('Sequence data retrieval...')
         r = http.request('GET', source_urls)
         data = io.BytesIO(r.data)
-        pd.read_csv(data, sep="\t", error_bad_lines=False, encoding='iso-8859-1').to_csv(args.outdir1+"/"+"bold_all.tsv", sep="\t", mode='a',  index=False)
+        pd.read_csv(data, sep="\t", error_bad_lines=False,
+                    encoding='iso-8859-1').to_csv(args.outdir1+
+                                                  "/"+"bold_all.tsv",
+                                                  sep="\t", mode='a',
+                                                  index=False)
 
 
 def boldNSR(species, synonyms, syn_dict):
@@ -250,11 +260,13 @@ def boldNSR(species, synonyms, syn_dict):
     # Loop over each genus(file) downloaded from BOLD
     print('Comparing sequence data to list of species...')
     # Open genera file from zip
-    tsvreader = csv.DictReader(open(args.outdir1+"/"+"bold_all.tsv"), dialect='excel-tab')
+    tsvreader = csv.DictReader(open(args.outdir1+"/"+"bold_all.tsv"),
+                               dialect='excel-tab')
     # Read each record
     for line in tsvreader:
        # Filter on Geographical site
-        bold_identification = re.sub('[()]', '', str(line['identification_reference']))
+        bold_identification = re.sub('[()]', '',
+                                     str(line['identification_reference']))
         bold_name = line['species_name'] + " " + bold_identification
         # Compare BOLD with NSR species names
         if (bold_name in species):
@@ -311,12 +323,6 @@ def main():
 
     synonymList, synonymDict = nsrSynonyms()
     taxonList, generaList = nsrGenera(synonymList)
-    boldExtract(generaList)
-    boldNSR(taxonList, synonymList, synonymDict)
-
-
-    synonymList, synonymDict = nsrSynonyms()
-    generaList = nsrGenera(taxonList, synonymList)
     boldExtract(generaList)
     boldNSR(taxonList, synonymList, synonymDict)
     print("Done")

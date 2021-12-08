@@ -1,6 +1,7 @@
 # Imports
 import os
 import pandas as pd
+import numpy as np
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm import sessionmaker
 from scripts.classes.database import Database
@@ -12,6 +13,8 @@ from scripts.classes.tree_ncbi import TreeNcbi
 from scripts.classes.nsr_synonym import NsrSynonym
 
 meta = MetaData()
+
+#HIER AL SEQUENCES IN FASTA REF FILE DOEN
 
 # Set path to data folder where exports data and the
 # database csv files are kept
@@ -87,7 +90,8 @@ def bold_formatting_data(bfd_marker, bfd_species):
     # Load data/exports/bold_match.csv (only needed columns are selected)
     # PATH is ../data/
     df_bold = pd.read_csv(PATH + "exports/bold_match.tsv", sep="\t", usecols=[
-        "species_name", "markercode", "sequenceID", "identification_reference"])
+        "species_name", "markercode", "sequenceID", "identification_reference",
+    'nucleotides']).dropna(subset=['nucleotides'])
 
     # Rename columns to correspond to database
     df_bold = df_bold.rename(columns={"markercode": "marker_name",
@@ -97,7 +101,19 @@ def bold_formatting_data(bfd_marker, bfd_species):
     df_bold["sequence_id"] = df_bold['sequence_id'].astype('Int64').astype(
         'str')
 
-    # Merge bold with nsr_species on species_name and identification_reference
+    # Make a header for fasta file
+    df_bold["fasta_header"] = ">" + df_bold["sequence_id"].astype(str) + "_" + \
+                              df_bold["marker_name"]
+
+    # Put header and sequences in fasta format
+    fasta_out = df_bold['fasta_header'] + "\n" + df_bold["nucleotides"]
+
+    # Save BOLD sequences and their respective header in a fastafile
+    np.savetxt(PATH + '/reference_db/reference_db.fasta', fasta_out.values,
+               fmt="%s")
+
+    # Merge bold df with nsr_species df on species_name and
+    # identification_reference
     df_joined = pd.merge(bfd_species, df_bold, how='right',
                          on=["species_name", "identification_reference"])
 
@@ -106,7 +122,8 @@ def bold_formatting_data(bfd_marker, bfd_species):
 
     # Drop unessecary columns and NA rows
     df_bold_species = df_joined.drop(
-        ['identification_reference', 'species_name', "marker_name"], axis=1)\
+        ['identification_reference', 'species_name', "marker_name",
+         'nucleotides', 'fasta_header'], axis=1)\
         .dropna()
 
     # Create new column database_id and give all bold data id 1 (corresponds to
@@ -234,13 +251,13 @@ def temp_relations():
     # Test if relationships between tables work properly (temp)
     obj = session.query(SpeciesMarker, NsrSpecies)\
         .join(NsrSpecies) \
-        .filter(SpeciesMarker.sequence_id == "RMNH.INS.710961@CRS")
+        .filter(SpeciesMarker.sequence_id == "RMNH.INS.710961")
     for i in obj:
         print(i.NsrSpecies.species_name + "\t" + i.SpeciesMarker.sequence_id)
     obj = session.query(TreeNcbi, NsrSpecies, SpeciesMarker)\
         .join(NsrSpecies, TreeNcbi.species_id == NsrSpecies.species_id)\
         .join(SpeciesMarker, SpeciesMarker.species_id == NsrSpecies.species_id)\
-        .filter(SpeciesMarker.sequence_id == "RMNH.INS.710961@CRS")
+        .filter(SpeciesMarker.sequence_id == "RMNH.INS.710961")
     for i in obj:
         print(i.TreeNcbi.name + "\t" + i.NsrSpecies.species_name)
     obj = session.query(NsrSynonym, NsrSpecies, SpeciesMarker)\
@@ -294,3 +311,5 @@ if __name__ == '__main__':
 
     # Test if relationships between tables work properly (temp)
     temp_relations()
+
+

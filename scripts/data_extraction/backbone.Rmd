@@ -48,6 +48,9 @@ setwd('..')
 REPO_HOME <- paste(dirname(getwd()), sep = "")
 REPO_HOME
 getwd()
+
+
+
 ```
 
 ### Load data
@@ -110,7 +113,7 @@ nsrTaxonomy <-  nsrTaxonomy[grep('[()\\.]', nsrTaxonomy$species, invert = TRUE),
 nsrTaxonomy$species_name <- gsub('[\\×]','',nsrTaxonomy$species_name)
 
 ## Keep rows where identification references do not have [] in their name (for an instance with [unknown])
-nsrTaxonomy <-  nsrTaxonomy[grep('[\\[\\]', nsrTaxonomy$identification_reference, invert = TRUE),]
+nsrTaxonomy <-  nsrTaxonomy[grep('[\\×\\[\\]', nsrTaxonomy$identification_reference, invert = TRUE),]
 
 ## Fill empty strings with NA's so these rows can be dropped
 nsrTaxonomy <- nsrTaxonomy  %>% mutate_all(na_if,"")
@@ -119,6 +122,7 @@ nsrTaxonomy <- nsrTaxonomy  %>% mutate_all(na_if,"")
 nsrTaxonomy <- na.omit(nsrTaxonomy)
 
 ## Add unique identifier counting from 0
+nsrTaxonomy <- unique(nsrTaxonomy)
 nsrTaxonomy$species_id <- seq.int(from = 0, to = nrow(nsrTaxonomy)-1)
 
 ## Keep and rearrange columns (species_id, species_name, identification_reference)
@@ -220,7 +224,6 @@ for(x in 1:nrow(nsrSpecimens)){
 ## Remove parenthesis around the authority for consistency across data sets
 nsrBackbone$identification_reference = gsub("[()]", "", nsrBackbone$identification_reference)
 
-head(nsrBackbone,3)
 
 ## Match taxonomic data to respective species ID, by species name
 nsrBackbone <- left_join(nsrBackbone, nsrSpecies[1:2], by=c("species"="species_name")) %>%
@@ -362,4 +365,7 @@ write.csv(ncbiBackbone, file=sprintf('%s/data/insert_files/tree_ncbi.csv', REPO_
 
 ## Clean up query variables
 rm(x, i, row, list = ls()[grep("^c.", ls())])
+
+
+
 ```

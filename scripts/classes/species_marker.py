@@ -19,6 +19,6 @@ class SpeciesMarker(Base):
 
 #IDEA: method(s) that retrieves the sequence of the object using its sequence id and database_id
 
-
+#IDEA: add species
 
 

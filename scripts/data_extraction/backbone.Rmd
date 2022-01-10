@@ -33,6 +33,8 @@ library(stringr)
 library(d3Tree)
 library(billboarder)
 library(nbaR)
+library(readxl)
+
 ```
 
 In addition, here We define the global variables that we will reuse throughout
@@ -49,7 +51,8 @@ REPO_HOME <- paste(dirname(getwd()), sep = "")
 REPO_HOME
 getwd()
 
-
+wfbiTaxonomy.file <- sprintf('%s/data/input_files/WFBI_taxonomy.xlsx', REPO_HOME)
+wfbiTaxonomy <- read.csv(wfbiTaxonomy.file, encoding="UTF-8", sep = "\t",  na.strings="NA")
 
 ```
 

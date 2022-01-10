@@ -9,8 +9,27 @@ from Bio import Entrez, SeqIO, SearchIO
 from Bio.Blast import NCBIWWW
 import pandas as pd
 import numpy as np
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from scripts.classes.nsr_species import NsrSpecies
+from scripts.classes.species_marker import SpeciesMarker
+
 PATH = fileDir = os.path.join(os.path.dirname(
     os.path.realpath('__file__')), '../data/')
+import os
+import pandas as pd
+import numpy as np
+from sqlalchemy import create_engine, MetaData
+from sqlalchemy.orm import sessionmaker
+from scripts.classes.database import Database
+from scripts.classes.marker import Marker
+from scripts.classes.imports import *
+from scripts.classes.species_marker import SpeciesMarker
+from scripts.classes.nsr_species import NsrSpecies
+from scripts.classes.tree_ncbi import TreeNcbi
+from scripts.classes.nsr_synonym import NsrSynonym
+
 from Bio.Blast import NCBIXML
 
 def dump():
@@ -169,4 +188,76 @@ def report():
     print(df)
 
 
-report()
+#report()
+# engine = create_engine(
+#         'postgresql://postgres:password@localhost:5432/barcodes', echo=False)
+#
+# # Create session
+# Session = sessionmaker(engine)
+# session = Session()
+# species_markers = session.query(SpeciesMarker).all()
+#
+# for class_instance in session.query(SpeciesMarker).all():
+#     print(class_instance.sequence_id)
+# df = pd.read_csv(PATH + "exports/bold_match.tsv", sep="\t", usecols=[
+#         "species_name", "markercode", "sequenceID", "identification_reference",
+#         'bin_uri', 'recordID', 'sampleid', 'processid', "nucleotides"])
+# pd.set_option('display.max_columns', None)
+#
+# http = urllib3.PoolManager()
+#
+# base_url = 'http://v4.boldsystems.org/index.php/API_Public/combined?ids=RMNH.INS.228912&format=tsv'
+# r = http.request('GET', base_url)
+# data = io.BytesIO(r.data)
+# print(pd.read_csv(data, sep="\t", error_bad_lines=False,
+#                     encoding='iso-8859-1'))
+#
+#
+# session.commit()
+
+# df = pd.read_excel(PATH + "input_files/WFBI_taxonomy.xlsx",
+#                    usecols=['ID', "Taxon_name", "Rank", "Name_status",
+#                             "Classification"], nrows=500)
+# pd.set_option('display.max_columns', None)
+# df = df[df['Rank'].isin(['sp.'])]
+# df = df[df['Name_status'].isin(['Legitimate'])]
+# lijst = df["Classification"].tolist()
+# for i in lijst:
+#     if len(i.split(",")) <= 5:
+#         print(i)
+
+
+
+
+# niet consistent! Niet ncbi. of het nsr backbone is kan pas checken na export
+#class of clade? regn = kingdom?
+#use case 10 = [species, subfamily, species?, ordo, subclass, class, subdivision, division, sub kingdom, kingdom] etc
+
+#10(opnieuw zonder species)
+# subfamily, species?, ordo, subclass, class, subdivision, division, sub kingdom, kingdom
+
+#9 (no subfamily)
+#genus, family, order, subclass, class, subdivision, division, sub kingdom, kingdom
+
+#8(no subclass)
+#genus, family, ordo, class, subdivision, division, sub kingdom, kingdom
+
+#7
+#genus, subclass, class, subdivision, division, sub kingdom, kingdom
+
+#5
+# genus, class, division, sub kingdom, kingdom
+
+#4
+# genus, division, sub kingdom, kingdom
+#Fungi, Ascomycota, Ascomycetes, Abrothallus = genus, class, division, kingdom
+
+#3
+# genus, division, kingdom
+#verder checken, van links rechts vullen tot waar het hetzelfde is? als ze apart gaan zoals ncbi, anders zoals tree_nsr
+
+#2
+# genus, kingdom
+
+
+

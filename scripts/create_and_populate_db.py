@@ -11,6 +11,7 @@ from scripts.classes.species_marker import SpeciesMarker
 from scripts.classes.nsr_species import NsrSpecies
 from scripts.classes.tree_ncbi import TreeNcbi
 from scripts.classes.nsr_synonym import NsrSynonym
+from scripts.classes.naturalis_specimen import NaturalisSpecimen
 
 meta = MetaData()
 
@@ -23,16 +24,18 @@ PATH = fileDir = os.path.join(os.path.dirname(
 
 
 def create_nsr_synonym():
-    # *** UPDATE VARIABLE NAMES ***
     # Construct nsr_synonym.csv
     # Merge nsr_export_synonyms (bold_export.py) with nsr_species (backbone.Rmd)
     # Kept when taxon_name and taxon_author in nsr_export_synonyms are the same
     # as species_name and identification_reference in nsr species
 
     # PATH is ../data/
-    df_synonyms = pd.read_csv(PATH + "exports/nsr_export_synoynyms.csv")
+    # Load files (nsr_species.csv and nsr_export_synonyms.csv
+    df_synonyms_raw = pd.read_csv(PATH + "exports/nsr_export_synoynyms.csv")
     df_species = pd.read_csv(PATH + "insert_files/nsr_species.csv")
-    df_joined = pd.merge(df_synonyms, df_species, how="inner",
+
+    # Merge synonym names with corresponding species_id from nsr_species table
+    df_joined = pd.merge(df_synonyms_raw, df_species, how="inner",
                          left_on=["taxon_name", "taxon_author"],
                          right_on=["species_name", "identification_reference"])
 
@@ -40,14 +43,14 @@ def create_nsr_synonym():
     df_joined["synonym_id"] = df_joined.index
 
     # Keep specific columns and rename identification_reference
-    df_joined = df_joined[["synonym_id", "species_id", "synonym_name",
+    df_nsrsynonym = df_joined[["synonym_id", "species_id", "synonym_name",
                            "identification_reference_x"]].rename(
         columns={'identification_reference_x': 'identification_reference'})
 
     # Create nsr_synonyms.csv, 4 columns: synonym_id,
     # species_id, synonym_name and identification_reference
     # PATH is ../data/
-    df_joined.to_csv(PATH + "insert_files/nsr_synonym.csv",
+    df_nsrsynonym.to_csv(PATH + "insert_files/nsr_synonym.csv",
                      sep=",", index=False)
 
 
@@ -138,11 +141,18 @@ def bold_formatting_data(bfd_marker, bfd_species):
     return df_bold_species
 
 
-def crs_formatting_data(cfd_species, cfd_synonym):
-    # Load bold_match.csv (only needed columns are selected)
+def crs_formatting_data():
+    # Create dataframe with CRS data for table NaturalisSpecimen
+    # Table will contain two columns: species_id and naturalis_id
+
+    # Load nsr_species.csv and nsr_synonyms.csv into pandas dataframes
+    cfd_species = pd.read_csv(PATH + "insert_files/nsr_species.csv")
+    cfd_synonym = pd.read_csv(PATH + "insert_files/nsr_synonym.csv")
+
+    # Load naturalis.csv (constructed in backbone.Rmd)
     df_naturalis = pd.read_csv(PATH + "exports/naturalis.csv")
 
-    # Merge CRS data with nsr_synonyms (with only selected rows) where
+    # Merge CRS data with nsr_synonyms (with only the selected rows) where
     # CRS species column overlaps with nsr_synonyms synonym_name column.
     # Drop the column counts from CRS data
     df_naturalis = pd.merge(df_naturalis, cfd_synonym[['species_id',
@@ -166,45 +176,31 @@ def crs_formatting_data(cfd_species, cfd_synonym):
     df_naturalis_species = pd.merge(df_naturalis_species, cfd_species,
                                     on="species_name")
 
-    # Create new column database_id and give all CRS data id 0 (corresponds to
-    # database_name NATURALIS in database.csv)
-    df_naturalis_species.insert(1, 'database_id', 0)
-
-    # Create new column marker_id and give all CRS data id 0 (corresponds to
-    # database_name UNKNOWN in marker.csv)
-    df_naturalis_species.insert(2, 'marker_id', 0)
-
     # Change species_id from float to string
     df_naturalis_species["species_id"] = df_naturalis_species['species_id']\
         .astype('Int64').astype('str')
 
-    # Select needed coluymns in the right order
-    df_naturalis_species = df_naturalis_species[['species_id',
-                                                 'database_id',
-                                                 'marker_id', "sequence_id"]]
-    # Return merged and formatted dataframe
-    return df_naturalis_species
-
+    # Select needed columns in the right order and drop duplicate rows
+    df_naturalis_species = df_naturalis_species[["sequence_id", 'species_id']]\
+        .drop_duplicates()
+    # Change name to correct column name as in the database
+    # * Change it in .rmd scipt instead of here *
+    df_naturalis_species = df_naturalis_species.rename(columns={
+        "sequence_id": "naturalis_id"})
+    # Write datafame to naturalis.csv
+    df_naturalis_species.to_csv(PATH + "insert_files/naturalis_specimen.csv",
+                              sep=",", index=False)
 
 def create_species_marker():
-    # Load nsr_species.csv (backbone.Rmd), nsr_synonym.csv (bold_export.py),
+    # Load nsr_species.csv (made in backbone.Rmd)
     # and marker.csv (constructed in this script)
     df_species = pd.read_csv(PATH + "insert_files/nsr_species.csv")
-    df_synonym = pd.read_csv(PATH + "insert_files/nsr_synonym.csv")
     df_marker = pd.read_csv(PATH + "insert_files/marker.csv")
-
-    # Use crs_formatting_data() to create dataframe with CRS data
-    # Variables needed for this function are the dataframes made with
-    # nsr_species.csv and nsr_synonyms.csv
-    df_crs = crs_formatting_data(df_species, df_synonym)
 
     # Use bold_formatting_data() to create dataframe with crs data
     # Variables needed for this function are the dataframes made with
     # marker.csv and nsr_species.csv
-    df_bold = bold_formatting_data(df_marker, df_species)
-
-    # Combine the two dataframes to create one
-    df_species_markers = df_crs.append(df_bold)
+    df_species_markers = bold_formatting_data(df_marker, df_species)
 
     # Drop rows if the column species_id is empty and drop duplicate rows
     df_species_markers = df_species_markers.dropna().drop_duplicates()
@@ -228,16 +224,11 @@ def create_species_marker():
                               sep=",", index=False)
 
 
+
 def populate_tables(engine, csv_file, table_name):
+    # Load needed file as a pandas dataframe
     df = pd.read_csv(PATH + "/insert_files/" + csv_file, sep=",", quotechar='"')
-    # Change column "sequenceID" to "sequence_id" (temp)
-    # Will be done automatically in data extraction
-    if csv_file == "species_markers.csv":
-        df = df.rename(columns={"sequenceID": "sequence_id"})
-    # Change column first row from NA to UNKNOWN (temp)
-    # Will be done automatically in data extraction
-    if csv_file == "markers.csv":
-        df.iloc[0] = "UNKNOWN"
+
     # Populate table with csv file contents
     df.to_sql(
         table_name,
@@ -251,13 +242,13 @@ def temp_relations():
     # Test if relationships between tables work properly (temp)
     obj = session.query(SpeciesMarker, NsrSpecies)\
         .join(NsrSpecies) \
-        .filter(SpeciesMarker.sequence_id == "RMNH.INS.710961")
+        .filter(SpeciesMarker.sequence_id == 4468561)
     for i in obj:
-        print(i.NsrSpecies.species_name + "\t" + i.SpeciesMarker.sequence_id)
+        print(i.NsrSpecies.species_name + "\t" + str(i.SpeciesMarker.sequence_id))
     obj = session.query(TreeNcbi, NsrSpecies, SpeciesMarker)\
         .join(NsrSpecies, TreeNcbi.species_id == NsrSpecies.species_id)\
         .join(SpeciesMarker, SpeciesMarker.species_id == NsrSpecies.species_id)\
-        .filter(SpeciesMarker.sequence_id == "RMNH.INS.710961")
+        .filter(SpeciesMarker.sequence_id == 4468561)
     for i in obj:
         print(i.TreeNcbi.name + "\t" + i.NsrSpecies.species_name)
     obj = session.query(NsrSynonym, NsrSpecies, SpeciesMarker)\
@@ -267,7 +258,13 @@ def temp_relations():
     for i in obj:
         print(
             i.NsrSpecies.species_name + "\t" + i.NsrSynonym.synonym_name + "\t"
-            + i.SpeciesMarker.sequence_id)
+            + str(i.SpeciesMarker.sequence_id))
+    obj = session.query(NsrSpecies, NaturalisSpecimen) \
+        .join(NsrSpecies, NsrSpecies.species_id == NaturalisSpecimen.species_id) \
+        .filter(NsrSpecies.species_id == 3)
+    for i in obj:
+        print(i.NsrSpecies.species_name + "\t"
+               + str(i.NaturalisSpecimen.naturalis_id))
     session.commit()
 
 
@@ -285,6 +282,7 @@ if __name__ == '__main__':
                                            SpeciesMarker.__table__,
                                            NsrSynonym.__table__,
                                            NsrSpecies.__table__,
+                                           NaturalisSpecimen.__table__,
                                            Database.__table__,
                                            Marker.__table__,
                                            ])
@@ -293,20 +291,29 @@ if __name__ == '__main__':
     # Create tables if they do not exist
     Base.metadata.create_all(engine)
 
-    # Construct csv files from export data (backbone.Rmd & bold_export.py)
+    # Construct csv files from export data (extracted with backbone.Rmd,
+    # bold_export.py or manually downloaded )
     # Formats it so it can be inserted into the database
     create_nsr_synonym()
+    crs_formatting_data()
     create_database_and_marker()
     create_species_marker()
 
-    # Populate tables using populate_tables() function
+    # Populate all tables using populate_tables() function
     populate_tables(engine, "tree_ncbi.csv", "tree_ncbi")
+
     populate_tables(engine, "tree_nsr.csv", "tree_nsr")
+
     populate_tables(engine, "species_marker.csv", "species_marker")
+
+    populate_tables(engine, "naturalis_specimen.csv", "naturalis_specimen")
+
     populate_tables(engine, "database.csv", "database")
+
     populate_tables(engine, "marker.csv", "marker")
     populate_tables(engine, "nsr_synonym.csv", "nsr_synonym")
     populate_tables(engine, "nsr_species.csv", "nsr_species")
+
     session.commit()
 
     # Test if relationships between tables work properly (temp)

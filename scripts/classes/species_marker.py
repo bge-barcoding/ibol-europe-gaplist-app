@@ -12,6 +12,9 @@ class SpeciesMarker(Base):
     database = relationship("Database", backref=backref("SpeciesMarkers", cascade="all, delete"))
     marker_id = Column(Integer, ForeignKey('marker.marker_id'))
     marker = relationship("Marker", backref=backref("SpeciesMarkers", cascade="all, delete"))
+    # genbank_accession = Column(String(4))
+    # bin_uri = Column(String(12))
+
     def __repr__(self):
         return "<SpeciesMarker(sequence_id='%s')>" % (
                          self.sequence_id)
@@ -20,5 +23,4 @@ class SpeciesMarker(Base):
 #IDEA: method(s) that retrieves the sequence of the object using its sequence id and database_id
 
 #IDEA: add species
-
 

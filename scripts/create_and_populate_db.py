@@ -94,7 +94,7 @@ def bold_formatting_data(bfd_marker, bfd_species):
     # PATH is ../data/
     df_bold = pd.read_csv(PATH + "exports/bold_match.tsv", sep="\t", usecols=[
         "species_name", "markercode", "sequenceID", "identification_reference",
-    'nucleotides']).dropna(subset=['nucleotides'])
+    'nucleotides', 'bin_uri', 'genbank_accession']).dropna(subset=['nucleotides'])
 
     # Rename columns to correspond to database
     df_bold = df_bold.rename(columns={"markercode": "marker_name",
@@ -134,9 +134,10 @@ def bold_formatting_data(bfd_marker, bfd_species):
     df_bold_species.insert(0, "database_id", 1)
 
     # Change species_id from float to string
-    df_bold_species["species_id"] = df_bold_species['species_id'].astype(
-        'Int64').astype('str')
-
+    df_bold_species['species_id'] = df_bold_species['species_id']\
+        .astype('float').astype("Int64")
+    df_bold_species = df_bold_species.sort_values(["species_id"],
+                                   ignore_index=True)
     # Return merged and formatted dataframe
     return df_bold_species
 
@@ -234,7 +235,7 @@ def populate_tables(engine, csv_file, table_name):
         table_name,
         engine,
         index=False,
-        if_exists='replace'
+        if_exists='append'
     )
 
 
@@ -295,11 +296,12 @@ if __name__ == '__main__':
     # bold_export.py or manually downloaded )
     # Formats it so it can be inserted into the database
     create_nsr_synonym()
-    crs_formatting_data()
+    crs_formatting_data() # ** Change name to create_naturalis_specimen? **
     create_database_and_marker()
     create_species_marker()
 
     # Populate all tables using populate_tables() function
+    # Can be put in a loop later with list [tablename1, tamblename2]
     populate_tables(engine, "tree_ncbi.csv", "tree_ncbi")
 
     populate_tables(engine, "tree_nsr.csv", "tree_nsr")
@@ -311,7 +313,9 @@ if __name__ == '__main__':
     populate_tables(engine, "database.csv", "database")
 
     populate_tables(engine, "marker.csv", "marker")
+
     populate_tables(engine, "nsr_synonym.csv", "nsr_synonym")
+
     populate_tables(engine, "nsr_species.csv", "nsr_species")
 
     session.commit()

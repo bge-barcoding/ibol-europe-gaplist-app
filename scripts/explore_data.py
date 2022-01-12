@@ -1,4 +1,3 @@
-#identification_method
 import http
 import io
 import json
@@ -14,6 +13,8 @@ from sqlalchemy.orm import sessionmaker
 
 from scripts.classes.nsr_species import NsrSpecies
 from scripts.classes.species_marker import SpeciesMarker
+
+from bs4 import BeautifulSoup
 
 PATH = fileDir = os.path.join(os.path.dirname(
     os.path.realpath('__file__')), '../data/')
@@ -129,10 +130,6 @@ def internal_blast():
 
 
 
-
-
-from bs4 import BeautifulSoup
-
 def internal_bold():
     base_url = 'http://v3.boldsystems.org/index.php/Ids_xml?db=COX1_SPECIES_PUBLIC&sequence='
     http = urllib3.PoolManager()
@@ -187,6 +184,49 @@ def report():
     df = df_bold[df_bold.duplicated(subset=['processid', 'sequence_id'], keep=False)]
     print(df)
 
+def wfbi_backbone():
+    df = pd.read_excel(PATH + "input_files/WFBI_taxonomy.xlsx",
+                       usecols=['ID', "Taxon_name", "Rank", "Name_status",
+                                "Classification"], nrows=500)
+    pd.set_option('display.max_columns', None)
+    df = df[df['Rank'].isin(['sp.'])]
+    df = df[df['Name_status'].isin(['Legitimate'])]
+    lijst = df["Classification"].tolist()
+    for i in lijst:
+        if len(i.split(",")) <= 5:
+            print(i)
+
+
+    # niet consistent! Niet ncbi. of het nsr backbone is kan pas checken na export
+    # class of clade? regn = kingdom?
+    # use case 10 = [species, subfamily, species?, ordo, subclass, class, subdivision, division, sub kingdom, kingdom] etc
+    #
+    # 10(opnieuw zonder species)
+    # subfamily, species?, ordo, subclass, class, subdivision, division, sub kingdom, kingdom
+    #
+    # 9 (no subfamily)
+    # genus, family, order, subclass, class, subdivision, division, sub kingdom, kingdom
+    #
+    # 8(no subclass)
+    # genus, family, ordo, class, subdivision, division, sub kingdom, kingdom
+    #
+    # 7
+    # genus, subclass, class, subdivision, division, sub kingdom, kingdom
+    #
+    # 5
+    # genus, class, division, sub kingdom, kingdom
+    #
+    # 4
+    # genus, division, sub kingdom, kingdom
+    # Fungi, Ascomycota, Ascomycetes, Abrothallus = genus, class, division, kingdom
+    #
+    # 3
+    # genus, division, kingdom
+    # verder checken, van links rechts vullen tot waar het hetzelfde is? als ze apart gaan zoals ncbi, anders zoals tree_nsr
+    #
+    # 2
+    # genus, kingdom
+
 
 #report()
 # engine = create_engine(
@@ -214,50 +254,60 @@ def report():
 #
 #
 # session.commit()
+# Load data/exports/bold_match.csv (only needed columns are selected)
+    # PATH is ../data/
+def bold_metadata():
+    bfd_species = pd.read_csv(PATH + "insert_files/nsr_species.csv")
+    bfd_marker = pd.read_csv(PATH + "insert_files/marker.csv")
+    df_bold = pd.read_csv(PATH + "exports/bold_match.tsv", sep="\t", usecols=[
+        "species_name", "markercode", "sequenceID", "identification_reference",
+    'nucleotides', 'bin_uri', 'genbank_accession']).dropna(subset=['nucleotides'])
 
-# df = pd.read_excel(PATH + "input_files/WFBI_taxonomy.xlsx",
-#                    usecols=['ID', "Taxon_name", "Rank", "Name_status",
-#                             "Classification"], nrows=500)
-# pd.set_option('display.max_columns', None)
-# df = df[df['Rank'].isin(['sp.'])]
-# df = df[df['Name_status'].isin(['Legitimate'])]
-# lijst = df["Classification"].tolist()
-# for i in lijst:
-#     if len(i.split(",")) <= 5:
-#         print(i)
+    # Rename columns to correspond to database
+    df_bold = df_bold.rename(columns={"markercode": "marker_name",
+                                      "sequenceID": "sequence_id"})
+
+    # Change sequence_id from float to string
+    df_bold["sequence_id"] = df_bold['sequence_id'].astype('Int64').astype(
+        'str')
+
+    # Make a header for fasta file
+    df_bold["fasta_header"] = ">" + df_bold["sequence_id"].astype(str) + "_" + \
+                              df_bold["marker_name"]
+
+    # Put header and sequences in fasta format
+    fasta_out = df_bold['fasta_header'] + "\n" + df_bold["nucleotides"]
+
+    # Save BOLD sequences and their respective header in a fastafile
+    np.savetxt(PATH + '/reference_db/reference_db.fasta', fasta_out.values,
+               fmt="%s")
+
+    # Merge bold df with nsr_species df on species_name and
+    # identification_reference
+    df_joined = pd.merge(bfd_species, df_bold, how='right',
+                         on=["species_name", "identification_reference"])
+
+    # Merge dataframe with marker on marker_name
+    df_joined = pd.merge(df_joined, bfd_marker, on="marker_name")
+
+    # Drop unessecary columns and NA rows
+    df_bold_species = df_joined.drop(
+        ['identification_reference', 'species_name', "marker_name",
+         'nucleotides', 'fasta_header'], axis=1)\
+        .dropna()
+
+    # Create new column database_id and give all bold data id 1 (corresponds to
+    # database_name BOLD in database.csv)
+    df_bold_species.insert(0, "database_id", 1)
+
+    # Change species_id from float to string
+    df_bold_species['species_id'] = df_bold_species['species_id']\
+        .astype('float').astype("Int64")
+    df_bold_species = df_bold_species.sort_values(["species_id"],
+                                   ignore_index=True)
+    # Return merged and formatted dataframe
+    print(df_bold_species['genbank_accession'])
 
 
 
-
-# niet consistent! Niet ncbi. of het nsr backbone is kan pas checken na export
-#class of clade? regn = kingdom?
-#use case 10 = [species, subfamily, species?, ordo, subclass, class, subdivision, division, sub kingdom, kingdom] etc
-
-#10(opnieuw zonder species)
-# subfamily, species?, ordo, subclass, class, subdivision, division, sub kingdom, kingdom
-
-#9 (no subfamily)
-#genus, family, order, subclass, class, subdivision, division, sub kingdom, kingdom
-
-#8(no subclass)
-#genus, family, ordo, class, subdivision, division, sub kingdom, kingdom
-
-#7
-#genus, subclass, class, subdivision, division, sub kingdom, kingdom
-
-#5
-# genus, class, division, sub kingdom, kingdom
-
-#4
-# genus, division, sub kingdom, kingdom
-#Fungi, Ascomycota, Ascomycetes, Abrothallus = genus, class, division, kingdom
-
-#3
-# genus, division, kingdom
-#verder checken, van links rechts vullen tot waar het hetzelfde is? als ze apart gaan zoals ncbi, anders zoals tree_nsr
-
-#2
-# genus, kingdom
-
-
-
+bold_metadata()

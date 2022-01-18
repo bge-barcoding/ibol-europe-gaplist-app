@@ -4,13 +4,12 @@ from scripts.classes.imports import *
 class TreeNcbi(Base):
     __tablename__ = 'tree_ncbi'
     tax_id = Column(Integer, primary_key=True)
-    species_id = Column(Integer, ForeignKey('nsr_species.species_id'),
-                        primary_key=True)
+    species_id = Column(Integer, ForeignKey('nsr_species.species_id'))
     nsrspecies = relationship("NsrSpecies",
                               backref=backref("tree_ncbi",
                                               cascade="all, delete"))
     parent_tax_id = Column(Integer, primary_key=True)
-    rank = Column(String)
+    rank = Column(String, primary_key=True)
     name = Column(String)
 
 

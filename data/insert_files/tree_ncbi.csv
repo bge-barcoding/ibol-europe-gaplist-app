@@ -1,5 +1,5 @@
 "tax_id","species_id","parent_tax_id","rank","name"
-"131567",,,"no rank","cellular organisms"
+
 "2759",,"131567","superkingdom","Eukaryota"
 "33154",,"2759","clade","Opisthokonta"
 "33208",,"33154","kingdom","Metazoa"

@@ -10,12 +10,9 @@ import pandas as pd
 import numpy as np
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-
 from scripts.classes.nsr_species import NsrSpecies
 from scripts.classes.species_marker import SpeciesMarker
-
 from bs4 import BeautifulSoup
-
 PATH = fileDir = os.path.join(os.path.dirname(
     os.path.realpath('__file__')), '../data/')
 import os
@@ -32,7 +29,8 @@ from scripts.classes.tree_ncbi import TreeNcbi
 from scripts.classes.nsr_synonym import NsrSynonym
 
 from Bio.Blast import NCBIXML
-
+import time
+from ete3 import NCBITaxa
 def dump():
     # bold = pd.read_csv(PATH + 'exports/bold_match.tsv', sep="\t")
     # text_file = open("metadata.txt", "a+")
@@ -310,4 +308,52 @@ def bold_metadata():
 
 
 
-bold_metadata()
+
+from Bio import Entrez
+
+def entrez():
+    species_pd = pd.read_csv(PATH + "/insert_files_banker/nsr_species.csv")
+    species_list = species_pd['species_name'].tolist()
+    Entrez.email = ""
+    ids = []
+    #species = "Erodium carvifolium"
+    #species = species.replace(" ", "+").strip()
+    for i in species_list:
+        search = Entrez.esearch(term=i, db="taxonomy", retmode="xml")
+        record = Entrez.read(search)
+        print("...")
+        if record["Count"] != "0":
+            ids.append(record["IdList"][0])
+    print(ids)
+
+
+def ncbi_tree():
+    ncbi = NCBITaxa()
+    species_pd = pd.read_csv(PATH + "/insert_files_banker/nsr_species.csv")
+    species_list = species_pd['species_name'].tolist()
+    # {9443: u'Primates', 9606: u'Homo sapiens'}
+
+    name2taxid = ncbi.get_name_translator(species_list)
+    clean_d = {k: str(v).strip("[]") for k, v in name2taxid.items()}
+    df = pd.DataFrame(clean_d.items(), columns=["name", "tax_id"])
+    output = pd.DataFrame()
+    pd.set_option('display.max_columns', None)
+    for i in df["tax_id"]:
+        lineage = ncbi.get_lineage(i)[1::]
+        values = list(ncbi.get_taxid_translator(lineage).values())
+        keys = list(ncbi.get_rank(lineage).values())
+        placeholder = {k: v for k, v in zip(keys, values)}
+        placeholder["tax_id"] = i
+        output = output.append(placeholder, ignore_index=True)
+    df_joined = pd.merge(output, species_pd, how="inner",
+                         left_on=["species"],
+                         right_on=["species_name"])
+    print(df_joined.drop(columns=['species_name',
+                                  'identification_reference']))  # rearrange columns (neet to know the order) a
+    # and drop ranks that are unrelevent
+
+
+start = time.time()
+ncbi_tree()
+end = time.time()
+print(end - start)

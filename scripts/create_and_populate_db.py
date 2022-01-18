@@ -15,6 +15,7 @@ from scripts.classes.naturalis_specimen import NaturalisSpecimen
 
 meta = MetaData()
 
+
 #HIER AL SEQUENCES IN FASTA REF FILE DOEN
 
 # Set path to data folder where exports data and the
@@ -136,8 +137,17 @@ def bold_formatting_data(bfd_marker, bfd_species):
     # Change species_id from float to string
     df_bold_species['species_id'] = df_bold_species['species_id']\
         .astype('float').astype("Int64")
+
+    # Sort dataframe by species_id
     df_bold_species = df_bold_species.sort_values(["species_id"],
                                    ignore_index=True)
+
+    # Some genbank accession are "Pending (#...), they are now kept because
+    # the rest of the BOLD record is annotated. To remove them uncomment the
+    # two lines beneath.
+    # df_bold_species = df_bold_species[df_bold_species["genbank_accession"]
+    #                                       .str.contains("Pending") == False]
+
     # Return merged and formatted dataframe
     return df_bold_species
 
@@ -302,21 +312,27 @@ if __name__ == '__main__':
 
     # Populate all tables using populate_tables() function
     # Can be put in a loop later with list [tablename1, tamblename2]
-    populate_tables(engine, "tree_ncbi.csv", "tree_ncbi")
+    populate_tables(engine, "nsr_species.csv", "nsr_species")
+
+    #populate_tables(engine, "tree_ncbi.csv", "tree_ncbi") # BUG, prototype data incorrect
 
     populate_tables(engine, "tree_nsr.csv", "tree_nsr")
-
-    populate_tables(engine, "species_marker.csv", "species_marker")
-
-    populate_tables(engine, "naturalis_specimen.csv", "naturalis_specimen")
 
     populate_tables(engine, "database.csv", "database")
 
     populate_tables(engine, "marker.csv", "marker")
 
+    populate_tables(engine, "species_marker.csv", "species_marker")
+
+    populate_tables(engine, "naturalis_specimen.csv", "naturalis_specimen")
+
+
+
+
+
     populate_tables(engine, "nsr_synonym.csv", "nsr_synonym")
 
-    populate_tables(engine, "nsr_species.csv", "nsr_species")
+
 
     session.commit()
 

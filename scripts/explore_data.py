@@ -3,6 +3,8 @@ import io
 import json
 import os
 import glob
+import re
+
 import urllib3
 from Bio import Entrez, SeqIO, SearchIO
 from Bio.Blast import NCBIWWW
@@ -13,6 +15,7 @@ from sqlalchemy.orm import sessionmaker
 from scripts.classes.nsr_species import NsrSpecies
 from scripts.classes.species_marker import SpeciesMarker
 from bs4 import BeautifulSoup
+
 PATH = fileDir = os.path.join(os.path.dirname(
     os.path.realpath('__file__')), '../data/')
 import os
@@ -31,6 +34,8 @@ from scripts.classes.nsr_synonym import NsrSynonym
 from Bio.Blast import NCBIXML
 import time
 from ete3 import NCBITaxa
+
+
 def dump():
     # bold = pd.read_csv(PATH + 'exports/bold_match.tsv', sep="\t")
     # text_file = open("metadata.txt", "a+")
@@ -58,8 +63,10 @@ def dump():
     # r.auto_close = False
     # for line in io.TextIOWrapper(r):
     #     print(line)
-    species_marker = pd.read_csv(PATH + 'insert_files/species_marker.csv', sep=",")
-    duplicates = species_marker[species_marker.duplicated(['sequence_id'], keep=False)]
+    species_marker = pd.read_csv(PATH + 'insert_files/species_marker.csv',
+                                 sep=",")
+    duplicates = species_marker[
+        species_marker.duplicated(['sequence_id'], keep=False)]
     # for i in duplicates['sequence_id']:
     #     print(duplicates.loc[duplicates['sequence_id'] == i])
     bold = species_marker.loc[species_marker['database_id'] == 1]
@@ -68,10 +75,9 @@ def dump():
     bold_duplicates = bold[bold.duplicated(['sequence_id'], keep=False)]
     print(bold_duplicates)
     # print(species_marker.loc[species_marker['database_id'] == 0])
-    #print(species_marker[species_marker.duplicated(['sequence_id', 'marker_id'], keep=False)])
+    # print(species_marker[species_marker.duplicated(['sequence_id', 'marker_id'], keep=False)])
     # for i in bold_duplicates['sequence_id']:
     #     print(bold_duplicates.loc[bold_duplicates['sequence_id'] == i])
-
 
 
 def internal():
@@ -88,7 +94,7 @@ def internal():
             genus = sequence.id.split("_")[1]
             species = sequence.id.split("_")[2]
             genus_species = species_pd['species_name'].str.split(r"\s", n=1,
-                                                              expand=True)
+                                                                 expand=True)
             genus_match = genus_species[
                 genus_species[0].str.contains('^%s.*' % genus) == True]
             species_match = genus_match[
@@ -108,24 +114,23 @@ def internal():
                     print(species_match)
 
 
-
 def internal_blast():
     files = glob.glob(PATH + "/exports/*.fasta")
     species_pd = pd.read_csv(PATH + "/insert_files/nsr_species.csv")
     synonym_pd = pd.read_csv(PATH + "/insert_files/nsr_synonym.csv")
     fasta_sequences = SeqIO.parse(
-         open(PATH + "exports/test.fasta"), 'fasta')
+        open(PATH + "exports/test.fasta"), 'fasta')
     print(len(species_pd['species_name'].unique()))
     print(len(species_pd))
-    #record = SeqIO.read(files[0], format="fasta")
+    # record = SeqIO.read(files[0], format="fasta")
     for seq in fasta_sequences:
-        result_handles = NCBIWWW.qblast("blastn", "nt", seq.format("fasta"), hitlist_size=2)
-        #print(result_handles)
-        #print(result_handles.read())
+        result_handles = NCBIWWW.qblast("blastn", "nt", seq.format("fasta"),
+                                        hitlist_size=2)
+        # print(result_handles)
+        # print(result_handles.read())
         soup = BeautifulSoup(result_handles.read(), 'xml')
 
         print(seq.id, "\t", soup.find('Hit_accession').text)
-
 
 
 def internal_bold():
@@ -179,8 +184,10 @@ def report():
     print('Unieke sequence_ids', len(df_bold['sequence_id'].unique()),
           "NaN sequence_ids", df_bold['sequence_id'].isna().sum())
     print(df_bold['sampleid'].value_counts())
-    df = df_bold[df_bold.duplicated(subset=['processid', 'sequence_id'], keep=False)]
+    df = df_bold[
+        df_bold.duplicated(subset=['processid', 'sequence_id'], keep=False)]
     print(df)
+
 
 def wfbi_backbone():
     df = pd.read_excel(PATH + "input_files/WFBI_taxonomy.xlsx",
@@ -193,7 +200,6 @@ def wfbi_backbone():
     for i in lijst:
         if len(i.split(",")) <= 5:
             print(i)
-
 
     # niet consistent! Niet ncbi. of het nsr backbone is kan pas checken na export
     # class of clade? regn = kingdom?
@@ -226,7 +232,7 @@ def wfbi_backbone():
     # genus, kingdom
 
 
-#report()
+# report()
 # engine = create_engine(
 #         'postgresql://postgres:password@localhost:5432/barcodes', echo=False)
 #
@@ -253,13 +259,14 @@ def wfbi_backbone():
 #
 # session.commit()
 # Load data/exports/bold_match.csv (only needed columns are selected)
-    # PATH is ../data/
+# PATH is ../data/
 def bold_metadata():
     bfd_species = pd.read_csv(PATH + "insert_files/nsr_species.csv")
     bfd_marker = pd.read_csv(PATH + "insert_files/marker.csv")
     df_bold = pd.read_csv(PATH + "exports/bold_match.tsv", sep="\t", usecols=[
         "species_name", "markercode", "sequenceID", "identification_reference",
-    'nucleotides', 'bin_uri', 'genbank_accession']).dropna(subset=['nucleotides'])
+        'nucleotides', 'bin_uri', 'genbank_accession']).dropna(
+        subset=['nucleotides'])
 
     # Rename columns to correspond to database
     df_bold = df_bold.rename(columns={"markercode": "marker_name",
@@ -291,7 +298,7 @@ def bold_metadata():
     # Drop unessecary columns and NA rows
     df_bold_species = df_joined.drop(
         ['identification_reference', 'species_name', "marker_name",
-         'nucleotides', 'fasta_header'], axis=1)\
+         'nucleotides', 'fasta_header'], axis=1) \
         .dropna()
 
     # Create new column database_id and give all bold data id 1 (corresponds to
@@ -299,25 +306,24 @@ def bold_metadata():
     df_bold_species.insert(0, "database_id", 1)
 
     # Change species_id from float to string
-    df_bold_species['species_id'] = df_bold_species['species_id']\
+    df_bold_species['species_id'] = df_bold_species['species_id'] \
         .astype('float').astype("Int64")
     df_bold_species = df_bold_species.sort_values(["species_id"],
-                                   ignore_index=True)
+                                                  ignore_index=True)
     # Return merged and formatted dataframe
     print(df_bold_species['genbank_accession'])
 
 
-
-
 from Bio import Entrez
+
 
 def entrez():
     species_pd = pd.read_csv(PATH + "/insert_files_banker/nsr_species.csv")
     species_list = species_pd['species_name'].tolist()
     Entrez.email = ""
     ids = []
-    #species = "Erodium carvifolium"
-    #species = species.replace(" ", "+").strip()
+    # species = "Erodium carvifolium"
+    # species = species.replace(" ", "+").strip()
     for i in species_list:
         search = Entrez.esearch(term=i, db="taxonomy", retmode="xml")
         record = Entrez.read(search)
@@ -329,31 +335,154 @@ def entrez():
 
 def ncbi_tree():
     ncbi = NCBITaxa()
-    species_pd = pd.read_csv(PATH + "/insert_files_banker/nsr_species.csv")
-    species_list = species_pd['species_name'].tolist()
-    # {9443: u'Primates', 9606: u'Homo sapiens'}
+    species_df = pd.read_csv(PATH + "/insert_files/nsr_species.csv")
+    species_list = species_df['species_name'].tolist()
 
+    # Get tax id for every species name
     name2taxid = ncbi.get_name_translator(species_list)
-    clean_d = {k: str(v).strip("[]") for k, v in name2taxid.items()}
-    df = pd.DataFrame(clean_d.items(), columns=["name", "tax_id"])
-    output = pd.DataFrame()
-    pd.set_option('display.max_columns', None)
-    for i in df["tax_id"]:
-        lineage = ncbi.get_lineage(i)[1::]
-        values = list(ncbi.get_taxid_translator(lineage).values())
-        keys = list(ncbi.get_rank(lineage).values())
-        placeholder = {k: v for k, v in zip(keys, values)}
-        placeholder["tax_id"] = i
-        output = output.append(placeholder, ignore_index=True)
-    df_joined = pd.merge(output, species_pd, how="inner",
+
+    # Rermove [] from tax id string
+    clean_dict = {k: str(v).strip("[]") for k, v in name2taxid.items()}
+
+    # Make dataframe from species_name with corresponding tax_id
+    df_tax = pd.DataFrame(clean_dict.items(), columns=["species_name",
+                                                       "tax_id"]).head(
+        20)
+    df_tree_ncbi = pd.DataFrame()
+
+    # Get lineage from every species and put into dataframe
+    for id in df_tax["tax_id"]:
+        lineage = ncbi.get_lineage(id)[1::]  # omit root taxid
+        rank = list(ncbi.get_taxid_translator(lineage).values())
+        name = list(ncbi.get_rank(lineage).values())
+        ordered_dict = {k: v for k, v in zip(name, rank)}
+        ordered_dict["tax_id"] = id
+        df_tree_ncbi = df_tree_ncbi.append(ordered_dict, ignore_index=True)
+
+    # Join tree dataframe with nsr_species on species names
+    df_joined_rank = pd.merge(df_tree_ncbi, species_df, how="inner",
                          left_on=["species"],
                          right_on=["species_name"])
-    print(df_joined.drop(columns=['species_name',
-                                  'identification_reference']))  # rearrange columns (neet to know the order) a
-    # and drop ranks that are unrelevent
+
+    # Drop columns
+    df_joined_rank = df_joined_rank.drop(columns=['species_name',
+                                        'identification_reference',
+                                        'species_id',
+                                        'tax_id'])  # rearrange columns (need to know the order)
+    # Get ranks
+    columns = df_joined_rank.columns
+
+    # Put ranks in dataframe with an id
+    df_rank = pd.DataFrame(columns=["rank", "r_id"])
+    df_rank['rank'] = columns
+    df_rank["r_id"] = df_rank.index
+
+    # Make dataframe per taxname with the rank id
+    df_name = pd.DataFrame(columns=['name_id', 'r_id', 'name'])
+    for rank in df_joined_rank:
+        for tax_name in list(set(df_joined_rank[rank].dropna())):
+            df_name = df_name.append({'r_id':
+                                          int(df_rank.loc[df_rank['rank']
+                                                          == rank][
+                                                  'r_id'].values),
+                                      'name': tax_name}, ignore_index=True)
+
+    # Give dataframe a name_id
+    df_name['name_id'] = df_name.index
+
+    # Join tree_ncbi dataframe with nsr_species dataframe on species names
+    df_joined_tree = pd.merge(df_tree_ncbi, species_df, how="inner",
+                           left_on=["species"],
+                           right_on=["species_name"])
+
+    # Make dataframe with name_id and species_id
+    # For all taxonomic levels there is a species_id and name_id combination
+    df_species_names = pd.DataFrame(columns=['name_id', 'species_id'])
+    for rank in df_joined_rank.columns:
+        joined = pd.merge(df_name, df_joined_tree[[rank, 'species_id']],
+                          left_on='name', right_on=rank)
+        df_species_names = pd.concat([df_species_names,
+                                     joined[['species_id', 'name_id']]])
+    df_species_names = df_species_names.drop_duplicates()
+
+    # df_species_names.to_csv(PATH + "exports/ncbi_species_name.csv", sep=',',
+    #                        index=False)
+    # df_rank.to_csv(PATH + "exports/ncbi_rank.csv", sep=',', index=False)
+    # df_name.to_csv(PATH + "exports/ncbi_name.csv", sep=',', index=False)
+
+    # tree = ncbi.get_topology(lineage, intermediate_nodes=True)
+    # lineage = re.split('(?=[A-Z][a-z]+,)', tree.get_ascii(attributes=["sci_name", 'rank']).strip().replace("-", ""))
+    # print(lineage)
+    # df = pd.DataFrame(columns=["rank", 'name'])
+    # for i in lineage:
+    #      df = df.append({'rank': i.split(", ")[1].strip('-'),
+    #             'name': i.split(", ")[0].strip('-')}, ignore_index=True)
+    # df = df.drop_duplicates(['rank', 'name'])
+    # print(df)
 
 
-start = time.time()
-ncbi_tree()
-end = time.time()
-print(end - start)
+
+# from treemaker import TreeMaker
+#
+# # zelfde proberen maar dan niet met tree maar met wat ik eerst deed
+# # species en genus er niet goed in + append werkt niet
+# start = time.time()
+# tree_nsr = pd.read_csv(PATH + "/insert_files/tree_nsr.csv")
+# tree_nsr = tree_nsr.drop(columns=['species_id', 'tax_id', 'identification_reference'])
+# tree_nsr = tree_nsr.transpose().values.tolist()[0:-1]
+# lijst = []
+# index = 0
+#
+# for i in tree_nsr[0:3]:
+#     index += 1
+#     titel = "n" + str(index)
+#     i = list(set(i))
+#     newlist = [x for x in i if pd.isnull(x) == False]
+#     print(newlist)
+#     string = ', '.join(newlist)
+#     lijst.append(list([titel, string]))
+# t = TreeMaker()
+#
+# taxa = [
+#     ('A1', 'family a, subgroup 1'),
+#     ('A2', 'family a, subgroup 2'),
+#     ('B1a', 'family b, subgroup 1'),
+#     ('B1b', 'family b, subgroup 1'),
+#     ('B2', 'family b, subgroup 2'),
+# ]
+#
+# t = TreeMaker()
+# t.add_from(taxa)
+#
+#
+# print(t.write())
+node_to_children = {}
+tree_nsr = pd.read_csv(PATH + "/insert_files/tree_nsr.csv")
+df = tree_nsr.drop(columns=['species_id', 'tax_id', 'identification_reference'])
+
+#iterate over dataframe row-wise. Assuming that every row stands for one complete branch of the tree
+for row in df.itertuples():
+    #remove index at position 0 and elements that contain no child ("")
+    row_list = [element for element in row[1:] if element != ""]
+    for i in range(len(row_list)-1):
+        if row_list[i] in node_to_children.keys():
+            #parent entry already existing
+            if row_list[i+1] in node_to_children[row_list[i]].keys():
+                #entry itself already existing --> next
+                continue
+            else:
+                #entry not existing --> update dict and add the connection
+                node_to_children[row_list[i]].update({row_list[i+1]:0})
+        else:
+            #add the branching point
+            node_to_children[row_list[i]] = {row_list[i+1]:0}
+
+from ete3 import Tree
+# op = str(node_to_children).replace("{", "(").replace('}', ")").replace(":", "").replace("0", "").replace(' ', "")
+# print(op)
+# tree = Tree(op)
+# print(tree)
+# end = time.time()
+# print(end - start)
+tree_nsr = pd.read_csv(PATH + "/insert_files/tree_nsr.csv")
+df = tree_nsr.drop(columns=['species_id', 'tax_id', 'identification_reference'])

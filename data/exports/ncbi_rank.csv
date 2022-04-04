@@ -1,0 +1,32 @@
+rank,r_id
+superkingdom,0
+clade,1
+phylum,2
+subphylum,3
+class,4
+order,5
+suborder,6
+kingdom,7
+superfamily,8
+family,9
+no rank,10
+subfamily,11
+genus,12
+species,13
+cohort,14
+infraclass,15
+subclass,16
+tribe,17
+infraorder,18
+superclass,19
+superorder,20
+subcohort,21
+parvorder,22
+subtribe,23
+subgenus,24
+section,25
+series,26
+species group,27
+species subgroup,28
+superphylum,29
+subspecies,30

@@ -303,7 +303,7 @@ if __name__ == '__main__':
     Base.metadata.create_all(engine)
 
     # Construct csv files from export data (extracted with backbone.Rmd,
-    # bold_export.py or manually downloaded )
+    # bold_export.py or manually downloaded)
     # Formats it so it can be inserted into the database
     create_nsr_synonym()
     crs_formatting_data() # ** Change name to create_naturalis_specimen? **

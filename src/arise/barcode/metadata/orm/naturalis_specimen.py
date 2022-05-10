@@ -1,4 +1,4 @@
-from arise.barcode.metadata.imports import *
+from arise.barcode.metadata.orm.imports import *
 
 
 class NaturalisSpecimen(Base):

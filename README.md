@@ -1,5 +1,7 @@
 # ARISE barcode metadata
 
+![](doc/arise-logo.jpeg)
+
 ## Project overview
 
 This project aims to provide tooling for managing 

@@ -18,3 +18,13 @@ the following:
 
 The project is organized following the conventions as outlined in Noble, 2009
 [10.1371/journal.pcbi.1000424](https://doi.org/10.1371/journal.pcbi.1000424).
+
+## Authors
+
+Bastiaan Anker, Naomi van Es, Rutger Vos. 
+
+(Feel free to add yourself here in any substantial pull requests.)
+
+## License
+
+This source code is made available under the [MIT License](LICENSE).

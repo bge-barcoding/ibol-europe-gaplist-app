@@ -1,4 +1,4 @@
-from scripts.classes.imports import *
+from src.arise.barcode.metadata.imports import *
 
 
 class NsrSpecies(Base):

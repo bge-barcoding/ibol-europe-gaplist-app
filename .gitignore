@@ -8,3 +8,8 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+
+# No BLAST indexes
+*.nhr
+*.nin
+*.nsq

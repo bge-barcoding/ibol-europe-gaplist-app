@@ -2,7 +2,8 @@
 
 ## Project overview
 
-This project aims to provide tooling for managing DNA barcode metadata to achieve
+This project aims to provide tooling for managing 
+[ARISE](https://www.arise-biodiversity.nl/) DNA barcode metadata to achieve
 the following:
 
 1. Ingest on-disk, file-based Dutch species registry 

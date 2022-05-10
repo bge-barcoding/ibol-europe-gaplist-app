@@ -10,7 +10,8 @@ the following:
 - harvest remote data (FASTA) and metadata accessible through BOLD APIs
 - filter candidate barcodes by flexible criteria, e.g. provider, geographic origin
 - integrate data (FASTA/BLAST DB) and metadata (SQL) to enrich sequence records
-- report and visualize gap analysis of database contents for targeted sequencing
+- report and visualize gap analysis of database contents for targeted sequencing (JuPyter)
+- navigate database contents in tabular form as web view and REST API (Django)
 
 ## Project structure
 

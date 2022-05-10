@@ -13,3 +13,6 @@ __pycache__/
 *.nhr
 *.nin
 *.nsq
+
+# No OSX cruft
+.DS_Store

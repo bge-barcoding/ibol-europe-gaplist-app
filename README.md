@@ -5,11 +5,12 @@
 This project aims to provide tooling for managing DNA barcode metadata to achieve
 the following:
 
+- ingest on-disk, file-based taxonomy TSV data from NSR
 - ingest on-disk, file-based data (FASTA) and metadata (CSV/TSV) managed using Geneious
 - harvest remote data (FASTA) and metadata accessible through BOLD APIs
 - filter candidate barcodes by flexible criteria, e.g. provider, geographic origin
 - integrate data (FASTA/BLAST DB) and metadata (SQL) to enrich sequence records
-- match integrated sequence records against taxonomies to derive target sequencing lists
+- report and visualize gap analysis of database contents for targeted sequencing
 
 ## Project structure
 

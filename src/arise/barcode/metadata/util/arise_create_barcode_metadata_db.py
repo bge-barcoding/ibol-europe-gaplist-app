@@ -15,11 +15,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-outfile', default="arise-barcode-metadata.db", help="Output file: SQLite DB")
 args = parser.parse_args()
 
-# make connection to database file
+# create connection/engine to database file
 outfile = args.outfile
 engine = create_engine(f'sqlite:///{outfile}', echo=False)
 
-# create session
+# make session
 Session = sessionmaker(engine)
 session = Session()
 

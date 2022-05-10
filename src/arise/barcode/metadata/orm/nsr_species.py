@@ -5,8 +5,8 @@ class NsrSpecies(Base):
     __tablename__ = 'nsr_species'
 
     species_id = Column(Integer, primary_key=True)
-    species_name = Column(String)
-    identification_reference = Column(String)
+    nsr_id = Column(String)
+    canonical_name = Column(String)
 
     def __repr__(self):
         return "<NsrSpecies(species_name='%s')>" % (

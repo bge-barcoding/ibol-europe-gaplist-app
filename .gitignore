@@ -1,0 +1,6 @@
+# No R session state files 
+.RData
+.Rhistory
+
+# No IDE files
+.idea

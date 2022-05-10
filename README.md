@@ -5,13 +5,14 @@
 This project aims to provide tooling for managing DNA barcode metadata to achieve
 the following:
 
-- ingest on-disk, file-based taxonomy TSV data from NSR
-- ingest on-disk, file-based data (FASTA) and metadata (CSV/TSV) managed using Geneious
-- harvest remote data (FASTA) and metadata accessible through BOLD APIs
-- filter candidate barcodes by flexible criteria, e.g. provider, geographic origin
-- integrate data (FASTA/BLAST DB) and metadata (SQL) to enrich sequence records
-- report and visualize gap analysis of database contents for targeted sequencing (JuPyter)
-- navigate database contents in tabular form as web view and REST API (Django)
+1. Ingest on-disk, file-based Dutch species registry 
+   ([NSR](https://www.nederlandsesoorten.nl/content/toegang-tot-de-data)) taxonomy as TSV data.
+2. Ingest on-disk, file-based data (FASTA) and metadata (CSV/TSV) managed using [Geneious](https://www.geneious.com/).
+3. Harvest remote data (FASTA) and metadata accessible through BOLD APIs
+4. Filter candidate barcodes by flexible criteria, e.g. provider, geographic origin
+5. Integrate data (FASTA/BLAST DB) and metadata (SQL) to enrich sequence records
+6. Report and visualize gap analysis of database contents for targeted sequencing (JuPyter)
+7. Navigate database contents in tabular form as web view and REST API (Django)
 
 ## Project structure
 

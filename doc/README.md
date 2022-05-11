@@ -39,7 +39,7 @@ purpose of this is improve the matching between the NSR and the other data sourc
 This table is assumed to have similar characteristics as the canonical names table:
 
 - a preamble to ignore
-- a header row, but here we are looking for the columns `""synonym"` and `"taxon"`
+- a header row, but here we are looking for the columns `"synonym"` and `"taxon"`
 - tab-separated records
 
 With these assumptions, the loading is then executed as:
@@ -49,4 +49,12 @@ With these assumptions, the loading is then executed as:
 **Note that we now only match species, so anything below or above that will trigger a 'no match' message**
 
 ## 1.3 Indexing the topology for faster queries
+
+Now the tree topology should be indexed. This is easiest done using the
+[Bio::Phylo::Forest::DBTree](https://metacpan.org/pod/Bio::Phylo::Forest::DBTree) package:
+
+```
+$ perl -MBio::Phylo::Forest::DBTree -e \
+    'print Bio::Phylo::Forest::DBTree->connect("arise-barcode-metadata.db")->get_root->_index'
+```
 

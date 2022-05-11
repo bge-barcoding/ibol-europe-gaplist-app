@@ -49,13 +49,13 @@ for index, row in df.iterrows():
     if nsr_species is None:
 
         # not seen this before, insert
-        nsr_species = NsrSpecies(species_id=species_counter, nsr_id=row['taxonID'], canonical_name=binomial)
+        nsr_species = NsrSpecies(species_id=species_counter, canonical_name=binomial)
         session.add(nsr_species)
 
         # check if already inserted in backbone, presumably by way of another pruned infraspecific epithet
         child = session.query(Node).filter(Node.name == binomial).first()
         if child is None:
-            child = Node(id=node_counter, species_id=species_counter, name=binomial, tax_id=row['taxonID'], rank='species')
+            child = Node(id=node_counter, species_id=species_counter, name=binomial, rank='species')
             session.add(child)
             node_counter += 1
         else:

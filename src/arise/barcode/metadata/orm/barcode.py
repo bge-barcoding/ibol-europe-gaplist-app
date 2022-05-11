@@ -23,6 +23,6 @@ class Barcode(Base):
     external_id = Column(String)
 
     def __repr__(self):
-        return "<SpeciesMarker(sequence_id='%s')>" % (
-                         self.sequence_id)
+        return "<Barcode(barcode_id='%s')>" % (
+                         self.barcode_id)
 

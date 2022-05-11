@@ -16,3 +16,10 @@ __pycache__/
 
 # No OSX cruft
 .DS_Store
+
+# skip darwincore archive contents
+Multimedia.txt
+Taxa.txt
+Vernacular_Names.txt
+eml.xml
+meta.xml

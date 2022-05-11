@@ -23,10 +23,9 @@ the following:
 7. Navigate database contents in tabular form as web view and REST API 
    ([Django](https://www.djangoproject.com/))
 
-## Project structure
+## How to use
 
-The project is organized following the conventions as outlined in Noble, 2009
-[10.1371/journal.pcbi.1000424](https://doi.org/10.1371/journal.pcbi.1000424).
+Consult the [doc](doc) folder for more info.
 
 ## Authors
 

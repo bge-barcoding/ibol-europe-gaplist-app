@@ -3,6 +3,4 @@ database_id,database_name
 1,BOLD
 2,NCBI
 3,WFIB
-4,NSR
-5,SILVA
-6,UNITE
+4,UNITE

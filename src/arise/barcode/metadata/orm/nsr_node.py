@@ -1,7 +1,7 @@
 from arise.barcode.metadata.orm.imports import *
 
 
-class Node(Base):
+class NsrNode(Base):
 
     # This constructor defines the equivalent of the below schema from DBTree, extended with a few
     # more NSR-specific fields:
@@ -28,10 +28,13 @@ class Node(Base):
     name = Column(String)
     length = Column(Float)
     height = Column(Float)
-    tax_id = Column(Integer)
+
+    # taxonomic rank, e.g. 'genus'
     rank = Column(String)
+
+    # foreign key to nsr_species table
     species_id = Column(Integer, ForeignKey('nsr_species.species_id'))
 
     def __repr__(self):
-        return "<Node(name='%s')>" % (
-                         self.name)
+        return "<NsrNode(name='%s')>" % (
+                         self.id)

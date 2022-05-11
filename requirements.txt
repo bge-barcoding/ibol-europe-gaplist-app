@@ -13,3 +13,5 @@ setuptools~=59.6.0
 pandas~=1.1.5
 python-dateutil~=2.8.2
 taxon_parser~=0.2.3
+python-dwca-reader
+requests

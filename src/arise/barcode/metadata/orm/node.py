@@ -30,7 +30,7 @@ class Node(Base):
     height = Column(Float)
     tax_id = Column(Integer)
     rank = Column(String)
-    species_id = Column(Integer, ForeignKey('nsr_species.species_id'), primary_key=True)
+    species_id = Column(Integer, ForeignKey('nsr_species.species_id'))
 
     def __repr__(self):
         return "<Node(name='%s')>" % (

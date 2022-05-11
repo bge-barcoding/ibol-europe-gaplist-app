@@ -3,11 +3,11 @@ from sqlalchemy.orm import sessionmaker
 from arise.barcode.metadata.orm.database import Database
 from arise.barcode.metadata.orm.marker import Marker
 from arise.barcode.metadata.orm.imports import *
-from arise.barcode.metadata.orm.species_marker import SpeciesMarker
+from arise.barcode.metadata.orm.barcode import Barcode
 from arise.barcode.metadata.orm.nsr_species import NsrSpecies
 from arise.barcode.metadata.orm.nsr_synonym import NsrSynonym
 from arise.barcode.metadata.orm.naturalis_specimen import NaturalisSpecimen
-from arise.barcode.metadata.orm.node import Node
+from arise.barcode.metadata.orm.nsr_node import NsrNode
 import argparse
 
 # process command line arguments

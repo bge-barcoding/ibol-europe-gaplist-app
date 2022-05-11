@@ -1,8 +1,6 @@
-# ARISE barcode metadata
-
 ![](doc/arise-logo.jpeg)
 
-## Project overview
+# Integrating public and private barcode data
 
 This project aims to provide tooling for managing 
 [ARISE](https://www.arise-biodiversity.nl/) DNA barcode metadata to achieve

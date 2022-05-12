@@ -50,12 +50,14 @@ for index, row in df.iterrows():
         # not seen this before, insert
         nsr_species = NsrSpecies(canonical_name=binomial)
         session.add(nsr_species)
+        session.flush()
 
         # check if already inserted in backbone, presumably by way of another pruned infraspecific epithet
         child = session.query(NsrNode).filter(NsrNode.name == binomial).first()
         if child is None:
             child = NsrNode(id=node_counter, species_id=nsr_species.species_id, name=binomial, rank='species')
             session.add(child)
+            session.flush()
             node_counter += 1
         else:
 
@@ -71,6 +73,7 @@ for index, row in df.iterrows():
                 # instantiate a parent node, graft child onto it, move up the hierarchy
                 parent = NsrNode(id=node_counter, name=higher_taxon, rank=level, parent=2)
                 session.add(parent)
+                session.flush()
                 child.parent = parent.id
                 child = parent
                 node_counter += 1

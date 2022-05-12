@@ -33,7 +33,6 @@ z.extractall()
 # read 'Taxa.txt' from zip as a data frame
 df = pd.read_csv('Taxa.txt', sep=',')
 df = df.reset_index()  # make sure indexes pair with number of rows
-species_counter = 1
 node_counter = 3 # magic number because root will be 2 with parent 1
 session.add(NsrNode(id=2, name="All of life", parent=1))
 for index, row in df.iterrows():
@@ -49,13 +48,13 @@ for index, row in df.iterrows():
     if nsr_species is None:
 
         # not seen this before, insert
-        nsr_species = NsrSpecies(species_id=species_counter, canonical_name=binomial)
+        nsr_species = NsrSpecies(canonical_name=binomial)
         session.add(nsr_species)
 
         # check if already inserted in backbone, presumably by way of another pruned infraspecific epithet
         child = session.query(NsrNode).filter(NsrNode.name == binomial).first()
         if child is None:
-            child = NsrNode(id=node_counter, species_id=species_counter, name=binomial, rank='species')
+            child = NsrNode(id=node_counter, species_id=nsr_species.species_id, name=binomial, rank='species')
             session.add(child)
             node_counter += 1
         else:
@@ -81,9 +80,6 @@ for index, row in df.iterrows():
                 # we've already reached and instantiated this higher taxon via another path, graft onto that
                 child.parent = node.id
                 break
-
-        # generate the next primary key
-        species_counter += 1
 
 # commit transaction
 session.commit()

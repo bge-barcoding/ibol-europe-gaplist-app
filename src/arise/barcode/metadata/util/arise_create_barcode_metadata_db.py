@@ -1,6 +1,5 @@
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm import sessionmaker
-from arise.barcode.metadata.orm.database import Database
 from arise.barcode.metadata.orm.marker import Marker
 from arise.barcode.metadata.orm.imports import *
 from arise.barcode.metadata.orm.barcode import Barcode

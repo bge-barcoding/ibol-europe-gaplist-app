@@ -8,8 +8,8 @@ This section describes how to populate the DB with data from various sources. Th
 2. Loading the NSR taxonomic topology 
 3. Loading the NSR synonyms table
 4. Indexing the topology for faster queries
-5. Loading the Geneious metadata table
-6. Fetching BOLD metadata 
+5. Fetching BOLD metadata 
+6. Loading the Geneious metadata table
 
 ### 1.1 Initializing a new database
 

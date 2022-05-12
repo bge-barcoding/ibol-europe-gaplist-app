@@ -7,10 +7,9 @@ This section describes how to populate the DB with data from various sources. Th
 1. Initializing a new database
 2. Loading the NSR taxonomic topology 
 3. Loading the NSR synonyms table
-4. Loading the databases table
+4. Fetching BOLD metadata 
 5. Indexing the topology for faster queries
-6. Fetching BOLD metadata 
-7. Loading the Geneious metadata table
+6. Loading the Geneious metadata table
 
 ### 1.1 Initializing a new database
 
@@ -19,14 +18,14 @@ in arise.barcode.metadata.orm.* is generated as follows:
 
     $ arise_create_barcode_metadata_db.py -outfile arise-barcode-metadata.db
 
-### 1.2 Loading the canonical species table
+### 1.2 Loading the backbone topology
 
 This operation will load the accepted species names from the NSR into the table nsr_species and the higher taxonomy
 in the node table, whose structure is based on [Vos, 2019](https://doi.org/10.1111/2041-210X.13337). This requires an 
 empty database file (see 1.1). The contents are fetched from the NSR endpoint for DwC data dumps at: 
 http://api.biodiversitydata.nl/v2/taxon/dwca/getDataSet/nsr - use the script as follows:
 
-    $ arise_load_canonical_species.py -db <sqlite.db> -endpoint <url>
+    $ arise_load_backbone.py -db <sqlite.db> -endpoint <url>
 
 The terms between pointed brackets are merely placeholders here; the script uses sensible defaults, i.e. the actual
 endpoint location and the name of the default output from 1.1
@@ -49,13 +48,21 @@ With these assumptions, the loading is then executed as:
 
 **Note that we now only match species, so anything below or above that will trigger a 'no match' message**
 
-### 1.* Indexing the topology for faster queries
+### 1.4 Loading BOLD metadata
+
+In this step we load the output from BOLD's _Full Data Retrieval (Specimen + Sequence)_ web service. When filtered on
+`Netherlands|Belgium|Germany` this output is ±300MB and takes an hour or so to download. The step can also be done
+from a cached copy. In either case, the format must be TSV. The operation is as follows:
+
+    $ arise_load_bold.py -tsv <file.tsv>
+
+### 1.5 Indexing the topology for faster queries
 
 Now the tree topology should be indexed. This is easiest done using the
 [Bio::Phylo::Forest::DBTree](https://metacpan.org/pod/Bio::Phylo::Forest::DBTree) package:
 
 ```
 $ perl -MBio::Phylo::Forest::DBTree -e \
-    'print Bio::Phylo::Forest::DBTree->connect("arise-barcode-metadata.db")->get_root->_index'
+    'Bio::Phylo::Forest::DBTree->connect("arise-barcode-metadata.db")->get_root->_index'
 ```
 

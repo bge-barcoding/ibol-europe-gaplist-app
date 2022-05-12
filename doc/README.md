@@ -7,9 +7,10 @@ This section describes how to populate the DB with data from various sources. Th
 1. Initializing a new database
 2. Loading the NSR taxonomic topology 
 3. Loading the NSR synonyms table
-4. Indexing the topology for faster queries
-5. Loading the Geneious metadata table
+4. Loading the databases table
+5. Indexing the topology for faster queries
 6. Fetching BOLD metadata 
+7. Loading the Geneious metadata table
 
 ### 1.1 Initializing a new database
 
@@ -32,7 +33,7 @@ endpoint location and the name of the default output from 1.1
 
 **Note that the database file is updated in place.**
 
-## 1.2 Loading the synonyms table
+### 1.3 Loading the synonyms table
 
 Here we load the set of taxonomic synonyms that is curated by the NSR and available as a separate table dump. The 
 purpose of this is improve the matching between the NSR and the other data sources (i.e. internal sequencing and BOLD). 
@@ -48,7 +49,7 @@ With these assumptions, the loading is then executed as:
 
 **Note that we now only match species, so anything below or above that will trigger a 'no match' message**
 
-## 1.3 Indexing the topology for faster queries
+### 1.* Indexing the topology for faster queries
 
 Now the tree topology should be indexed. This is easiest done using the
 [Bio::Phylo::Forest::DBTree](https://metacpan.org/pod/Bio::Phylo::Forest::DBTree) package:

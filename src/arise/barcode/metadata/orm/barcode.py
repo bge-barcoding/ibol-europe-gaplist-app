@@ -7,8 +7,8 @@ class Barcode(Base):
     # auto-incrementing int, primary key
     barcode_id = Column(Integer, primary_key=True)
 
-    # foreign key to species
-    species_id = Column(Integer, ForeignKey('nsr_species.species_id'))
+    # foreign key to specimen
+    specimen_id = Column(Integer, ForeignKey('specimen.specimen_id'))
 
     # foreign key to database, e.g. BOLD
     database_id = Column(Integer, ForeignKey('database.database_id'))

@@ -3,7 +3,7 @@ from arise.barcode.metadata.orm.imports import *
 
 class NsrSynonym(Base):
     __tablename__ = 'nsr_synonym'
-    synonym_id = Column(Integer, primary_key=True)
+    synonym_id = Column(Integer, primary_key=True, autoincrement=True)
     synonym_name = Column(String, index=True)
     species_id = Column(Integer, ForeignKey('nsr_species.species_id'))
 

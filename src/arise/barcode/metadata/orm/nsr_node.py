@@ -21,11 +21,11 @@ class NsrNode(Base):
     # create index name_idx on node(name);
 
     __tablename__ = 'node'
-    id = Column(Integer, primary_key=True)
-    parent = Column(Integer)
-    left = Column(Integer)
-    right = Column(Integer)
-    name = Column(String)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    parent = Column(Integer, index=True)
+    left = Column(Integer, index=True)
+    right = Column(Integer, index=True)
+    name = Column(String, index=True)
     length = Column(Float)
     height = Column(Float)
 

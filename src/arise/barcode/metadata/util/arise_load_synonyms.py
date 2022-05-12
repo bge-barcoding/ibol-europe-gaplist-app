@@ -32,7 +32,6 @@ session = Session()
 
 # open file handle to NSR TSV file
 infile = args.infile
-counter = 0
 header = []
 with open(infile, encoding='latin-1') as file:
 
@@ -42,12 +41,11 @@ with open(infile, encoding='latin-1') as file:
 
         # found header line
         if '"synonym"' in fields and '"taxon"' in fields:
-            counter = 1
             header = fields
             continue
 
         # processing records after header
-        if counter != 0:
+        if len(header) != 0:
             record = dict(zip(header, fields))
             synonym = clean_name(record['"synonym"'])
             taxon = clean_name(record['"taxon"'])
@@ -55,9 +53,8 @@ with open(infile, encoding='latin-1') as file:
             if synonym is not None and taxon is not None:
                 for species in session.query(NsrSpecies).filter(NsrSpecies.canonical_name == taxon):
                     species_id = species.species_id
-                    synonym = NsrSynonym(synonym_id=counter, synonym_name=synonym, species_id=species_id)
+                    synonym = NsrSynonym(synonym_name=synonym, species_id=species_id)
                     session.add(synonym)
-                    counter += 1
                     hitcounter += 1
                 if hitcounter > 1:
                     print("More than one hit for " + taxon)

@@ -127,6 +127,7 @@ def match_species(taxon):
                 session.add(nsr_species)
                 nsr_node = NsrNode(name=sp_name, parent=nsr_node.id, rank='species', species_id=nsr_species.species_id)
                 session.add(nsr_node)
+                session.flush()
 
         except NoResultFound:
             logging.debug("Taxon %s not found anywhere in NSR topology" % cleaned)
@@ -148,6 +149,7 @@ def match_specimen(species_id, catalognum, institution_storing, identification_p
         specimen = Specimen(species_id=species_id, catalognum=catalognum, institution_storing=institution_storing,
                             identification_provided_by=identification_provided_by)
         session.add(specimen)
+        session.flush()
     return specimen
 
 
@@ -158,6 +160,7 @@ def match_marker(marker_name):
     if marker is None:
         marker = Marker(marker_name=marker_name)
         session.add(marker)
+        session.flush()
     return marker
 
 
@@ -185,7 +188,7 @@ def main():
 
         # set database field value
         database = DataSource.BOLD
-        if row['genbank_accession'] is not None:
+        if row['genbank_accession'] == row['genbank_accession']:
             database = DataSource.NCBI
 
         barcode = Barcode(specimen_id=specimen.specimen_id, database=database, marker_id=marker.marker_id,

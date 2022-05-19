@@ -1,4 +1,5 @@
 from arise.barcode.metadata.orm.imports import *
+from ete3 import Tree, TreeNode
 
 
 class NsrNode(Base):
@@ -34,6 +35,39 @@ class NsrNode(Base):
 
     # foreign key to nsr_species table
     species_id = Column(Integer, ForeignKey('nsr_species.species_id'))
+
+    # decorators
+    @classmethod
+    def get_root(cls, session):
+        return session.query(NsrNode).filter(NsrNode.id == 2).first()
+
+    def get_parent(self, session):
+        return session.query(NsrNode).filter(NsrNode.id == self.parent).first()
+
+    def get_children(self, session):
+        return session.query(NsrNode).filter(NsrNode.parent == self.id)
+
+    def get_descendants(self, session):
+        return session.query(NsrNode).filter(NsrNode.left > self.left, NsrNode.right < self.right, NsrNode.left == NsrNode.right)
+
+    def get_ancestors(self, session):
+        return session.query(NsrNode).filter(NsrNode.left < self.left, NsrNode.right > self.right)
+
+    def to_ete(self, session):
+        ete_tree = Tree()
+        ete_node = ete_tree.add_child(name=self.name)
+        self._recurse_to_ete(session, ete_tree, ete_node)
+        return ete_tree
+
+    def _recurse_to_ete(self, session, ete_tree, ete_node):
+        for db_child in self.get_children(session):
+            ete_child = ete_node.add_child(name=db_child.name)
+            db_child._recurse_to_ete(session, ete_tree, ete_child)
+
+    @classmethod
+    def get_mrca(cls, session, nodes):
+        s = sorted(nodes, key=lambda x: x.left)
+        return session.query(NsrNode).filter(NsrNode.left < s[0].left, NsrNode.right > s[-1].right).order_by(NsrNode.left).first()
 
     def __repr__(self):
         return "<NsrNode(name='%s')>" % (

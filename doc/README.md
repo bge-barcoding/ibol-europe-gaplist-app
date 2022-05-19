@@ -66,3 +66,7 @@ $ perl -MBio::Phylo::Forest::DBTree -e \
     'Bio::Phylo::Forest::DBTree->connect("arise-barcode-metadata.db")->get_root->_index'
 ```
 
+or run it in the container by executing the following command in the root of the project:
+```
+docker build -t dbtree . && docker run -v "$(pwd)/data/sqlite":/app/data dbtree perl -MBio::Phylo::Forest::DBTree -e 'Bio::Phylo::Forest::DBTree->connect("/app/data/arise-barcode-metadata.db")->get_root->_index'
+```

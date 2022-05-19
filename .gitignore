@@ -1,6 +1,8 @@
-# No R session state files 
+# No R helper files
 .RData
 .Rhistory
+*.Rproj
+.Rproj.user
 
 # No IDE files
 .idea
@@ -23,3 +25,5 @@ Taxa.txt
 Vernacular_Names.txt
 eml.xml
 meta.xml
+
+

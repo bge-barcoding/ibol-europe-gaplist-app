@@ -26,4 +26,7 @@ Vernacular_Names.txt
 eml.xml
 meta.xml
 
+# no virtual environments
+venv
+
 

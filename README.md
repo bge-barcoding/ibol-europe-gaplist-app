@@ -28,7 +28,7 @@ Consult the [doc](doc) folder for more info.
 
 ## Authors
 
-Bastiaan Anker, Naomi van Es, Rutger Vos. 
+Bastiaan Anker, Pierre-Etienne Cholley, Naomi van Es, Rutger Vos. 
 
 (Feel free to add yourself here in any substantial pull requests.)
 

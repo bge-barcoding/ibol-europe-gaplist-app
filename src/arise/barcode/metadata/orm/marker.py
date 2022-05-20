@@ -7,6 +7,8 @@ class Marker(Base):
     marker_id = Column(Integer, primary_key=True, autoincrement=True)
     marker_name = Column(String)
 
+    barcodes = relationship('Barcode', backref=backref("marker", cascade="all, delete"))
+
     def __repr__(self):
         return "<Marker(marker_name='%s')>" % (
             self.marker_name)

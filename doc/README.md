@@ -65,6 +65,13 @@ Now the tree topology should be indexed. This is easiest done using the
 $ perl -MBio::Phylo::Forest::DBTree -e \
     'Bio::Phylo::Forest::DBTree->connect("arise-barcode-metadata.db")->get_root->_index'
 ```
+
+Or run it in the container by executing the following command in the root of the project:
+
+```
+docker build -t dbtree . && docker run -v "$(pwd)/data/sqlite":/app/data dbtree perl -MBio::Phylo::Forest::DBTree -e 'Bio::Phylo::Forest::DBTree->connect("/app/data/arise-barcode-metadata.db")->get_root->_index'
+```
+
 ### 1.6 Query and Visualize the database content using the Jupyter Lab
 
 Jupyter Lab runs in a docker container, to start it:
@@ -72,5 +79,3 @@ Jupyter Lab runs in a docker container, to start it:
 ```
 sh start_jupyter.sh
 ```
-
-and follow the instructions displayed in the terminal.

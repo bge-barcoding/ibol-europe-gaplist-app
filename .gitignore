@@ -26,7 +26,13 @@ Vernacular_Names.txt
 eml.xml
 meta.xml
 
+
 # no virtual environments
 venv
+
+# no jupyper notebooks
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
 
 

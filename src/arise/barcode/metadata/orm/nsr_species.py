@@ -8,7 +8,7 @@ class NsrSpecies(Base):
     canonical_name = Column(String, index=True)
 
     specimens = relationship('Specimen', backref=backref("nsrspecies", cascade="all, delete"))
-    synonymes = relationship('NsrSynonym')
+    synonyms = relationship('NsrSynonym')
 
     def __repr__(self):
         return "<NsrSpecies(canonical_name='%s')>" % (

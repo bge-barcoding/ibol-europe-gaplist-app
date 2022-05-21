@@ -24,8 +24,8 @@ class NsrNode(Base):
     __tablename__ = 'node'
     id = Column(Integer, primary_key=True, autoincrement=True)
     parent = Column(Integer, index=True)
-    left = Column(Integer, index=True)
-    right = Column(Integer, index=True)
+    left = Column(Integer, index=True, unique=True)
+    right = Column(Integer, index=True, unique=True)
     name = Column(String, index=True)
     length = Column(Float)
     height = Column(Float)
@@ -35,6 +35,9 @@ class NsrNode(Base):
 
     # foreign key to nsr_species table
     species_id = Column(Integer, ForeignKey('nsr_species.species_id'))
+
+    # relationship to species
+    species = relationship('Species', backref=backref("species_id", cascade="all, delete"))
 
     # decorators
     @classmethod

@@ -81,7 +81,7 @@ It might take 15-30min to complete.
 Jupyter Lab runs in a docker container, to start it:
 
 ```
-docker-compose -f docker-compose.yml run --rm --user=root -e NB_UID=`id -u` jupyter
+NB_UID=`id -u` docker-compose -f docker-compose.yml up jupyter
 ```
 
 and follow the instructions displayed in the terminal.

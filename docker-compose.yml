@@ -7,6 +7,9 @@ services:
       - ${PWD}:/home/jovyan/work
     ports:
       - 8888:8888
+    user: root
+    environment:
+      - NB_UID=${NB_UID}
     container_name: jupyter-lab
   dbtree:
     build:

@@ -9,8 +9,7 @@ class Specimen(Base):
     identification_provided_by = Column(String, index=True)
     species_id = Column(Integer, ForeignKey('nsr_species.species_id'))
 
-    # relationship
-    nsrspecies = relationship("NsrSpecies", backref=backref("Specimen", cascade="all, delete"))
+    barcodes = relationship('Barcode', backref=backref("specimen", cascade="all, delete"))
 
     def __repr__(self):
         return "<Specimen(name='%s')>" % (

@@ -1,0 +1,21 @@
+services:
+  jupyter:
+    build:
+      context: .
+      dockerfile: jupyter/Dockerfile
+    volumes:
+      - ${PWD}:/home/jovyan/work
+    ports:
+      - 8888:8888
+    user: root
+    environment:
+      - NB_UID=${NB_UID}
+    container_name: jupyter-lab
+  dbtree:
+    build:
+      context: ./DBtree
+      dockerfile: ./Dockerfile
+    volumes:
+      - ${PWD}/data/sqlite:/app/data
+    container_name: dbtree
+    command: perl -MBio::Phylo::Forest::DBTree -e 'Bio::Phylo::Forest::DBTree->connect("/app/data/arise-barcode-metadata.db")->get_root->_index'

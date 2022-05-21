@@ -7,9 +7,12 @@ class NsrSpecies(Base):
     species_id = Column(Integer, primary_key=True, autoincrement=True)
     canonical_name = Column(String, index=True)
 
+    specimens = relationship('Specimen', backref=backref("nsrspecies", cascade="all, delete"))
+    synonyms = relationship('NsrSynonym')
+
     def __repr__(self):
-        return "<NsrSpecies(species_name='%s')>" % (
-                         self.species_name)
+        return "<NsrSpecies(canonical_name='%s')>" % (
+                         self.canonical_name)
 
 
 

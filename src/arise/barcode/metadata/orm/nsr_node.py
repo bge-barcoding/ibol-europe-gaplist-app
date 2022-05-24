@@ -62,6 +62,8 @@ class NsrNode(Base):
             until_rank = index_rank if index_rank != 6 else None
         ete_tree = Tree()
         ete_node = ete_tree.add_child(name=self.name)
+        ete_node.add_feature('rank', self.rank)
+        ete_node.add_feature('id', self.id)
         self._recurse_to_ete(session, ete_tree, ete_node, until_rank=until_rank)
         return ete_tree
 
@@ -69,6 +71,8 @@ class NsrNode(Base):
         for db_child in self.get_children(session):
             if until_rank is None or rank_index[db_child.rank] <= until_rank:
                 ete_child = ete_node.add_child(name=db_child.name)
+                ete_child.add_feature('rank', self.rank)
+                ete_child.add_feature('id', self.id)
                 db_child._recurse_to_ete(session, ete_tree, ete_child, until_rank)
 
     @classmethod

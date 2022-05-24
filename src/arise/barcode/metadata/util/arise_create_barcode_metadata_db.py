@@ -9,21 +9,22 @@ from arise.barcode.metadata.orm.specimen import Specimen
 from arise.barcode.metadata.orm.nsr_node import NsrNode
 import argparse
 
-# process command line arguments
-parser = argparse.ArgumentParser()
-parser.add_argument('-outfile', default="arise-barcode-metadata.db", help="Output file: SQLite DB")
-args = parser.parse_args()
+if __name__ == '__main__':
+    # process command line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-outfile', default="arise-barcode-metadata.db", help="Output file: SQLite DB")
+    args = parser.parse_args()
 
-# create connection/engine to database file
-outfile = args.outfile
-engine = create_engine(f'sqlite:///{outfile}', echo=False)
+    # create connection/engine to database file
+    outfile = args.outfile
+    engine = create_engine(f'sqlite:///{outfile}', echo=False)
 
-# make session
-Session = sessionmaker(engine)
-session = Session()
+    # make session
+    Session = sessionmaker(engine)
+    session = Session()
 
-# create tables if they do not exist
-Base.metadata.create_all(engine)
+    # create tables if they do not exist
+    Base.metadata.create_all(engine)
 
-# commit transaction
-session.commit()
+    # commit transaction
+    session.commit()

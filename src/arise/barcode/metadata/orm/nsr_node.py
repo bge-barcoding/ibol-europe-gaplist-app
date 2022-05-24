@@ -64,16 +64,16 @@ class NsrNode(Base):
         ete_node = ete_tree.add_child(name=self.name)
         ete_node.add_feature('rank', self.rank)
         ete_node.add_feature('id', self.id)
-        self._recurse_to_ete(session, ete_tree, ete_node, until_rank=until_rank)
+        self._recurse_to_ete(session, ete_tree, until_rank=until_rank)
         return ete_tree
 
-    def _recurse_to_ete(self, session, ete_tree, ete_node, until_rank=None):
+    def _recurse_to_ete(self, session, ete_node, until_rank=None):
         for db_child in self.get_children(session):
             if until_rank is None or rank_index[db_child.rank] <= until_rank:
                 ete_child = ete_node.add_child(name=db_child.name)
                 ete_child.add_feature('rank', self.rank)
                 ete_child.add_feature('id', self.id)
-                db_child._recurse_to_ete(session, ete_tree, ete_child, until_rank)
+                db_child._recurse_to_ete(session, ete_child, until_rank)
 
     @classmethod
     def get_mrca(cls, session, nodes):

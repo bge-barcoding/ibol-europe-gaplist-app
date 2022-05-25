@@ -1,7 +1,7 @@
 from arise.barcode.metadata.orm.imports import *
 from ete3 import Tree, TreeNode
 
-rank_order = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species']
+rank_order = ['life', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species']
 rank_index = {r: i for i, r in enumerate(rank_order)}
 
 
@@ -59,21 +59,22 @@ class NsrNode(Base):
     def to_ete(self, session, until_rank=None):
         if until_rank:
             index_rank = rank_index[until_rank]
-            until_rank = index_rank if index_rank != 6 else None
+            # set the max rank to None if the rank specified is the lower rank i.e. 'species'
+            until_rank = index_rank if index_rank != len(rank_order) - 1 else None
         ete_tree = Tree()
-        ete_node = ete_tree.add_child(name=self.name)
-        ete_node.add_feature('rank', self.rank)
-        ete_node.add_feature('id', self.id)
         self._recurse_to_ete(session, ete_tree, until_rank=until_rank)
         return ete_tree
 
     def _recurse_to_ete(self, session, ete_node, until_rank=None):
+        if until_rank is not None and rank_index[self.rank] > until_rank:
+            return
+
+        new_node = ete_node.add_child(name=self.name)
+        new_node.add_feature('rank', self.rank)
+        new_node.add_feature('id', self.id)
+
         for db_child in self.get_children(session):
-            if until_rank is None or rank_index[db_child.rank] <= until_rank:
-                ete_child = ete_node.add_child(name=db_child.name)
-                ete_child.add_feature('rank', self.rank)
-                ete_child.add_feature('id', self.id)
-                db_child._recurse_to_ete(session, ete_child, until_rank)
+            db_child._recurse_to_ete(session, new_node, until_rank)
 
     @classmethod
     def get_mrca(cls, session, nodes):

@@ -27,8 +27,8 @@ class NsrNode(Base):
     __tablename__ = 'node'
     id = Column(Integer, primary_key=True, autoincrement=True)
     parent = Column(Integer, index=True)
-    left = Column(Integer, index=True)
-    right = Column(Integer, index=True)
+    left = Column(Integer, index=True, unique=True)
+    right = Column(Integer, index=True, unique=True)
     name = Column(String, index=True)
     length = Column(Float)
     height = Column(Float)

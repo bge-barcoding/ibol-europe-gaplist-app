@@ -55,7 +55,7 @@ def init_record_fields(row):
     return record
 
 
-# create data frame either from URL or from static file
+# download TSV file from BOLD 'combined' API endpoint
 def fetch_bold_records(geo, institutions, marker):
     # compose URL
     default_url = "https://www.boldsystems.org/index.php/API_Public/combined?"
@@ -70,71 +70,6 @@ def fetch_bold_records(geo, institutions, marker):
     return file
 
 
-# find or create species for specimen
-# TODO: maybe this should move to nsr_species.py as a reusable factory method
-def match_species(taxon):
-    # parse species name
-    name_parser = TaxonParser(taxon)
-    nsr_species = None
-    try:
-        parsed = name_parser.parse()
-        cleaned = parsed.canonicalNameWithoutAuthorship()
-
-        # find exact species match
-        nsr_species = session.query(NsrSpecies).filter(NsrSpecies.canonical_name == cleaned).one()
-        logging.info("Matched NSR species %i (PK)" % nsr_species.species_id)
-    except NoResultFound:
-        try:
-
-            # find genus match
-            nsr_node = session.query(NsrNode).filter(NsrNode.name == cleaned, NsrNode.rank == 'genus').one()
-            logging.info("No species match but found NSR genus node %i (PK)" % nsr_node.id)
-
-            # find or create sp node
-            sp_name = cleaned + ' sp.'
-            nsr_species = session.query(NsrSpecies).filter(NsrSpecies.canonical_name == sp_name).first()
-            if nsr_species is None:
-                nsr_species = NsrSpecies(canonical_name=sp_name)
-                session.add(nsr_species)
-                nsr_node = NsrNode(name=sp_name, parent=nsr_node.id, rank='species', species_id=nsr_species.species_id)
-                session.add(nsr_node)
-                session.flush()
-
-        except NoResultFound:
-            logging.debug("Taxon %s not found anywhere in NSR topology" % cleaned)
-    except AttributeError:
-        logging.debug("Problem parsing taxon name %s" % taxon)
-    except UnparsableNameException:
-        logging.debug("Problem parsing taxon name %s" % taxon)
-
-    return nsr_species
-
-
-# find or create specimen object
-# TODO: maybe this should move to specimen.py as a reusable factory method
-def match_specimen(species_id, catalognum, institution_storing, identification_provided_by):
-    specimen = session.query(Specimen).filter(Specimen.species_id == species_id, Specimen.catalognum == catalognum,
-                                              Specimen.institution_storing == institution_storing,
-                                              Specimen.identification_provided_by == identification_provided_by).first()
-    if specimen is None:
-        specimen = Specimen(species_id=species_id, catalognum=catalognum, institution_storing=institution_storing,
-                            identification_provided_by=identification_provided_by)
-        session.add(specimen)
-        session.flush()
-    return specimen
-
-
-# find or create marker object
-# TODO: maybe this should move to marker.py as a reusable factory method
-def match_marker(marker_name):
-    marker = session.query(Marker).filter(Marker.marker_name == marker_name).first()
-    if marker is None:
-        marker = Marker(marker_name=marker_name)
-        session.add(marker)
-        session.flush()
-    return marker
-
-
 def load_bold(input_file, encoding='utf-8'):
     df = pd.read_csv(input_file, sep='\t', encoding=encoding)
     for index, row in df.iterrows():
@@ -145,16 +80,16 @@ def load_bold(input_file, encoding='utf-8'):
             continue
 
         # initialize species, next row if failed
-        nsr_species = match_species(record['taxon'])
+        nsr_species = NsrSpecies.match_species(record['taxon'], session)
         if nsr_species is None:
             continue
 
         # get or create specimen
-        specimen = match_specimen(nsr_species.species_id, record['catalognum'], record['institution_storing'],
-                                  record['identification_provided_by'])
+        specimen = Specimen.match_specimen(nsr_species.species_id, record['catalognum'], record['institution_storing'],
+                                  record['identification_provided_by'], session)
 
         # get or create marker
-        marker = match_marker(record['marker'])
+        marker = Marker.match_marker(record['marker'], session)
 
         # set database field value
         database = DataSource.BOLD

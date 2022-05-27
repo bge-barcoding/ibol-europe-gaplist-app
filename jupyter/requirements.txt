@@ -1,2 +1,3 @@
 ete3==3.1.2
 PyQt5==5.15.6
+taxon_parser~=0.2.3

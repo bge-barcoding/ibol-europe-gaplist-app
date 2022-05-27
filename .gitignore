@@ -38,5 +38,6 @@ venv
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 
-
+# no private files from klasse
+klasse
 

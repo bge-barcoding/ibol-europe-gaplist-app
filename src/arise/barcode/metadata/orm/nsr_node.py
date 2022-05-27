@@ -39,6 +39,9 @@ class NsrNode(Base):
     # foreign key to nsr_species table
     species_id = Column(Integer, ForeignKey('nsr_species.species_id'))
 
+    # relationship to species
+    species = relationship('Species', backref=backref("species_id", cascade="all, delete"))
+
     # decorators
     @classmethod
     def get_root(cls, session):

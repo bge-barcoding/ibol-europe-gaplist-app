@@ -40,7 +40,7 @@ class NsrNode(Base):
     species_id = Column(Integer, ForeignKey('nsr_species.species_id'))
 
     # relationship to species
-    species = relationship('Species', backref=backref("species_id", cascade="all, delete"))
+#    species = relationship('NsrSpecies', backref=backref("species_id", cascade="all, delete"))
 
     # decorators
     @classmethod

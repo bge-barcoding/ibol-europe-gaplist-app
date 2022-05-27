@@ -10,31 +10,10 @@ from arise.barcode.metadata.orm.nsr_node import NsrNode
 from arise.barcode.metadata.orm.specimen import Specimen
 from arise.barcode.metadata.orm.marker import Marker
 from arise.barcode.metadata.orm.barcode import Barcode
+from arise.barcode.metadata.orm.nsr_synonym import NsrSynonym
 from arise.barcode.metadata.orm.imports import *
 from sqlalchemy.exc import NoResultFound
 from taxon_parser import UnparsableNameException
-
-# process command line arguments
-parser = argparse.ArgumentParser()
-parser.add_argument('-db', default="arise-barcode-metadata.db", help="Input file: SQLite DB")
-parser.add_argument('-geo', default="Belgium|Netherlands|Germany", help="Countries, quoted and pipe-separated: 'a|b|c'")
-parser.add_argument('-institutions', default="", help="Institutions, quoted and pipe-separated: 'a|b|c'")
-parser.add_argument('-marker', default="", help="Markers, quoted and pipe-separated: 'a|b|c'")
-parser.add_argument('-tsv', help="A TSV file produced by Full Data Retrieval (Specimen + Sequence)")
-parser.add_argument('--verbose', '-v', action='count', default=1)
-args = parser.parse_args()
-
-# configure logging
-args.verbose = 70 - (10 * args.verbose) if args.verbose > 0 else 0
-logging.basicConfig(level=args.verbose)
-
-# create connection/engine to database file
-dbfile = args.db
-engine = create_engine(f'sqlite:///{dbfile}', echo=False)
-
-# make session
-Session = sessionmaker(engine)
-session = Session()
 
 
 # initializes a dict with the fields that should go in barcode and specimen table, or None if any of the checks fail
@@ -66,7 +45,7 @@ def init_record_fields(row):
     record['identification_provided_by'] = row['identification_provided_by']
 
     # distinguish between bold and ncbi
-    if row['genbank_accession'] == row['genbank_accession'] :
+    if row['genbank_accession'] == row['genbank_accession']:
         record['external_id'] = row['genbank_accession']
         logging.warning("Record for %s was harvested from NCBI: %s" % (record['taxon'], record['external_id']))
     else:
@@ -77,26 +56,18 @@ def init_record_fields(row):
 
 
 # create data frame either from URL or from static file
-def read_tsv_df():
-    df = None
+def fetch_bold_records(geo, institutions, marker):
+    # compose URL
+    default_url = "https://www.boldsystems.org/index.php/API_Public/combined?"
+    query_string = 'format=tsv&geo=' + geo + '&institutions=' + institutions + '&marker=' + marker
+    url = default_url + query_string.replace(' ', '+')
 
-    if args.tsv is not None:
-        df = pd.read_csv(args.tsv, sep='\t', encoding="ISO-8859-1")
-    else:
-
-        # compose URL
-        default_url = "https://www.boldsystems.org/index.php/API_Public/combined?"
-        query_string = 'format=tsv&geo=' + args.geo + '&institutions=' + args.institutions + '&marker=' + args.marker
-        url = default_url + query_string.replace(' ', '+')
-
-        # we're going to be brave/stupid and just fetch all sequences in one query. For the default geo restriction
-        # that means ±200,000 records, ±150MB of data, which is fine
-        logging.info("Going to fetch TSV from %s" % (url))
-        file = urllib.request.urlopen(url)
-        logging.info("Download complete")
-        df = pd.read_csv(file, sep='\t')
-
-    return df
+    # we're going to be brave/stupid and just fetch all sequences in one query. For the default geo restriction
+    # that means ±200,000 records, ±150MB of data, which is fine
+    logging.info("Going to fetch TSV from %s" % url)
+    file = urllib.request.urlopen(url)
+    logging.info("Download complete")
+    return file
 
 
 # find or create species for specimen
@@ -164,9 +135,8 @@ def match_marker(marker_name):
     return marker
 
 
-# main function
-def main():
-    df = read_tsv_df()
+def load_bold(input_file, encoding='utf-8'):
+    df = pd.read_csv(input_file, sep='\t', encoding=encoding)
     for index, row in df.iterrows():
 
         # initialize dict with relevant fields, next row if failed
@@ -194,5 +164,36 @@ def main():
         barcode = Barcode(specimen_id=specimen.specimen_id, database=database, marker_id=marker.marker_id,
                           external_id=record['external_id'])
         session.add(barcode)
+
+
+if __name__ == '__main__':
+
+    # process command line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-db', default="arise-barcode-metadata.db", help="Input file: SQLite DB")
+    parser.add_argument('-geo', default="Belgium|Netherlands|Germany",
+                        help="Countries, quoted and pipe-separated: 'a|b|c'")
+    parser.add_argument('-institutions', default="", help="Institutions, quoted and pipe-separated: 'a|b|c'")
+    parser.add_argument('-marker', default="", help="Markers, quoted and pipe-separated: 'a|b|c'")
+    parser.add_argument('-tsv', help="A TSV file produced by Full Data Retrieval (Specimen + Sequence)")
+    parser.add_argument('--verbose', '-v', action='count', default=1)
+    args = parser.parse_args()
+
+    # configure logging
+    args.verbose = 70 - (10 * args.verbose) if args.verbose > 0 else 0
+    logging.basicConfig(level=args.verbose)
+
+    # create connection/engine to database file
+    dbfile = args.db
+    engine = create_engine(f'sqlite:///{dbfile}', echo=False)
+
+    # make session
+    Session = sessionmaker(engine)
+    session = Session()
+
+    if args.tsv:
+        load_bold(args.tsv, encoding="ISO-8859-1")
+    else:
+        file = fetch_bold_records(args.geo, args.institutions, args.marker)
+        load_bold(file)
     session.commit()
-main()

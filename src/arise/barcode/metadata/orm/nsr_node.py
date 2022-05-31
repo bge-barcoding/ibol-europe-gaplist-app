@@ -59,25 +59,45 @@ class NsrNode(Base):
     def get_ancestors(self, session):
         return session.query(NsrNode).filter(NsrNode.left < self.left, NsrNode.right > self.right)
 
-    def to_ete(self, session, until_rank=None):
+    def to_ete(self, session, until_rank=None, remove_empty_rank=False, remove_incertae_sedis_rank=False):
         if until_rank:
             index_rank = rank_index[until_rank]
-            # set the max rank to None if the rank specified is the lower rank i.e. 'species'
+            # set the max rank to None if the rank specified is the lower rank, i.e. 'species'
             until_rank = index_rank if index_rank != len(rank_order) - 1 else None
         ete_tree = Tree()
-        self._recurse_to_ete(session, ete_tree, until_rank=until_rank)
+        self._recurse_to_ete(session,
+                             ete_tree,
+                             until_rank=until_rank,
+                             remove_empty_rank=remove_empty_rank,
+                             remove_incertae_sedis_rank=remove_incertae_sedis_rank)
         return ete_tree
 
-    def _recurse_to_ete(self, session, ete_node, until_rank=None):
+    def _recurse_to_ete(self,
+                        session,
+                        ete_node,
+                        until_rank=None,
+                        remove_empty_rank=False,
+                        remove_incertae_sedis_rank=False):
+
         if until_rank is not None and rank_index[self.rank] > until_rank:
             return
 
-        new_node = ete_node.add_child(name=self.name)
-        new_node.add_feature('rank', self.rank)
-        new_node.add_feature('id', self.id)
+        if (remove_empty_rank and not self.name) or \
+                (remove_incertae_sedis_rank and self.name and "Incertae sedis" in self.name):
+            # pass the parent node as new node, i.e. skip the current taxon level
+            new_node = ete_node
+        else:
+            new_node = ete_node.add_child(name=self.name)
+            new_node.add_feature('rank', self.rank)
+            new_node.add_feature('id', self.id)
+            new_node.add_feature('rank_index', rank_index[self.rank])
 
         for db_child in self.get_children(session):
-            db_child._recurse_to_ete(session, new_node, until_rank)
+            db_child._recurse_to_ete(session,
+                                     new_node,
+                                     until_rank=until_rank,
+                                     remove_empty_rank=remove_empty_rank,
+                                     remove_incertae_sedis_rank=remove_incertae_sedis_rank)
 
     @classmethod
     def get_mrca(cls, session, nodes):

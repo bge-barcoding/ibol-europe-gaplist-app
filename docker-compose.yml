@@ -18,4 +18,4 @@ services:
     volumes:
       - ${PWD}/data/sqlite:/app/data
     container_name: dbtree
-    command: perl -MBio::Phylo::Forest::DBTree -e 'Bio::Phylo::Forest::DBTree->connect("/app/data/arise-barcode-metadata.db")->get_root->_index'
+    command: perl -MBio::Phylo::Forest::DBTree -e 'Bio::Phylo::Forest::DBTree->connect("/app/data/$DBFILE")->get_root->_index'

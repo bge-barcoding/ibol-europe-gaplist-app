@@ -1,5 +1,6 @@
 import argparse
 import urllib.request
+import shutil
 import logging
 import pandas as pd
 from sqlalchemy import create_engine
@@ -14,6 +15,7 @@ from arise.barcode.metadata.orm.nsr_synonym import NsrSynonym
 from arise.barcode.metadata.orm.imports import *
 from sqlalchemy.exc import NoResultFound
 from taxon_parser import UnparsableNameException
+
 
 
 # initializes a dict with the fields that should go in barcode and specimen table, or None if any of the checks fail
@@ -56,7 +58,7 @@ def init_record_fields(row):
 
 
 # download TSV file from BOLD 'combined' API endpoint
-def fetch_bold_records(geo, institutions, marker):
+def fetch_bold_records(geo, institutions, marker, to_file=None):
     # compose URL
     default_url = "https://www.boldsystems.org/index.php/API_Public/combined?"
     query_string = 'format=tsv&geo=' + geo + '&institutions=' + institutions + '&marker=' + marker
@@ -65,6 +67,12 @@ def fetch_bold_records(geo, institutions, marker):
     # we're going to be brave/stupid and just fetch all sequences in one query. For the default geo restriction
     # that means ±200,000 records, ±150MB of data, which is fine
     logging.info("Going to fetch TSV from %s" % url)
+
+    if to_file is not None:
+        with urllib.request.urlopen(url) as response, open(to_file, 'wb') as fw:
+            shutil.copyfileobj(response, fw)
+        return to_file
+
     file = urllib.request.urlopen(url)
     logging.info("Download complete")
     return file

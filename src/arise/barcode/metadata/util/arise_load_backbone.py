@@ -21,15 +21,25 @@ def download_and_extract(url):
     z.extractall()
 
 
-def load_backbone(infile):
+def load_backbone(infile, white_filter=None):
     df = pd.read_csv(infile, sep=',')
     df.reset_index(inplace=True)  # make sure indexes pair with number of rows
     df.fillna('', inplace=True)
     node_counter = 3  # magic number because root will be 2 with parent 1
-    session.add(NsrNode(id=2, name="All of life", parent=1))
+    session.add(NsrNode(id=2, name="All of life", parent=1, rank='life'))
 
     taxon_level_dict = dict()
     for index, row in df.iterrows():
+
+        ignore_entry = False
+        for level in ['genus', 'family', 'order', 'class', 'phylum', 'kingdom']:
+            higher_taxon = row[level]
+            # ignore taxon branches using the white lists, if specified
+            if white_filter and level in white_filter and higher_taxon not in white_filter[level]:
+                ignore_entry = True
+                break
+        if ignore_entry:
+            continue
 
         # compose binomial name, see if it exists
         binomial = None
@@ -69,6 +79,7 @@ def load_backbone(infile):
                     if higher_taxon not in taxon_level_dict:
                         taxon_level_dict[higher_taxon] = level
                     elif taxon_level_dict[higher_taxon] != level:
+                        # check if the taxon name was used at another taxonomic level
                         print(f'Warning "{higher_taxon}" is level "{level}" but was "{taxon_level_dict[higher_taxon]},'
                               f' index {index}"')
 
@@ -95,6 +106,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', default="arise-barcode-metadata.db", help="Input file: SQLite DB")
     parser.add_argument('-endpoint', default=DEFAULT_URL, help="Input URL: NSR DwC endpoint")
+    parser.add_argument('-testdb', default=DEFAULT_URL, action='store_true',
+                        help="Create DB using a subset a the taxonomic backbone for testing")
     args = parser.parse_args()
 
     # create connection/engine to database file
@@ -110,6 +123,16 @@ if __name__ == '__main__':
     if 'Taxa.txt' not in os.listdir(os.getcwd()):
         download_and_extract(args.endpoint)
 
+    if args.testdb:
+        filters = {
+            'kindgdom': ['Animalia'],
+            'phylum': ['Arthropoda'],
+            'class': ['Insecta'],
+            'order': ['Diptera'],
+            # 'family': ['Syrphidae'],
+            # 'genus': ['Platycheirus']
+        }
+
     # read 'Taxa.txt' from zip as a data frame
-    load_backbone('Taxa.txt')
+    load_backbone('Taxa.txt', white_filter=filters)
     session.commit()

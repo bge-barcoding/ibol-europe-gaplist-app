@@ -11,7 +11,7 @@ class Marker(Base):
 
     # find or create marker object
     @classmethod
-    def match_marker(cls, marker_name, session):
+    def get_or_create_marker(cls, marker_name, session):
         marker = session.query(Marker).filter(Marker.marker_name == marker_name).first()
         if marker is None:
             marker = Marker(marker_name=marker_name)

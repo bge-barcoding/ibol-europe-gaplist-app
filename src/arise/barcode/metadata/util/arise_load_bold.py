@@ -85,11 +85,11 @@ def load_bold(input_file, encoding='utf-8'):
             continue
 
         # get or create specimen
-        specimen = Specimen.match_specimen(nsr_species.species_id, record['catalognum'], record['institution_storing'],
-                                  record['identification_provided_by'], session)
+        specimen = Specimen.get_or_create_specimen(nsr_species.species_id, record['catalognum'], record['institution_storing'],
+                                                   record['identification_provided_by'], session)
 
         # get or create marker
-        marker = Marker.match_marker(record['marker'], session)
+        marker = Marker.get_or_create_marker(record['marker'], session)
 
         # set database field value
         database = DataSource.BOLD

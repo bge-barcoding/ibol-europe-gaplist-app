@@ -13,7 +13,7 @@ class Specimen(Base):
 
     # find or create specimen object
     @classmethod
-    def match_specimen(cls, species_id, catalognum, institution_storing, identification_provided_by, session):
+    def get_or_create_specimen(cls, species_id, catalognum, institution_storing, identification_provided_by, session):
         specimen = session.query(Specimen).filter(Specimen.species_id == species_id, Specimen.catalognum == catalognum,
                                                   Specimen.institution_storing == institution_storing,
                                                   Specimen.identification_provided_by == identification_provided_by).first()

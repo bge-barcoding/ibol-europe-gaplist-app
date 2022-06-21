@@ -3,8 +3,14 @@ Target list interactive table powered by [SlickGrid](https://slickgrid.net/)
 
 ![target list table](../doc/targe_tlist_table.png)
 
-### usage
+### How to access
 
-Download the whole html folder on your disk and run the target_list.html file on your web browser.
+2 options:
+* Download the whole html folder on your disk and run the target_list.html file on your web browser.
 
->The current file integrates data of barcodes from Belgium, Germany and Netherlands for all markers.
+   You may regenerate the HTML file with different database using:
+   ```
+   python src/arise/barcode/metadata/util/compute_barcode_coverage.py -db data/sqlite/arise-barcode-metadata.db 
+   ```
+* Access the target list table via the [gitlab page](https://arise-biodiversity.gitlab.io/sequencing/arise-barcode-metadata/)
+   >The online page shows data of barcodes from Belgium, Germany and Netherlands and for all markers.

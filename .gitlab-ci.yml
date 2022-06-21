@@ -10,8 +10,9 @@ pages:
   script:
     - mkdir .public
     - cp -r ./html/* .public
+    - cp ./doc/arise-logo.jpeg .public
     - rm -rf public
-    - mv .public/target_list.html .public/index.html 
+    - mv .public/target_list.html .public/index.html
     - mv .public public
   artifacts:
     paths:

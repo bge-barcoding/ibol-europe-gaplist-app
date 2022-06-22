@@ -433,9 +433,8 @@
       if (v > $("#pcSliderI2").val()) {
         v = $("#pcSliderI2").val()
       }
-      $(this).val(v);
-
       $("#pcSlider").slider("option", "values", [v, $("#pcSliderI2").val()]);
+      $("#pcSlider").data("ui-slider")._slide();
     });
 
     $("#pcSliderI2").change(function () {
@@ -444,8 +443,8 @@
       if (v < $("#pcSliderI1").val()) {
         v = $("#pcSliderI1").val()
       }
-      $(this).val(v);
       $("#pcSlider").slider("option", "values", [$("#pcSliderI1").val(), v]);
+      $("#pcSlider").data("ui-slider")._slide();
     });
 
     // wire up the slider to apply the filter to the model
@@ -472,9 +471,8 @@
       if (v > $("#pcSliderNatI2").val()) {
         v = $("#pcSliderNatI2").val()
       }
-      $(this).val(v);
-
       $("#pcSliderNat").slider("option", "values", [v, $("#pcSliderNatI2").val()]);
+      $("#pcSliderNat").data("ui-slider")._slide();
     });
 
     $("#pcSliderNatI2").change(function () {
@@ -485,6 +483,7 @@
       }
       $(this).val(v);
       $("#pcSliderNat").slider("option", "values", [$("#pcSliderNatI1").val(), v]);
+      $("#pcSliderNat").data("ui-slider")._slide();
     });
 
         // wire up the slider to apply the filter to the model
@@ -511,9 +510,8 @@
       if (v > $("#pcSliderOtherI2").val()) {
         v = $("#pcSliderOtherI2").val()
       }
-      $(this).val(v);
-
       $("#pcSliderOther").slider("option", "values", [v, $("#pcSliderOtherI2").val()]);
+      $("#pcSliderOther").data("ui-slider")._slide();
     });
 
     $("#pcSliderOtherI2").change(function () {
@@ -522,8 +520,8 @@
       if (v < $("#pcSliderOtherI1").val()) {
         v = $("#pcSliderOtherI1").val()
       }
-      $(this).val(v);
       $("#pcSliderOther").slider("option", "values", [$("#pcSliderOtherI1").val(), v]);
+      $("#pcSliderOther").data("ui-slider")._slide();
     });
 
     $('select[name="taxonlist"]').change(function(){

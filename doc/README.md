@@ -56,6 +56,9 @@ from a cached copy. In either case, the format must be TSV. The operation is as 
 
     $ arise_load_bold.py -tsv <file.tsv>
 
+Bold data filtered on `Netherlands|Belgium|Germany|France|Denmark|United Kingdom` (~425MB) can 
+also be found in the `input_files` folder, but are not inserted in the database file.
+
 ### 1.5 Indexing the topology for faster queries
 
 Now the tree topology should be indexed. This is easiest done using the

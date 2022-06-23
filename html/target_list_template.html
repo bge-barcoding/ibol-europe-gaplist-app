@@ -65,26 +65,21 @@
 </head>
 <body>
   <div>
-    <div style="background: lightskyblue; display: flex; align-items: center; justify-content: center">
+    <div style="background: #48387a; display: flex; align-items: center;">
       <div class="image" style="max-width: 100%">
-        <img src="../doc/arise-logo.jpeg" onerror=this.src="arise-logo.jpeg" height="90px" style="flex-basis: 40%; border-radius: 10px;"></img>
-      </div>
-      <div style="font-size: 20px; padding-left: 20px;">
-        <h1>Target List</h1>
+        <img src="inverted_arise_logo.png" style="height: 100px; background: #48387a;"></img>
       </div>
     </div>
     <div id="filters">
-      <h2>Filters:</h2>
-      <div style="padding:0px 0px 0px 10px;">
+      <div style="padding:10px 0px 0px 10px;">
         <b>Group by:</b>
-        <div style="padding:10px;">
+        <div style="padding:0px 0px 10px 10px;">
           <label for="taxonl">Taxon level</label>
           <select name="taxonlist" id="taxonl">
           </select>
         </div>
-        <br>
         <b>Coverage:</b>
-        <div style="padding:10px 10px 0 10px;">
+        <div style="padding:0px 10px 0px 10px;">
           <label style="width:240px;float:left; line-height: 27px;">Show rows with cov. % between: </label>
           <div style="padding:3px;">
             <div style="width:150px;display:inline-block;" id="pcSlider"></div>
@@ -94,7 +89,7 @@
             </div>
           </div>
         </div>
-        <div style="padding:10px 10px 0 10px;">
+        <div style="padding:0px 10px 0 10px;">
           <label style="width:240px;float:left;line-height: 27px;">Show rows with Naturalis cov. % between: </label>
           <div style="padding:3px;">
             <div style="width:150px;display:inline-block;" id="pcSliderNat"></div>
@@ -104,7 +99,7 @@
             </div>
           </div>
         </div>
-        <div style="padding:10px 10px 0 10px;">
+        <div style="padding:0px 10px 0 10px;">
           <label style="width:240px;float:left;line-height: 27px;">Show rows with Other cov. % between: </label>
           <div style="padding:3px;">
             <div style="width:150px;display:inline-block;" id="pcSliderOther"></div>
@@ -117,9 +112,8 @@
       </div>
     </div>
   </div>
-  <br>
-  <button id="exportBut" onclick="exportTable()" style="margin: 10px">Export Table</button>
-  <br>
+  <div id="exportBut" onclick="exportTable()" 
+  style="margin: 10px; cursor: pointer; background: #48387a; color: white; font-weight: bold; width: fit-content; padding: 5px 5px 3px 5px; border: 1px solid gray; border-radius: 5px;">Export Table</div>
   <div class="container">
     <div id="grid"></div>
     <div id="pager" style="width:100%;height:20px;"></div>

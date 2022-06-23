@@ -30,6 +30,8 @@ def load_backbone(infile, white_filter=None):
 
     taxon_level_dict = dict()
     for index, row in df.iterrows():
+        if row["taxonomicStatus"] != "accepted name":
+            continue
 
         ignore_entry = False
         for level in ['genus', 'family', 'order', 'class', 'phylum', 'kingdom']:
@@ -106,7 +108,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', default="arise-barcode-metadata.db", help="Input file: SQLite DB")
     parser.add_argument('-endpoint', default=DEFAULT_URL, help="Input URL: NSR DwC endpoint")
-    parser.add_argument('-testdb', default=DEFAULT_URL, action='store_true',
+    parser.add_argument('-testdb', action='store_true',
                         help="Create DB using a subset a the taxonomic backbone for testing")
     args = parser.parse_args()
 
@@ -123,11 +125,9 @@ if __name__ == '__main__':
     if 'Taxa.txt' not in os.listdir(os.getcwd()):
         download_and_extract(args.endpoint)
 
+    filters = None
     if args.testdb:
         filters = {
-            'kindgdom': ['Animalia'],
-            'phylum': ['Arthropoda'],
-            'class': ['Insecta'],
             'order': ['Diptera'],
             # 'family': ['Syrphidae'],
             # 'genus': ['Platycheirus']

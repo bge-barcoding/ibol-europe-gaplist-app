@@ -79,7 +79,7 @@
           </select>
         </div>
         <b>Coverage:</b>
-        <div style="padding:0px 10px 0px 10px;">
+        <div style="padding:10px 10px 0px 10px;">
           <label style="width:240px;float:left; line-height: 27px;">Show rows with cov. % between: </label>
           <div style="padding:3px;">
             <div style="width:150px;display:inline-block;" id="pcSlider"></div>
@@ -89,7 +89,7 @@
             </div>
           </div>
         </div>
-        <div style="padding:0px 10px 0 10px;">
+        <div style="padding:10px 10px 0 10px;">
           <label style="width:240px;float:left;line-height: 27px;">Show rows with Naturalis cov. % between: </label>
           <div style="padding:3px;">
             <div style="width:150px;display:inline-block;" id="pcSliderNat"></div>
@@ -99,7 +99,7 @@
             </div>
           </div>
         </div>
-        <div style="padding:0px 10px 0 10px;">
+        <div style="padding:10px 10px 0 10px;">
           <label style="width:240px;float:left;line-height: 27px;">Show rows with Other cov. % between: </label>
           <div style="padding:3px;">
             <div style="width:150px;display:inline-block;" id="pcSliderOther"></div>
@@ -305,9 +305,7 @@
 
   function formatToTSV(obj) {
     const header = columns.map(e => 'exportName' in e ? e.exportName : e.name).join('\t');
-    console.log(header);
     const tsvContent = obj.map((e) => {
-      console.log(e);
       const rowData = [];
       Object.entries(e).forEach((entry) => {
         const key = entry[0];
@@ -519,7 +517,6 @@
     });
 
     $('select[name="taxonlist"]').change(function(){
-      console.log($(this).val());
         if (groupBy !== $(this).val()) {
           window.clearTimeout(h_runfilters);
           h_runfilters = window.setTimeout(updateFilter, 10);

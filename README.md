@@ -19,9 +19,8 @@ the following:
    and metadata ([SQLite](https://www.sqlite.org/index.html)) to enrich sequence records
    
 ⌛ Report and visualize gap analysis of database contents for targeted sequencing 
-   ([JuPyter](https://jupyter.org/))
    
-⌛ Ingest on-disk, file-based data (FASTA) and metadata (CSV/TSV) managed 
+✅ Ingest on-disk, file-based data (FASTA) and metadata (CSV/TSV) managed 
    using [Geneious](https://www.geneious.com/) and Klasse.
    
 ⌛ Filter candidate barcodes by flexible criteria, e.g. marker, provider, geographic origin

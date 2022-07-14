@@ -4,9 +4,7 @@ All data that has been collected and reformatted is found in this folder.
 
 ## Directory layout:
 
-- [exports](exports) - all data exported through scripts
+- [sqlite](sqlite) - database file(s)
 - [input_files](input_files) - all data received or downloaded manually
-- [insert_files](insert_files) - formatted data in .csv format ready to be inserted into an SQL database. Contains all 
-  of the tables as seen in the ERD(link)
-- [reference_db](reference_db) - contains all files needed to construct a reference database in BLAST, as well as the 
-  reference database itself
+
+>Note: bold data were downloaded using this [script](/src/arise/barcode/metadata/util/fetch_bold_data.py)

@@ -17,7 +17,6 @@ from sqlalchemy.exc import NoResultFound
 from taxon_parser import UnparsableNameException
 
 
-
 # initializes a dict with the fields that should go in barcode and specimen table, or None if any of the checks fail
 def init_record_fields(row):
     record = {}
@@ -58,10 +57,10 @@ def init_record_fields(row):
 
 
 # download TSV file from BOLD 'combined' API endpoint
-def fetch_bold_records(geo, institutions, marker, to_file=None):
+def fetch_bold_records(geo, institutions, marker, taxon, to_file=None):
     # compose URL
     default_url = "https://www.boldsystems.org/index.php/API_Public/combined?"
-    query_string = 'format=tsv&geo=' + geo + '&institutions=' + institutions + '&marker=' + marker
+    query_string = f'format=tsv&geo={geo}&institutions={institutions}&marker={marker}&taxon={taxon}'
     url = default_url + query_string.replace(' ', '+')
 
     # we're going to be brave/stupid and just fetch all sequences in one query. For the default geo restriction

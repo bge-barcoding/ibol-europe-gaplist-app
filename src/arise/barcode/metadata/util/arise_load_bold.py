@@ -77,7 +77,7 @@ def fetch_bold_records(geo, institutions, marker, taxon, to_file=None):
     return file
 
 
-def load_bold(input_file, encoding='utf-8'):
+def load_bold(input_file, kingdom=None, encoding='utf-8'):
     df = pd.read_csv(input_file, sep='\t', encoding=encoding)
     for index, row in df.iterrows():
 
@@ -87,7 +87,7 @@ def load_bold(input_file, encoding='utf-8'):
             continue
 
         # initialize species, next row if failed
-        nsr_species = NsrSpecies.match_species(record['taxon'], session)
+        nsr_species = NsrSpecies.match_species(record['taxon'], session, kingdom=kingdom)
         if nsr_species is None:
             continue
 
@@ -118,6 +118,7 @@ if __name__ == '__main__':
     parser.add_argument('-institutions', default="", help="Institutions, quoted and pipe-separated: 'a|b|c'")
     parser.add_argument('-marker', default="", help="Markers, quoted and pipe-separated: 'a|b|c'")
     parser.add_argument('-tsv', help="A TSV file produced by Full Data Retrieval (Specimen + Sequence)")
+    parser.add_argument('-kingdom', choices=['animalia', 'plantae', 'fungi'], help="match only species / taxon in the given kingdom")
     parser.add_argument('--verbose', '-v', action='count', default=1)
     args = parser.parse_args()
 
@@ -134,8 +135,8 @@ if __name__ == '__main__':
     session = Session()
 
     if args.tsv:
-        load_bold(args.tsv, encoding="ISO-8859-1")
+        load_bold(args.tsv, kingdom=args.kingdom, encoding="ISO-8859-1")
     else:
         file = fetch_bold_records(args.geo, args.institutions, args.marker)
-        load_bold(file)
+        load_bold(file, kingdom=args.kingdom)
     session.commit()

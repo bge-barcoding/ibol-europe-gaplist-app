@@ -105,5 +105,5 @@ class NsrNode(Base):
         return session.query(NsrNode).filter(NsrNode.left < s[0].left, NsrNode.right > s[-1].right).order_by(NsrNode.left).first()
 
     def __repr__(self):
-        return "<NsrNode(name='%s')>" % (
-                         self.id)
+        return "<NsrNode(name='%s (%s)')>" % (
+            (self.name, self.id))

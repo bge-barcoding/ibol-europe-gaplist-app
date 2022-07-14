@@ -27,7 +27,7 @@ def init_record_fields(row):
 
         # if the name has at least two parts it's a (sub)species, which is good
         if len(parts) > 1:
-            record['taxon'] = row['Taxon']
+            record['taxon'] = ' '.join(parts[:2])
         else:
 
             # taxon names above genus level are managed by Klasse in all caps
@@ -52,7 +52,7 @@ def init_record_fields(row):
     return record
 
 
-def load_klasse(marker_name, input_file, encoding='utf-8'):
+def load_klasse(marker_name, kingdom, input_file, encoding='utf-8'):
     df = pd.read_csv(input_file, sep='\t', encoding=encoding)
     for index, row in df.iterrows():
 
@@ -62,7 +62,7 @@ def load_klasse(marker_name, input_file, encoding='utf-8'):
             continue
 
         # initialize species, next row if failed
-        nsr_species = NsrSpecies.match_species(record['taxon'], session)
+        nsr_species = NsrSpecies.match_species(record['taxon'], session, kingdom=kingdom)
         if nsr_species is None:
             continue
 
@@ -92,7 +92,8 @@ if __name__ == '__main__':
     # process command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', default="arise-barcode-metadata.db", help="Input file: SQLite DB")
-    parser.add_argument('-marker', default="", help="Marker name using BOLD vocab, e.g. COI-5P")
+    parser.add_argument('-marker', choices=['COI-5P', 'ITS1', 'ITS', 'matK', 'trnL'], help="Marker name using BOLD vocab, e.g. COI-5P", required=True)
+    parser.add_argument('-kingdom', choices=['animalia', 'plantae', 'fungi'], help="match only species / taxon in the given kingdom")
     parser.add_argument('-tsv', help="A TSV file exported from Klasse using the ARISE template")
     parser.add_argument('--verbose', '-v', action='count', default=1)
     args = parser.parse_args()
@@ -108,5 +109,5 @@ if __name__ == '__main__':
     # load data during session
     Session = sessionmaker(engine)
     session = Session()
-    load_klasse(args.marker, args.tsv)
+    load_klasse(args.marker, args.kingdom, args.tsv)
     session.commit()

@@ -16,12 +16,17 @@ class Specimen(Base):
     def get_or_create_specimen(cls, species_id, catalognum, institution_storing, identification_provided_by, session):
         specimen = session.query(Specimen).filter(Specimen.species_id == species_id, Specimen.catalognum == catalognum,
                                                   Specimen.institution_storing == institution_storing,
-                                                  Specimen.identification_provided_by == identification_provided_by).first()
-        if specimen is None:
+                                                  Specimen.identification_provided_by == identification_provided_by).all()
+        if not specimen:
             specimen = Specimen(species_id=species_id, catalognum=catalognum, institution_storing=institution_storing,
                                 identification_provided_by=identification_provided_by)
             session.add(specimen)
             session.flush()
+        elif len(specimen) > 1:
+            print('Error multiple specimen')
+            exit()
+        else:
+            specimen = specimen[0]
         return specimen
 
     def __repr__(self):

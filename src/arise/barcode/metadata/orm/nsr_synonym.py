@@ -6,6 +6,7 @@ class NsrSynonym(Base):
     synonym_id = Column(Integer, primary_key=True, autoincrement=True)
     synonym_name = Column(String, index=True)
     species_id = Column(Integer, ForeignKey('nsr_species.species_id'))
+    species = relationship('NsrSpecies', backref=backref("synonyms", cascade="all, delete"))
 
     def __repr__(self):
         return "<NsrSynonym(synonym_name='%s')>" % (

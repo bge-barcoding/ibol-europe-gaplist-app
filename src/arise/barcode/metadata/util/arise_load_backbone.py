@@ -12,11 +12,15 @@ from arise.barcode.metadata.orm.barcode import Barcode
 from arise.barcode.metadata.orm.nsr_node import NsrNode
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+import loggers
+import logging
 
 DEFAULT_URL = "http://api.biodiversitydata.nl/v2/taxon/dwca/getDataSet/nsr"
-
+main_logger = logging.getLogger('main')
+lbb_logger = logging.getLogger('load_backbone')
 
 def download_and_extract(url):
+    main_logger.info('download_and_extract URL:', url)
     r = requests.get(url)
     z = zipfile.ZipFile(io.BytesIO(r.content))
     z.extractall()
@@ -29,20 +33,30 @@ def load_backbone(infile, white_filter=None):
     df.fillna('', inplace=True)
     node_counter = 3  # magic number because root will be 2 with parent 1
     session.add(NsrNode(id=2, name="All of life", parent=1, rank='life'))
+
+    # dict to keep tract of full taxonomy strings, see details below
     taxonomy_dict = dict()
+
+    # dict to keep tract of taxon name, and detect homonyms
     taxon_level_dict = dict()
+
+    # map taxid (DwC) => species id, used to create the synonyms
     taxid_speciesid = dict()
 
     for index, row in df.iterrows():
         if row["taxonomicStatus"] not in ["accepted name", 'synonym']:
+            lbb_logger.warning('ignore row index %s with taxonomicStatus=%s' % (index, row["taxonomicStatus"]))
             continue
 
         if row["taxonomicStatus"] == "accepted name":
+            # filter rows using the white_filter
             ignore_entry = False
             for level in taxon_levels:
                 higher_taxon = row[level].lower()
                 # ignore taxon branches using the white lists, if specified
-                if white_filter and level in white_filter and higher_taxon not in [e.lower() for e in white_filter[level]]:
+                if white_filter and \
+                   level in white_filter and \
+                   higher_taxon not in [e.lower() for e in white_filter[level]]:
                     ignore_entry = True
                     break
             if ignore_entry:
@@ -52,14 +66,16 @@ def load_backbone(infile, white_filter=None):
         try:
             binomial = row['genus'] + ' ' + row['specificEpithet']
         except:
-            print(row)
+            lbb_logger.error('cannot create binomial name for index', index)
             exit()
 
         if row["taxonomicStatus"] == 'synonym':
             ref_id = row.acceptedNameUsageId
-            # assumes synonyms are at the end of the file, i.e. taxid_speciesid is filled
+            # this assumes synonyms are at the end of the file, i.e. taxid_speciesid is filled
             # do not insert synonym that are identical to the ref name
             if ref_id in taxid_speciesid and taxid_speciesid[ref_id]['canonical_name'] != binomial:
+                # TODO check is the couple is already present in the synonym taable before insertion
+                # duplicates may arise because the subspecies Epithet is trimmed off
                 synonym = NsrSynonym(synonym_name=binomial, species_id=taxid_speciesid[ref_id]['id'])
                 session.add(synonym)
             continue
@@ -80,31 +96,44 @@ def load_backbone(infile, white_filter=None):
                 session.flush()
                 node_counter += 1
             else:
-                print('seen this node before')
                 # we've seen this species before (prob from another subspecies), move onto the next row
+                lbb_logger.warning('species "%s"  already in the database' % binomial)
                 continue
 
             # iterate over higher levels, see if they already exist
             for level in taxon_levels:
                 higher_taxon = row[level]
+
                 # compute a string representing the full taxonomy
-                ht_full_taxo = '-'.join([row[e] for e in taxon_levels[taxon_levels.index(level):]])
+                #
+                ht_full_taxon = '-'.join([row[e] for e in taxon_levels[taxon_levels.index(level):]])
 
                 node = False
-                # check if the node already exist by comparing taxonomy strings
+                # check if the node already exists by comparing full taxonomy strings
                 # this allows to insert node with identical name
                 if higher_taxon in taxonomy_dict:
-                    if ht_full_taxo in taxonomy_dict[higher_taxon]:
-                        node = taxonomy_dict[higher_taxon][ht_full_taxo]
+                    if ht_full_taxon in taxonomy_dict[higher_taxon]:
+                        # this taxon was already encountered, get the corresponding node
+                        node = taxonomy_dict[higher_taxon][ht_full_taxon]
+                    else:
+                        pass
+                        # the taxon name was already encountered, but the full taxonomy is different
+                        # = homonym
 
                 if not higher_taxon:
-                    print(f'Warning taxon is N/A for level "{level}", index {index}')
+                    lbb_logger.warning(f'taxon is "N/A" for level "{level}", index {index}')
+                    # "N/A" are replace with empty string
+                    # the nodes are inserted with an empty name
+                    # (but if the full taxonomy string exist in the map, the nod is reused)
+                    if not node:
+                        lbb_logger.warning(f'New taxon "" ("N/A"), level "{level}", index {index} is inserted')
                 else:
+                    # check for homonym
                     if higher_taxon not in taxon_level_dict:
                         taxon_level_dict[higher_taxon] = level
                     elif taxon_level_dict[higher_taxon] != level:
                         # check if the taxon name was used at another taxonomic level
-                        print(f'Warning "{higher_taxon}" is level "{level}" but was "{taxon_level_dict[higher_taxon]},'
+                        lbb_logger.warning(f'"{higher_taxon}" is level "{level}" but was "{taxon_level_dict[higher_taxon]},'
                               f' index {index}"')
 
                 if not node:
@@ -117,17 +146,18 @@ def load_backbone(infile, white_filter=None):
                     node_counter += 1
                     if parent.name not in taxonomy_dict:
                         taxonomy_dict[parent.name] = {}
-                    taxonomy_dict[parent.name][ht_full_taxo] = parent
+                    taxonomy_dict[parent.name][ht_full_taxon] = parent
                     if level == "genus":
-                        # if a new genus is inserted, linked it to the species
-                        # FIXME this will lead to many null values
-                        # but the genus_id of such entry will never be used (I think)
-                        nsr_species.genus_id = parent.id
+                        pass
+                        # TRY SKIP THIS
+                        # if a new genus is inserted, link the current species to it via the 'genus_id' attribute
+                        # FIXME currently it is set only for "[genus] sp." species
+                        # nsr_species.genus_id = parent.id
                 else:
                     # we've already reached and instantiated this higher taxon via another path, graft onto that
                     child.parent = node.id
                     break
-    print('Inserted nodes: ', node_counter)
+    lbb_logger.warning('Inserted nodes: %s' % node_counter)
 
 
 if __name__ == '__main__':
@@ -153,12 +183,14 @@ if __name__ == '__main__':
         download_and_extract(args.endpoint)
 
     filters = None
+    main_logger.info('START load_backbone using Taxa.txt')
     if args.testdb:
         filters = {
             # 'order': ['Diptera'],
             'family': ['FRINGILLIDAE', 'Plantaginaceae'],
             # 'genus': ['Platycheirus']
         }
+        main_logger.info('taxonomy filter used:', filters)
 
     # read 'Taxa.txt' from zip as a data frame
     load_backbone('Taxa.txt', white_filter=filters)

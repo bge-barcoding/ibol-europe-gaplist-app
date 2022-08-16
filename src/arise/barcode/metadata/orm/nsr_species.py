@@ -6,6 +6,7 @@ from sqlalchemy.exc import NoResultFound
 from taxon_parser import UnparsableNameException
 import logging
 
+nsm_logger = logging.getLogger('nsr_species_match')
 
 class NsrSpecies(Base):
     __tablename__ = 'nsr_species'
@@ -28,25 +29,33 @@ class NsrSpecies(Base):
             cleaned = parsed.canonicalNameWithoutAuthorship()
             # find exact species match
             nsr_species = session.query(NsrSpecies).filter(NsrSpecies.canonical_name == cleaned).all()
+            nsr_synonyms = session.query(NsrSynonym).filter(NsrSynonym.synonym_name == cleaned).all()
+
+            if nsr_species and nsr_synonyms:
+                nsm_logger.warning('species name "%s" is also an existing synonym' % cleaned)
             if len(nsr_species) == 1:
                 nsr_species = nsr_species[0]
             elif len(nsr_species) > 1:
                 # should not be possible, unless when trying to insert 'xxx sp.' species name
                 # but this placeholder name should never be provided in real data
-                print('Error: multiple species match using name: "%s' % cleaned)
-                print(nsr_species)
+                nsm_logger.error('multiple species match using name: "%s"' % cleaned)
+                nsm_logger.error('matches:', nsr_species)
                 exit()
             else:
-                # check if synonym
-                nsr_synonyms = session.query(NsrSynonym).filter(NsrSynonym.synonym_name == cleaned).all()
+                # species not found, check in synonym table
                 if len(nsr_synonyms) == 1:
                     nsr_species = nsr_synonyms[0].species
                 else:
+                    if len(nsr_synonyms) > 1:
+                        nsm_logger.warning('Taxon "%s" match multiple synonyms, ignore them' % cleaned)
                     nsr_species = None
+                    # search for genus matches
+                    # when a genus name is specify instead of a species name
+                    # the strategy is (when the genus name is found in our database)
+                    # to create a new species node named "[genus] sp."
                     nsr_node = session.query(NsrNode).filter(NsrNode.name == cleaned, NsrNode.rank == 'genus').all()
                     if len(nsr_node) == 0:
-                        logging.debug("Taxon %s not found anywhere in NSR topology" % cleaned)
-                        print("Taxon %s not found anywhere in NSR topology" % cleaned)
+                        nsm_logger.info('Taxon "%s" not found anywhere in NSR topology, node not created' % cleaned)
                     elif len(nsr_node) > 1:
                         # the taxon name is a homonym, if the kingdom is provided, let try to find the correct node
                         if kingdom:
@@ -61,23 +70,25 @@ class NsrSpecies(Base):
                             if len(valid_parents) == 1:
                                 nsr_node = valid_parents
                             elif len(valid_parents) > 1 or len(valid_parents) == 0:
-                                # exit here because it's going to mess up the barcode data
-                                print("Error cannot select the correct node")
+                                # exit here because we can safely associate the current name to the good node
+                                nsm_logger.error('multiple species/genus match using name: "%s"' % cleaned)
+                                nsm_logger.error('cannot select the correct one, even using kingdom' % cleaned)
                                 exit()
                         else:
                             # might be triggered if argument -kingdom is not use when loading data
-                            print("Multiple genus named '%s' cannot map to NSR taxonomy" % cleaned)
+                            nsm_logger.error('multiple genus match using name: "%s"' % cleaned)
+                            nsm_logger.error('try to specify -kingdom, to remove ambigous nodes' % cleaned)
                             exit()
                     if nsr_node:
                         nsr_node = nsr_node[0]
                         # find or create sp node, but make sure it is linked to the correct species
-                        # this allows the creation of multiple identical sp. species
+                        # this allows the creation of homonyms  sp. species nodes
                         sp_name = cleaned + ' sp.'
                         nsr_species = session.query(NsrSpecies).filter(NsrSpecies.canonical_name == sp_name,
                                                                        NsrSpecies.genus_id == nsr_node.id).all()
                         if len(nsr_species) > 1:
                             # should not be possible
-                            print("Error: multiple identical species with same genus")
+                            nsm_logger.error('Multiple sp. nodes found in database using taxon "%s"' % cleaned)
                             exit()
                         elif len(nsr_species) == 0:
                             nsr_species = NsrSpecies(canonical_name=sp_name, genus_id=nsr_node.id)
@@ -87,14 +98,14 @@ class NsrSpecies(Base):
                             session.add(nsr_node)
                             session.flush()
                         else:
+                            # sp. node already in database, return it
                             nsr_species = nsr_species[0]
         except AttributeError as e:
-            logging.debug("Problem parsing taxon name %s" % taxon)
-            print("Problem parsing taxon name %s" % taxon)
-            print(e)
-        except UnparsableNameException:
-            logging.debug("Problem parsing taxon name %s" % taxon)
-            print("Problem parsing taxon name %s" % taxon)
+            nsm_logger.error('Problem parsing taxon name "%s"' % taxon)
+            nsm_logger.error('Exception:', e)
+        except UnparsableNameException as e:
+            nsm_logger.error('Problem parsing taxon name "%s"' % taxon)
+            nsm_logger.error('Exception:', e)
 
         return nsr_species
 

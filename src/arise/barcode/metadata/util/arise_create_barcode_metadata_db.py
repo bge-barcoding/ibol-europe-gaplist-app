@@ -8,6 +8,10 @@ from arise.barcode.metadata.orm.nsr_synonym import NsrSynonym
 from arise.barcode.metadata.orm.specimen import Specimen
 from arise.barcode.metadata.orm.nsr_node import NsrNode
 import argparse
+import logging
+import loggers
+
+main_logger = logging.getLogger('main')
 
 if __name__ == '__main__':
     # process command line arguments
@@ -18,6 +22,7 @@ if __name__ == '__main__':
     # create connection/engine to database file
     outfile = args.outfile
     engine = create_engine(f'sqlite:///{outfile}', echo=False)
+    main_logger.info('create new database file: %s' % {outfile})
 
     # make session
     Session = sessionmaker(engine)

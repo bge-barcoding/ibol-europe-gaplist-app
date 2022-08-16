@@ -15,6 +15,10 @@ from arise.barcode.metadata.orm.nsr_synonym import NsrSynonym
 from arise.barcode.metadata.orm.imports import *
 from sqlalchemy.exc import NoResultFound
 from taxon_parser import UnparsableNameException
+import loggers
+
+main_logger = logging.getLogger('main')
+lbd_logger = logging.getLogger('load_bold')
 
 
 # initializes a dict with the fields that should go in barcode and specimen table, or None if any of the checks fail
@@ -30,14 +34,16 @@ def init_record_fields(row):
         if row['genus_name'] == row['genus_name']:
             record['taxon'] = row['genus_name']
         else:
-            logging.debug("Taxonomic identification not specific enough, skipping")
+            lbd_logger.warning("Taxonomic identification not specific enough, skip record:")
+            lbd_logger.warning(row)
             return None
 
     # check marker name
     if row['markercode'] == row['markercode']:
         record['marker'] = row['markercode']
     else:
-        logging.debug("The marker code is undefined, skipping")
+        lbd_logger.warning("The marker code is undefined, skip record:")
+        lbd_logger.warning(row)
         return None
 
     # we use process ID as external identifier because it can be resolved for inspection, other fields are for specimens
@@ -65,7 +71,7 @@ def fetch_bold_records(geo, institutions, marker, taxon, to_file=None):
 
     # we're going to be brave/stupid and just fetch all sequences in one query. For the default geo restriction
     # that means ±200,000 records, ±150MB of data, which is fine
-    logging.info("Going to fetch TSV from %s" % url)
+    lbd_logger.info("Going to fetch TSV from %s" % url)
 
     if to_file is not None:
         with urllib.request.urlopen(url) as response, open(to_file, 'wb') as fw:
@@ -73,12 +79,15 @@ def fetch_bold_records(geo, institutions, marker, taxon, to_file=None):
         return to_file
 
     file = urllib.request.urlopen(url)
-    logging.info("Download complete")
+    lbd_logger.info("Download complete")
     return file
 
 
 def load_bold(input_file, kingdom=None, encoding='utf-8'):
     df = pd.read_csv(input_file, sep='\t', encoding=encoding)
+    specimens_created = 0
+    markers_created = 0
+    barcodes_created = 0
     for index, row in df.iterrows():
 
         # initialize dict with relevant fields, next row if failed
@@ -92,11 +101,15 @@ def load_bold(input_file, kingdom=None, encoding='utf-8'):
             continue
 
         # get or create specimen
-        specimen = Specimen.get_or_create_specimen(nsr_species.species_id, record['catalognum'], record['institution_storing'],
+        specimen, created = Specimen.get_or_create_specimen(nsr_species.species_id, record['catalognum'], record['institution_storing'],
                                                    record['identification_provided_by'], session)
+        if created:
+            specimens_created += 1
 
         # get or create marker
-        marker = Marker.get_or_create_marker(record['marker'], session)
+        marker, created = Marker.get_or_create_marker(record['marker'], session)
+        if created:
+            markers_created += 1
 
         # set database field value
         database = DataSource.BOLD
@@ -106,11 +119,14 @@ def load_bold(input_file, kingdom=None, encoding='utf-8'):
         barcode = Barcode(specimen_id=specimen.specimen_id, database=database, marker_id=marker.marker_id,
                           external_id=record['external_id'])
         session.add(barcode)
+        barcodes_created += 1
+
+    main_logger.info(f'{specimens_created=}')
+    main_logger.info(f'{markers_created=}')
+    main_logger.info(f'{barcodes_created=}')
 
 
 if __name__ == '__main__':
-
-    # process command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', default="arise-barcode-metadata.db", help="Input file: SQLite DB")
     parser.add_argument('-geo', default="Belgium|Netherlands|Germany",
@@ -118,13 +134,9 @@ if __name__ == '__main__':
     parser.add_argument('-institutions', default="", help="Institutions, quoted and pipe-separated: 'a|b|c'")
     parser.add_argument('-marker', default="", help="Markers, quoted and pipe-separated: 'a|b|c'")
     parser.add_argument('-tsv', help="A TSV file produced by Full Data Retrieval (Specimen + Sequence)")
-    parser.add_argument('-kingdom', choices=['animalia', 'plantae', 'fungi'], help="match only species / taxon in the given kingdom")
-    parser.add_argument('--verbose', '-v', action='count', default=1)
+    parser.add_argument('-kingdom', choices=['animalia', 'plantae', 'fungi'],
+                        help="match only species / taxon in the given kingdom")
     args = parser.parse_args()
-
-    # configure logging
-    args.verbose = 70 - (10 * args.verbose) if args.verbose > 0 else 0
-    logging.basicConfig(level=args.verbose)
 
     # create connection/engine to database file
     dbfile = args.db
@@ -135,8 +147,10 @@ if __name__ == '__main__':
     session = Session()
 
     if args.tsv:
+        main_logger.info('START load_bold using TSV file "%s"' % args.tsv)
         load_bold(args.tsv, kingdom=args.kingdom, encoding="ISO-8859-1")
     else:
+        main_logger.info('START load_bold fetch records')
         file = fetch_bold_records(args.geo, args.institutions, args.marker)
         load_bold(file, kingdom=args.kingdom)
     session.commit()

@@ -17,7 +17,7 @@ rank_hierarchy = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'spe
 #
 def make_ancestors_list(node, max_rank):
     """
-        build an ordered list of taxon name from node ancestors
+        build an ordered list of taxon name from ancestor nodes
     """
     l = [None] * (rank_hierarchy.index(max_rank) + 1)
     for e in node.get_ancestors():
@@ -199,7 +199,8 @@ if __name__ == '__main__':
     # add id column for slickgrid dataview
     df.insert(0, 'id', range(1, 1 + len(df)))
     df = df.fillna("")
-    df[['coverage', 'coverage_nat', 'coverage_not_nat']] = df[['coverage', 'coverage_nat', 'coverage_not_nat']].apply(lambda x: round(x, 1))
+    df[['coverage', 'coverage_nat', 'coverage_not_nat']] = \
+        df[['coverage', 'coverage_nat', 'coverage_not_nat']].apply(lambda x: round(x, 1))
     shutil.copyfile('html/target_list_template.html', 'html/target_list.html')
     html = open('html/target_list.html').read().replace('##DATA##', df.to_json(orient="records"))
     with open('html/target_list.html', 'w') as fw:

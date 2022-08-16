@@ -3,16 +3,21 @@ from taxon_parser import TaxonParser
 from arise.barcode.metadata.orm.nsr_node import NsrNode
 from arise.barcode.metadata.orm.nsr_synonym import NsrSynonym
 from sqlalchemy.exc import NoResultFound
+from sqlalchemy.orm import validates
 from taxon_parser import UnparsableNameException
 import logging
-
 nsm_logger = logging.getLogger('nsr_species_match')
+
+Occurrence_status_set = {
+    '0', '0a', '1', '1a', '1b', '2', '2a', '2b', '2c', '2d', '3a', '3b', '3c', '3d', '4'
+}
 
 class NsrSpecies(Base):
     __tablename__ = 'nsr_species'
 
     species_id = Column(Integer, primary_key=True, autoincrement=True)
     canonical_name = Column(String, index=True)
+    occurrence_status = Column(String)
     # need to know the genus id for species with identical names (rare cases involving 'sp.' name )
     genus_id = Column(Integer, ForeignKey('node.id'))
 
@@ -83,6 +88,7 @@ class NsrSpecies(Base):
                         nsr_node = nsr_node[0]
                         # find or create sp node, but make sure it is linked to the correct species
                         # this allows the creation of homonyms  sp. species nodes
+                        # note: such species won't have a status_occurrence
                         sp_name = cleaned + ' sp.'
                         nsr_species = session.query(NsrSpecies).filter(NsrSpecies.canonical_name == sp_name,
                                                                        NsrSpecies.genus_id == nsr_node.id).all()
@@ -108,6 +114,12 @@ class NsrSpecies(Base):
             nsm_logger.error('Exception:', e)
 
         return nsr_species
+
+    @validates('occurrence_status')
+    def validate_occurrence_status(self, key, value):
+        if value is not None:
+            assert value in Occurrence_status_set, "%s is not a valid occurrence status" % value
+        return value
 
     def __repr__(self):
         return "<NsrSpecies(canonical_name='%s')>" % (

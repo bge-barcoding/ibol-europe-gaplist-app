@@ -32,6 +32,7 @@ def load_backbone(infile, white_filter=None):
     df.reset_index(inplace=True)  # make sure indexes pair with number of rows
     df.fillna('', inplace=True)
     node_counter = 3  # magic number because root will be 2 with parent 1
+    species_created = 0
     session.add(NsrNode(id=2, name="All of life", parent=1, rank='life'))
 
     # dict to keep tract of full taxonomy strings, see details below
@@ -81,9 +82,16 @@ def load_backbone(infile, white_filter=None):
             continue
 
         nsr_species = session.query(NsrSpecies).filter(NsrSpecies.canonical_name == binomial).all()
-        if not nsr_species:
-            # not seen this before, insert
-            nsr_species = NsrSpecies(canonical_name=binomial)
+        if not nsr_species:  # not seen this before, insert
+            if row['occurrenceStatus']:
+                occurrence_status = row['occurrenceStatus'].split(' ')[0]
+                if occurrence_status == '3cE':
+                    occurrence_status = '3c'  # fix invalid status
+            else:
+                occurrence_status = None
+                lbb_logger.warning('occurrence status is null for species "%s"' % binomial)
+
+            nsr_species = NsrSpecies(canonical_name=binomial, occurrence_status=occurrence_status)
             session.add(nsr_species)
             session.flush()
             taxid_speciesid[row.taxonID] = {'id': nsr_species.species_id, 'canonical_name': binomial}
@@ -95,6 +103,7 @@ def load_backbone(infile, white_filter=None):
                 session.add(child)
                 session.flush()
                 node_counter += 1
+                species_created += 1
             else:
                 # we've seen this species before (prob from another subspecies), move onto the next row
                 lbb_logger.warning('species "%s"  already in the database' % binomial)
@@ -158,6 +167,7 @@ def load_backbone(infile, white_filter=None):
                     child.parent = node.id
                     break
     lbb_logger.warning('Inserted nodes: %s' % node_counter)
+    lbb_logger.warning('Inserted species: %s' % species_created)
 
 
 if __name__ == '__main__':

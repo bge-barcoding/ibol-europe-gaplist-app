@@ -87,7 +87,7 @@ def load_klasse(marker_name, kingdom, input_file, encoding='utf-8'):
         # check if barcode already exists, criteria: 1) DataSource is NATURALIS, 2) marker matches
         for barcode in specimen.barcodes:
             if barcode.marker_id == marker.marker_id:
-                logging.warning("Specimen %s already has barcode for marker %s" % (specimen.catalognum, marker_name))
+                lk_logger.error("Specimen %s already has barcode for marker %s" % (specimen.catalognum, marker_name))
                 break
 
         barcode = Barcode(specimen_id=specimen.specimen_id, database=DataSource.NATURALIS, marker_id=marker.marker_id,

@@ -44,3 +44,5 @@ klasse
 # no logs
 logs/
 
+# no lock files
+.~lock.*

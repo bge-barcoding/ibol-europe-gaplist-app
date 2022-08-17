@@ -86,16 +86,20 @@ def load_bold(input_file, kingdom=None, encoding='utf-8'):
     specimens_created = 0
     markers_created = 0
     barcodes_created = 0
+    incomplete_records = 0
+    fail_matching_nsr_species = 0
     for index, row in df.iterrows():
 
         # initialize dict with relevant fields, next row if failed
         record = init_record_fields(row)
         if record is None:
+            incomplete_records += 1
             continue
 
         # initialize species, next row if failed
         nsr_species = NsrSpecies.match_species(record['taxon'], session, kingdom=kingdom)
         if nsr_species is None:
+            fail_matching_nsr_species += 1
             continue
 
         # get or create specimen
@@ -122,6 +126,8 @@ def load_bold(input_file, kingdom=None, encoding='utf-8'):
     main_logger.info(f'{specimens_created=}')
     main_logger.info(f'{markers_created=}')
     main_logger.info(f'{barcodes_created=}')
+    main_logger.info(f'{incomplete_records=}')
+    main_logger.info(f'{fail_matching_nsr_species=}')
 
 
 if __name__ == '__main__':

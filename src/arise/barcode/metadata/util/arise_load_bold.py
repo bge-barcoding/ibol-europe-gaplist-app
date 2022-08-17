@@ -24,7 +24,6 @@ lbd_logger = logging.getLogger('load_bold')
 # initializes a dict with the fields that should go in barcode and specimen table, or None if any of the checks fail
 def init_record_fields(row):
     record = {}
-
     # IEEE specs say NaN's can not be equal, so that's how we do the checks for missing values
 
     # check taxon names
@@ -48,6 +47,7 @@ def init_record_fields(row):
     record['catalognum'] = row['catalognum']
     record['institution_storing'] = row['institution_storing']
     record['identification_provided_by'] = row['identification_provided_by']
+    record['locality'] = row['country']
 
     # distinguish between bold and ncbi
     if row['genbank_accession'] == row['genbank_accession']:
@@ -104,7 +104,7 @@ def load_bold(input_file, kingdom=None, encoding='utf-8'):
 
         # get or create specimen
         specimen, created = Specimen.get_or_create_specimen(nsr_species.species_id, record['catalognum'], record['institution_storing'],
-                                                   record['identification_provided_by'], session)
+                                                   record['identification_provided_by'], record['locality'], session)
         if created:
             specimens_created += 1
 

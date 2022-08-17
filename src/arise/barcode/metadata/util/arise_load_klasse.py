@@ -48,13 +48,14 @@ def init_record_fields(row):
     record['institution_storing'] = 'Naturalis Biodiversity Center'  # same as in BOLD
     record['identification_provided_by'] = row['det.']  # XXX can be NaN!
     record['external_id'] = row['Name']  # this is the internal FASTA ID / defline managed by Geneious
+    record['locality'] = row['land'] if row['land'] else 'Unknown'
 
-    # done
     return record
 
 
 def load_klasse(marker_name, kingdom, input_file, encoding='utf-8'):
     df = pd.read_csv(input_file, sep='\t', encoding=encoding)
+    df.fillna('', inplace=True)
     specimens_created = 0
     markers_created = 0
     barcodes_created = 0
@@ -79,6 +80,7 @@ def load_klasse(marker_name, kingdom, input_file, encoding='utf-8'):
                                                    record['catalognum'],
                                                    record['institution_storing'],
                                                    record['identification_provided_by'],
+                                                   record['locality'],
                                                    session)
         if created:
             specimens_created += 1

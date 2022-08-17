@@ -34,16 +34,14 @@ def init_record_fields(row):
         if row['genus_name'] == row['genus_name']:
             record['taxon'] = row['genus_name']
         else:
-            lbd_logger.warning("Taxonomic identification not specific enough, skip record:")
-            lbd_logger.warning(row)
+            lbd_logger.warning('Taxonomic identification not specific enough, skip record "%s"' % row['catalognum'])
             return None
 
     # check marker name
     if row['markercode'] == row['markercode']:
         record['marker'] = row['markercode']
     else:
-        lbd_logger.warning("The marker code is undefined, skip record:")
-        lbd_logger.warning(row)
+        lbd_logger.warning('The marker code is undefined, skip record "%s"' % row['catalognum'])
         return None
 
     # we use process ID as external identifier because it can be resolved for inspection, other fields are for specimens
@@ -54,10 +52,10 @@ def init_record_fields(row):
     # distinguish between bold and ncbi
     if row['genbank_accession'] == row['genbank_accession']:
         record['external_id'] = row['genbank_accession']
-        logging.warning("Record for %s was harvested from NCBI: %s" % (record['taxon'], record['external_id']))
+        lbd_logger.info("Record for %s was harvested from NCBI: %s" % (record['taxon'], record['external_id']))
     else:
         record['external_id'] = row['processid']
-        logging.debug("Record for %s was submitted directly: %s" % (record['taxon'], record['external_id']))
+        lbd_logger.info("Record for %s was submitted directly: %s" % (record['taxon'], record['external_id']))
 
     return record
 
@@ -136,7 +134,11 @@ if __name__ == '__main__':
     parser.add_argument('-tsv', help="A TSV file produced by Full Data Retrieval (Specimen + Sequence)")
     parser.add_argument('-kingdom', choices=['animalia', 'plantae', 'fungi'],
                         help="match only species / taxon in the given kingdom")
+    parser.add_argument('--verbose', '-v', action='count', default=1)
+
     args = parser.parse_args()
+    args.verbose = 70 - (10 * args.verbose) if args.verbose > 0 else 0
+    [h.addFilter(loggers.LevelFilter(args.verbose)) for h in lbd_logger.handlers]
 
     # create connection/engine to database file
     dbfile = args.db

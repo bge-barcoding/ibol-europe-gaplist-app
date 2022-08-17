@@ -105,10 +105,16 @@ if __name__ == '__main__':
     # process command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', default="arise-barcode-metadata.db", help="Input file: SQLite DB")
-    parser.add_argument('-marker', choices=['COI-5P', 'ITS1', 'ITS', 'matK', 'trnL'], help="Marker name using BOLD vocab, e.g. COI-5P", required=True)
-    parser.add_argument('-kingdom', choices=['animalia', 'plantae', 'fungi'], help="match only species / taxon in the given kingdom")
+    parser.add_argument('-marker', choices=['COI-5P', 'ITS1', 'ITS', 'matK', 'trnL'],
+                        help="Marker name using BOLD vocab, e.g. COI-5P", required=True)
+    parser.add_argument('-kingdom', choices=['animalia', 'plantae', 'fungi'],
+                        help="match only species / taxon in the given kingdom")
     parser.add_argument('-tsv', help="A TSV file exported from Klasse using the ARISE template")
+    parser.add_argument('--verbose', '-v', action='count', default=1)
+
     args = parser.parse_args()
+    args.verbose = 70 - (10 * args.verbose) if args.verbose > 0 else 0
+    [h.addFilter(loggers.LevelFilter(args.verbose)) for h in lk_logger.handlers]
 
     # create connection/engine to database file
     dbfile = args.db

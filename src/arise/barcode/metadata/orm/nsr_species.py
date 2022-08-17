@@ -60,7 +60,7 @@ class NsrSpecies(Base):
                     # to create a new species node named "[genus] sp."
                     nsr_node = session.query(NsrNode).filter(NsrNode.name == cleaned, NsrNode.rank == 'genus').all()
                     if len(nsr_node) == 0:
-                        nsm_logger.info('Taxon "%s" not found anywhere in NSR topology, node not created' % cleaned)
+                        nsm_logger.warning('Taxon "%s" not found anywhere in NSR topology, node not created' % cleaned)
                     elif len(nsr_node) > 1:
                         # the taxon name is a homonym, if the kingdom is provided, let try to find the correct node
                         if kingdom:
@@ -108,10 +108,9 @@ class NsrSpecies(Base):
                             nsr_species = nsr_species[0]
         except AttributeError as e:
             nsm_logger.error('Problem parsing taxon name "%s"' % taxon)
-            nsm_logger.error('Exception:', e)
+            nsm_logger.error('Exception: %s' % e)
         except UnparsableNameException as e:
-            nsm_logger.error('Problem parsing taxon name "%s"' % taxon)
-            nsm_logger.error('Exception:', e)
+            nsm_logger.error('UnparsableNameException with taxon name "%s"' % taxon)
 
         return nsr_species
 

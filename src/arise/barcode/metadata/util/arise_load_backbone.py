@@ -36,14 +36,15 @@ def load_backbone(infile, white_filter=None):
     df.rename(columns={'class': 't_class'}, inplace=True)
     node_counter = 3  # magic number because root will be 2 with parent 1
     species_created = 0
+    synonyms_created = 0
     session.add(NsrNode(id=2, name="All of life", parent=1, rank='life'))
 
     # map taxid (DwC) => species id, used to create the synonyms
-    taxid_speciesid = dict()
+    taxid_species_id_dict = dict()
     taxon_homonym_dict = defaultdict(list)
 
     for row in df.itertuples(name='Entry'):
-        if row.taxonomicStatus not in ["accepted name", 'synonym']:
+        if row.taxonomicStatus != "accepted name" and row.taxonomicStatus not in NsrSynonym.taxonomic_status_set:
             lbb_logger.warning('ignore row index %s with taxonomicStatus=%s' % (row.index, row.taxonomicStatus))
             continue
 
@@ -69,15 +70,18 @@ def load_backbone(infile, white_filter=None):
             lbb_logger.error(e)
             exit()
 
-        if row.taxonomicStatus == 'synonym':
+        if row.taxonomicStatus != "accepted name":
             ref_id = row.acceptedNameUsageId
-            # this assumes synonyms are at the end of the file, i.e. taxid_speciesid is filled
-            # do not insert synonym that are identical to the ref name
-            if ref_id in taxid_speciesid and taxid_speciesid[ref_id]['canonical_name'] != row.species:
+            # this assumes synonyms & co are at the end of the file
+            # the saved canonical_name is used to avoid not insert synonyms that are identical
+            # to the reference name (because some epithet were discarded)
+            if ref_id in taxid_species_id_dict and taxid_species_id_dict[ref_id]['canonical_name'] != row.species:
                 # TODO check is the couple is already present in the synonym table before insertion
                 # duplicates may arise because the subspecies Epithet is trimmed off
-                synonym = NsrSynonym(name=row.species, species_id=taxid_speciesid[ref_id]['id'])
+                synonym = NsrSynonym(name=row.species, taxonomic_status=row.taxonomicStatus,
+                                     species_id=taxid_species_id_dict[ref_id]['id'])
                 session.add(synonym)
+                synonyms_created += 1
             continue
 
         # create the nsr_node if needed, starting from the full taxonomy
@@ -126,7 +130,7 @@ def load_backbone(infile, white_filter=None):
                 species_created += 1
 
                 # keep track of the species created for mapping the synonyms
-                taxid_speciesid[row.taxonID] = {'id': nsr_species.id, 'canonical_name': row.species}
+                taxid_species_id_dict[row.taxonID] = {'id': nsr_species.id, 'canonical_name': row.species}
                 # update the node speacies_id
                 node.species_id = nsr_species.id
 
@@ -139,6 +143,7 @@ def load_backbone(infile, white_filter=None):
 
     main_logger.info('Inserted nodes: %s' % node_counter)
     main_logger.info('Inserted species: %s' % species_created)
+    main_logger.info('Inserted synonyms: %s' % synonyms_created)
 
 
 if __name__ == '__main__':

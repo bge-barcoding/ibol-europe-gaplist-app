@@ -1,9 +1,8 @@
 from arise.barcode.metadata.orm.imports import *
 from ete3 import Tree, TreeNode
 
-rank_order = ['life', 'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species']
-rank_index = {r: i for i, r in enumerate(rank_order)}
-
+RANK_INDEX = {r: i for i, r in enumerate(RANK_ORDER)}
+RANK_ORDER = ['t_class' if e == 'class' else e for e in RANK_ORDER]
 
 class NsrNode(Base):
 
@@ -39,8 +38,38 @@ class NsrNode(Base):
     # foreign key to nsr_species table
     species_id = Column(Integer, ForeignKey('nsr_species.id'))
 
-    # relationship to species
-#    species = relationship('NsrSpecies', backref=backref("species_id", cascade="all, delete"))
+    # name of parent node for each rank
+    kingdom = Column(String(50))
+    phylum = Column(String(50))
+    t_class = Column('class', String(50))
+    order = Column(String(50))
+    family = Column(String(50))
+    genus = Column(String(50))
+    species = Column(String(50))
+
+    __table_args__ = (UniqueConstraint('kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species',
+                                       name='uc_classification'),)
+
+    @classmethod
+    def get_or_create_node(cls, session, id, rank, species_id, kingdom=None, phylum=None, t_class=None,
+                           order=None, family=None, genus=None, species=None):
+        ranks = locals()
+        [ranks.pop(key) for key in list(ranks.keys()) if key not in RANK_ORDER]
+        created = False
+        q = session.query(NsrNode)
+        for _rank in RANK_ORDER[1:]:  # ignore 'life' key
+            q = q.filter(getattr(NsrNode, _rank) == ranks[_rank])  # ranks[rank] may be None/NULL
+        nodes = q.all()
+
+        if not nodes:
+            node = NsrNode(id=id, rank='class' if rank == 't_class' else rank,
+                           name=ranks[rank], species_id=species_id, parent=2, **ranks)
+            session.add(node)
+            session.flush()
+            created = True
+        else:
+            node = nodes[0]
+        return node, created
 
     # decorators
     @classmethod
@@ -61,9 +90,9 @@ class NsrNode(Base):
 
     def to_ete(self, session, until_rank=None, remove_empty_rank=False, remove_incertae_sedis_rank=False):
         if until_rank:
-            index_rank = rank_index[until_rank]
+            index_rank = RANK_INDEX[until_rank]
             # set the max rank to None if the rank specified is the lower rank, i.e. 'species'
-            until_rank = index_rank if index_rank != len(rank_order) - 1 else None
+            until_rank = index_rank if index_rank != len(RANK_ORDER) - 1 else None
         ete_tree = Tree()
         self._recurse_to_ete(session,
                              ete_tree,
@@ -90,7 +119,7 @@ class NsrNode(Base):
             new_node = ete_node.add_child(name=self.name)
             new_node.add_feature('rank', self.rank)
             new_node.add_feature('id', self.id)
-            new_node.add_feature('rank_index', rank_index[self.rank])
+            new_node.add_feature('rank_index', RANK_INDEX[self.rank])
 
         for db_child in self.get_children(session):
             db_child._recurse_to_ete(session,

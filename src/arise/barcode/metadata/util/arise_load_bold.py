@@ -103,7 +103,7 @@ def load_bold(input_file, kingdom=None, encoding='utf-8'):
             continue
 
         # get or create specimen
-        specimen, created = Specimen.get_or_create_specimen(nsr_species.species_id, record['catalognum'], record['institution_storing'],
+        specimen, created = Specimen.get_or_create_specimen(nsr_species.id, record['catalognum'], record['institution_storing'],
                                                    record['identification_provided_by'], record['locality'], session)
         if created:
             specimens_created += 1
@@ -118,7 +118,7 @@ def load_bold(input_file, kingdom=None, encoding='utf-8'):
         if row['genbank_accession'] == row['genbank_accession']:
             database = DataSource.NCBI
 
-        barcode = Barcode(specimen_id=specimen.specimen_id, database=database, marker_id=marker.marker_id,
+        barcode = Barcode(specimen_id=specimen.id, database=database, marker_id=marker.id,
                           external_id=record['external_id'])
         session.add(barcode)
         barcodes_created += 1

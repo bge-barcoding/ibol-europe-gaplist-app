@@ -7,26 +7,26 @@ m_logger = logging.getLogger('marker')
 class Marker(Base):
     __tablename__ = 'marker'
 
-    marker_id = Column(Integer, primary_key=True, autoincrement=True)
-    marker_name = Column(String)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(16), unique=True)
 
     barcodes = relationship('Barcode', backref=backref("marker", cascade="all, delete"))
 
     # find or create marker object
     @classmethod
-    def get_or_create_marker(cls, marker_name, session):
+    def get_or_create_marker(cls, name, session):
         created = False
-        marker = session.query(Marker).filter(Marker.marker_name == marker_name).first()
+        marker = session.query(Marker).filter(Marker.name == name).first()
         if marker is None:
-            marker = Marker(marker_name=marker_name)
+            marker = Marker(name=name)
             session.add(marker)
             session.flush()
             created = True
-            m_logger.info('new marker "%s" created' % marker_name)
+            m_logger.info('new marker "%s" created' % name)
         return marker, created
 
     def __repr__(self):
-        return "<Marker(marker_name='%s')>" % (
-            self.marker_name)
+        return "<Marker(name='%s')>" % (
+            self.name)
 
 

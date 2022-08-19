@@ -12,12 +12,12 @@ locality_set = {
 
 class Specimen(Base):
     __tablename__ = 'specimen'
-    specimen_id = Column(Integer, primary_key=True, autoincrement=True)
-    catalognum = Column(String, index=True)
-    institution_storing = Column(String, index=True)
-    identification_provided_by = Column(String, index=True)
-    locality = Column(String)
-    species_id = Column(Integer, ForeignKey('nsr_species.species_id'))
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    catalognum = Column(String(50), index=True)
+    institution_storing = Column(String(50), index=True)
+    identification_provided_by = Column(String(50), index=True)
+    locality = Column(String(50))
+    species_id = Column(Integer, ForeignKey('nsr_species.id'))
 
     barcodes = relationship('Barcode', backref=backref("specimen", cascade="all, delete"))
 
@@ -55,5 +55,5 @@ class Specimen(Base):
         return value
 
     def __repr__(self):
-        return "<Specimen(name='%s')>" % (
-                         self.specimen_id)
+        return "<Specimen(id='%s')>" % (
+                         self.id)

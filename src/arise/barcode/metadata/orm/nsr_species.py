@@ -8,16 +8,16 @@ from taxon_parser import UnparsableNameException
 import logging
 nsm_logger = logging.getLogger('nsr_species_match')
 
-Occurrence_status_set = {
+occurrence_status_set = {
     '0', '0a', '1', '1a', '1b', '2', '2a', '2b', '2c', '2d', '3a', '3b', '3c', '3d', '4'
 }
 
 class NsrSpecies(Base):
     __tablename__ = 'nsr_species'
 
-    species_id = Column(Integer, primary_key=True, autoincrement=True)
-    canonical_name = Column(String, index=True)
-    occurrence_status = Column(String)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    canonical_name = Column(String(50), index=True)
+    occurrence_status = Column(String(2))
     # need to know the genus id for species with identical names (rare cases involving 'sp.' name )
     genus_id = Column(Integer, ForeignKey('node.id'))
 
@@ -34,7 +34,7 @@ class NsrSpecies(Base):
             cleaned = parsed.canonicalNameWithoutAuthorship()
             # find exact species match
             nsr_species = session.query(NsrSpecies).filter(NsrSpecies.canonical_name == cleaned).all()
-            nsr_synonyms = session.query(NsrSynonym).filter(NsrSynonym.synonym_name == cleaned).all()
+            nsr_synonyms = session.query(NsrSynonym).filter(NsrSynonym.name == cleaned).all()
 
             if nsr_species and nsr_synonyms:
                 nsm_logger.warning('species name "%s" is also an existing synonym' % cleaned)
@@ -100,7 +100,7 @@ class NsrSpecies(Base):
                             nsr_species = NsrSpecies(canonical_name=sp_name, genus_id=nsr_node.id)
                             session.add(nsr_species)
                             nsr_node = NsrNode(name=sp_name, parent=nsr_node.id, rank='species',
-                                               species_id=nsr_species.species_id)
+                                               species_id=nsr_species.id)
                             session.add(nsr_node)
                             session.flush()
                         else:
@@ -117,7 +117,7 @@ class NsrSpecies(Base):
     @validates('occurrence_status')
     def validate_occurrence_status(self, key, value):
         if value is not None:
-            assert value in Occurrence_status_set, "%s is not a valid occurrence status" % value
+            assert value in occurrence_status_set, "%s is not a valid occurrence status" % value
         return value
 
     def __repr__(self):

@@ -36,7 +36,7 @@ def get_species_barcode_count():
     """
     from sqlalchemy import case
     query = session.query(
-        Specimen.species_id,
+        Specimen.id,
         func.count(),
         func.sum(case(
             (Barcode.database == 1, 1),  # Naturalis barcodes
@@ -46,7 +46,7 @@ def get_species_barcode_count():
             (Barcode.database != 1, 1),  # Other barcodes
             else_=0
         ))
-    ).join(Barcode).group_by(Specimen.species_id)
+    ).join(Barcode).group_by(Specimen.id)
     return {e: [ab, nb, ob] for e, ab, nb, ob in query.all()}
 
 

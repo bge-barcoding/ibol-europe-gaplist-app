@@ -5,16 +5,16 @@ class Barcode(Base):
     __tablename__ = 'barcode'
 
     # auto-incrementing int, primary key
-    barcode_id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
 
     # foreign key to specimen
-    specimen_id = Column(Integer, ForeignKey('specimen.specimen_id'))
+    specimen_id = Column(Integer, ForeignKey('specimen.id'))
 
     # data source - use the DataSource enum from imports
     database = Column(Integer, index=True)
 
     # foreign key to marker names list
-    marker_id = Column(Integer, ForeignKey('marker.marker_id'))
+    marker_id = Column(Integer, ForeignKey('marker.id'))
 
     # verbatim copy of FAST definition line, to roundtrip ingested data
     defline = Column(String)

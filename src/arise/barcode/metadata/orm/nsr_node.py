@@ -34,10 +34,10 @@ class NsrNode(Base):
     height = Column(Float)
 
     # taxonomic rank, e.g. 'genus'
-    rank = Column(String)
+    rank = Column(String(16))
 
     # foreign key to nsr_species table
-    species_id = Column(Integer, ForeignKey('nsr_species.species_id'))
+    species_id = Column(Integer, ForeignKey('nsr_species.id'))
 
     # relationship to species
 #    species = relationship('NsrSpecies', backref=backref("species_id", cascade="all, delete"))

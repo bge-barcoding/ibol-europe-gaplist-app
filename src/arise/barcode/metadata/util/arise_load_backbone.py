@@ -100,7 +100,8 @@ def load_backbone(infile, white_filter=None):
             taxonomy = {e: getattr(row, e) for e in taxon_levels[taxon_levels.index(level):]}
 
             node, created = NsrNode.get_or_create_node(
-                session, id=node_counter, rank=level, species_id=None, **taxonomy
+                session, node_counter, level, 0 if level == 'species' else None, **taxonomy
+                # set species_id to 0 to avoid validation error, the correct species_id will be set a few lines below
             )
 
             if prev_node:
@@ -108,7 +109,7 @@ def load_backbone(infile, white_filter=None):
                 prev_node.parent = node.id
             if not created:
                 if level == 'species':
-                    lbb_logger.warning('species "%s" already in the database' % row.species)
+                    lbb_logger.info('species "%s" already in the database' % row.species)
                 break
 
             prev_node = node
@@ -158,7 +159,11 @@ if __name__ == '__main__':
     parser.add_argument('-endpoint', default=DEFAULT_URL, help="Input URL: NSR DwC endpoint")
     parser.add_argument('-testdb', action='store_true',
                         help="Create DB using a subset a the taxonomic backbone for testing")
+    parser.add_argument('--verbose', '-v', action='count', default=1)
+
     args = parser.parse_args()
+    args.verbose = 70 - (10 * args.verbose) if args.verbose > 0 else 0
+    [h.addFilter(loggers.LevelFilter(args.verbose)) for h in lbb_logger.handlers]
 
     # create connection/engine to database file
     dbfile = args.db

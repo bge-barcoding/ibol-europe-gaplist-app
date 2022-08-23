@@ -8,6 +8,7 @@ from ete3 import Tree
 RANK_INDEX = {r: i for i, r in enumerate(RANK_ORDER)}
 RANK_ORDER = ['t_class' if e == 'class' else e for e in RANK_ORDER]
 
+
 class NsrNode(Base):
 
     # This constructor defines the equivalent of the below schema from DBTree, extended with a few
@@ -112,7 +113,7 @@ class NsrNode(Base):
                         remove_empty_rank=False,
                         remove_incertae_sedis_rank=False):
 
-        if until_rank is not None and rank_index[self.rank] > until_rank:
+        if until_rank is not None and RANK_INDEX[self.rank] > until_rank:
             return
 
         if (remove_empty_rank and not self.name) or \

@@ -104,8 +104,9 @@ def load_bold(input_file, kingdom=None, encoding='utf-8'):
             continue
 
         # get or create specimen
-        specimen, created = Specimen.get_or_create_specimen(nsr_species.id, record['catalognum'], record['institution_storing'],
-                                                   record['identification_provided_by'], record['locality'], session)
+        specimen, created = Specimen.get_or_create_specimen(
+            nsr_species_node.species_id, record['catalognum'], record['institution_storing'],
+            record['identification_provided_by'], record['locality'], session)
         if created:
             specimens_created += 1
 

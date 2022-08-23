@@ -3,7 +3,14 @@ from sqlalchemy import Column, Integer, String, Float, ForeignKey, func
 from sqlalchemy.orm import validates
 from sqlalchemy.schema import UniqueConstraint
 from orm.common import Base, RANK_ORDER
+from orm.nsr_species import NsrSpecies
+from orm.nsr_synonym import NsrSynonym
 from ete3 import Tree
+from taxon_parser import TaxonParser
+from taxon_parser import UnparsableNameException
+
+nsm_logger = logging.getLogger('nsr_species_match')
+# from sqlalchemy.orm import declarative_base
 
 RANK_INDEX = {r: i for i, r in enumerate(RANK_ORDER)}
 RANK_ORDER = ['t_class' if e == 'class' else e for e in RANK_ORDER]
@@ -75,6 +82,107 @@ class NsrNode(Base):
         else:
             node = nodes[0]
         return node, created
+
+        # find or create species for specimen
+
+    @classmethod
+    def match_species_node(cls, taxon, session, kingdom=""):
+        # parse species name
+        name_parser = TaxonParser(taxon)
+        nsr_species_node = None
+        try:
+            parsed = name_parser.parse()
+            cleaned = parsed.canonicalNameWithoutAuthorship()
+            # TaxonParser replaces "sp." by "spec.", lets reverse this change
+            if cleaned[-6:] == ' spec.':
+                cleaned = cleaned.replace(' spec.', ' sp.')
+            # find exact species match
+            query = session.query(NsrNode).filter(NsrNode.name == cleaned, NsrNode.rank == 'species')
+            if kingdom:
+                query = query.filter(func.lower(NsrNode.kingdom) == kingdom.lower())
+            nsr_species_nodes = query.all()
+
+            if len(nsr_species_nodes) > 1:
+                nsm_logger.error('multiple species match using name: "%s"' % cleaned)
+                nsm_logger.error('matches:', nsr_species_nodes)
+                exit()
+
+            # check also synonyms regardless if a species node was found or not
+            nsr_synonyms = session.query(NsrSynonym).filter(NsrSynonym.name == cleaned).all()
+            if nsr_species_nodes and nsr_synonyms:
+                nsm_logger.warning('species name "%s" is also an existing synonym' % cleaned)
+
+            if len(nsr_species_nodes) == 1:
+                return nsr_species_nodes[0]
+
+            # species not found, synonym results
+            if len(nsr_synonyms) == 1:
+                return session.query(NsrNode).filter(NsrNode.species_id == nsr_synonyms[0].species_id).first()
+
+            if len(nsr_synonyms) > 1:
+                nsm_logger.warning('Taxon "%s" match multiple synonyms, ignore them' % cleaned)
+
+            # check if the canonical name match a genus sp.
+            sp_name = cleaned if cleaned[-4:] == " sp." else cleaned + ' sp.'
+            query = session.query(NsrNode).filter(NsrNode.name == sp_name,
+                                                  NsrNode.rank == 'species')
+            if kingdom:
+                query = query.filter(func.lower(NsrNode.kingdom) == kingdom.lower())
+            nsr_species_nodes = query.all()
+
+            if len(nsr_species_nodes) == 1:
+                return nsr_species_nodes[0]
+
+            if len(nsr_species_nodes) > 1:
+                # should not be possible
+                nsm_logger.error('Multiple sp. nodes found in database using taxon "%s"' % cleaned)
+                exit()
+
+            # check if the canonical name match a genus node, if yes
+            # The strategy will to create a new species node named "[genus] sp."
+            genus_name = cleaned[:-4] if cleaned[-4:] == " sp." else cleaned
+            query = session.query(NsrNode).filter(NsrNode.name == genus_name, NsrNode.rank == 'genus')
+            if kingdom:
+                query = query.filter(func.lower(NsrNode.kingdom) == kingdom.lower())
+            nsr_genus_nodes = query.all()
+
+            if len(nsr_genus_nodes) == 0:
+                nsm_logger.warning('Taxon "%s" not found anywhere in NSR topology' % cleaned)
+                return None
+
+            if len(nsr_genus_nodes) > 1:
+                # the taxon name is a homonym
+                nsm_logger.error('multiple genus nodes match using name: "%s"' % cleaned)
+                if not kingdom:
+                    nsm_logger.error('try to specify -kingdom, to remove ambiguity')
+                exit()
+
+            nsr_genus_node = nsr_genus_nodes[0]
+            nsr_species = NsrSpecies(canonical_name=sp_name)
+            session.add(nsr_species)
+            session.flush()
+
+            nsr_species_node = NsrNode(name=sp_name, parent=nsr_genus_node.id, rank='species',
+                                       species_id=nsr_species.id, kingdom=nsr_genus_node.kingdom,
+                                       phylum=nsr_genus_node.phylum, t_class=nsr_genus_node.t_class,
+                                       order=nsr_genus_node.order, family=nsr_genus_node.family,
+                                       genus=nsr_genus_node.genus, species=sp_name)
+            session.add(nsr_species_node)
+            session.flush()
+
+        except AttributeError as e:
+            nsm_logger.error('Problem parsing taxon name "%s"' % taxon)
+            nsm_logger.error('Exception: %s' % e)
+        except UnparsableNameException as e:
+            nsm_logger.error('UnparsableNameException with taxon name "%s"' % taxon)
+
+        return nsr_species_node
+
+    @validates('rank', 'species_id')
+    def validates_fields(self, key, value):
+        if key == 'species_id' and self.rank == 'species':
+            assert value is not None
+        return value
 
     # decorators
     @classmethod

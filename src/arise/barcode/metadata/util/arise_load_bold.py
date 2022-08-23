@@ -98,8 +98,8 @@ def load_bold(input_file, kingdom=None, encoding='utf-8'):
             continue
 
         # initialize species, next row if failed
-        nsr_species = NsrSpecies.match_species(record['taxon'], session, kingdom=kingdom)
-        if nsr_species is None:
+        nsr_species_node = NsrNode.match_species_node(record['taxon'], session, kingdom=kingdom)
+        if nsr_species_node is None:
             fail_matching_nsr_species += 1
             continue
 

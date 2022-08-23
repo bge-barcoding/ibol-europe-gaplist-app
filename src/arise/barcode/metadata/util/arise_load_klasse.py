@@ -75,7 +75,7 @@ def load_klasse(marker_name, kingdom, input_file, encoding='utf-8'):
             continue
 
         # initialize species, continue if failed
-        nsr_species = NsrSpecies.match_species(record['taxon'], session, kingdom=kingdom)
+        nsr_species = NsrNode.match_species_node(record['taxon'], session, kingdom=kingdom)
         if nsr_species is None:
             fail_matching_nsr_species += 1
             continue

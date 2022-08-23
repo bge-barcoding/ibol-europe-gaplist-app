@@ -45,7 +45,7 @@ def load_backbone(infile, white_filter=None):
     session.add(NsrNode(id=2, name="All of life", parent=1, rank='life'))
 
     # map taxid (DwC) => species id, used to create the synonyms
-    taxid_species_id_dict = dict()
+    taxid_node_dict = dict()
     taxon_homonym_dict = defaultdict(list)
 
     for row in df.itertuples(name='Entry'):
@@ -78,15 +78,12 @@ def load_backbone(infile, white_filter=None):
         if row.taxonomicStatus != "accepted name":
             ref_id = row.acceptedNameUsageId
             # this assumes synonyms & co are at the end of the file
-            # the saved canonical_name is used to avoid not insert synonyms that are identical
-            # to the reference name (because some epithet were discarded)
-            if ref_id in taxid_species_id_dict and taxid_species_id_dict[ref_id]['canonical_name'] != row.species:
-                # TODO check is the couple is already present in the synonym table before insertion
-                # duplicates may arise because the subspecies Epithet is trimmed off
-                synonym = NsrSynonym(name=row.species, taxonomic_status=row.taxonomicStatus,
-                                     species_id=taxid_species_id_dict[ref_id]['id'])
-                session.add(synonym)
-                synonyms_created += 1
+            if ref_id in taxid_node_dict:
+                synonym, created = NsrSynonym.insert_synonym(
+                    session, row.species, row.taxonomicStatus, taxid_node_dict[ref_id].species_id)
+                if created:
+                    synonyms_created += 1
+
             continue
 
         # create the nsr_node if needed, starting from the full taxonomy
@@ -135,10 +132,10 @@ def load_backbone(infile, white_filter=None):
                 session.flush()
                 species_created += 1
 
-                # keep track of the species created for mapping the synonyms
-                taxid_species_id_dict[row.taxonID] = {'id': nsr_species.id, 'canonical_name': row.species}
-                # update the node speacies_id
+                # update the node species_id
                 node.species_id = nsr_species.id
+                # keep track of the species created for mapping the synonyms
+                taxid_node_dict[row.taxonID] = node
 
     for k, lst in taxon_homonym_dict.items():
         if len(lst) > 1:

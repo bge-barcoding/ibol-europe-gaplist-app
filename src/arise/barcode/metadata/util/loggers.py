@@ -35,7 +35,7 @@ def setup_logger(name, log_file, level=logging.INFO, erase=True):
 
 
 main_logger = setup_logger('main', 'logs/main.log', erase=False)
-loggers = ['load_backbone', 'nsr_species_match', 'load_bold', 'specimen', 'marker', 'load_klasse']
+loggers = ['load_backbone', 'nsr_species_match', 'load_bold', 'specimen', 'marker', 'synonym', 'load_klasse']
 for logger_name in loggers:
     setup_logger(logger_name, f'logs/{logger_name}.log', erase=False)
 

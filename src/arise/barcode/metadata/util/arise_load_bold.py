@@ -27,17 +27,17 @@ def init_record_fields(row):
     # IEEE specs say NaN's can not be equal, so that's how we do the checks for missing values
 
     # check taxon names
-    if row['species_name'] == row['species_name']:
+    if row['species_name']:
         record['taxon'] = row['species_name']
     else:
-        if row['genus_name'] == row['genus_name']:
+        if row['genus_name']:
             record['taxon'] = row['genus_name']
         else:
             lbd_logger.warning('Taxonomic identification not specific enough, skip record "%s"' % row['catalognum'])
             return None
 
     # check marker name
-    if row['markercode'] == row['markercode']:
+    if row['markercode']:
         record['marker'] = row['markercode']
     else:
         lbd_logger.warning('The marker code is undefined, skip record "%s"' % row['catalognum'])
@@ -50,7 +50,7 @@ def init_record_fields(row):
     record['locality'] = row['country']
 
     # distinguish between bold and ncbi
-    if row['genbank_accession'] == row['genbank_accession']:
+    if row['genbank_accession']:
         record['external_id'] = row['genbank_accession']
         lbd_logger.info("Record for %s was harvested from NCBI: %s" % (record['taxon'], record['external_id']))
     else:
@@ -83,6 +83,7 @@ def fetch_bold_records(geo, institutions, marker, taxon, to_file=None):
 
 def load_bold(input_file, kingdom=None, encoding='utf-8'):
     df = pd.read_csv(input_file, sep='\t', encoding=encoding)
+    df.fillna('', inplace=True)
     specimens_created = 0
     markers_created = 0
     barcodes_created = 0

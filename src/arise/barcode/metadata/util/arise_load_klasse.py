@@ -26,11 +26,11 @@ def init_record_fields(row):
     # IEEE specs say NaN's can not be equal, so that's how we do the checks for missing values
 
     # check if there is a sequence, otherwise nothing to do
-    if row['Sequence'] != row['Sequence']:
+    if row['Sequence']:
         lk_logger.warning("Record %s has no sequence, skipping..." % row['label'])
         return None
 
-    if row['Taxon'] == row['Taxon']:
+    if row['Taxon']:
         parts = row['Taxon'].split(' ')
 
         # if the name has at least two parts it's a (sub)species, which is good

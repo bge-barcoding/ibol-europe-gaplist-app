@@ -119,10 +119,10 @@ def load_bold(input_file, kingdom=None, encoding='utf-8'):
         if row['genbank_accession'] == row['genbank_accession']:
             database = DataSource.NCBI
 
-        barcode = Barcode(specimen_id=specimen.id, database=database, marker_id=marker.id,
-                          external_id=record['external_id'])
-        session.add(barcode)
-        barcodes_created += 1
+        barcode, created = Barcode.get_or_create_barcode(specimen.id, database, marker.id, None, record['external_id'],
+                                                         session)
+        if created:
+            barcodes_created += 1
 
     main_logger.info(f'{specimens_created=}')
     main_logger.info(f'{markers_created=}')

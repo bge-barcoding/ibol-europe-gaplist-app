@@ -101,11 +101,10 @@ def load_klasse(marker_name, kingdom, input_file, encoding='utf-8'):
                 lk_logger.error("Specimen %s already has barcode for marker %s" % (specimen.catalognum, marker_name))
                 break
 
-        barcode = Barcode(specimen_id=specimen.id, database=DataSource.NATURALIS, marker_id=marker.id,
-                          external_id=record['external_id'])
-        barcodes_created += 1
-        lk_logger.info("Inserting %s barcode for specimen %s" % (marker_name, specimen.catalognum))
-        session.add(barcode)
+        barcode, created = Barcode.get_or_create_barcode(specimen.id, DataSource.NATURALIS, marker.id, None,
+                                                         record['external_id'], session)
+        if created:
+            barcodes_created += 1
 
     main_logger.info(f'{specimens_created=}')
     main_logger.info(f'{markers_created=}')

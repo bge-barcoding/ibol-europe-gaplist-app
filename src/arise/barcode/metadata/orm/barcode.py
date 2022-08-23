@@ -26,6 +26,20 @@ class Barcode(Base):
     # - internal ID that doesn't resolve
     external_id = Column(String)
 
+    # find or create barcode object
+    @classmethod
+    def get_or_create_barcode(cls, specimen_id, database, marker_id, defline, external_id, session):
+        created = False
+        barcode = session.query(Barcode).filter(Barcode.specimen_id == specimen_id, Barcode.database == database,
+                                                Barcode.marker_id == marker_id, Barcode.defline == defline,
+                                                Barcode.external_id == external_id).first()
+        if barcode is None:
+            barcode = Barcode(specimen_id=specimen_id, database=database, marker_id=marker_id, external_id=external_id)
+            session.add(barcode)
+            session.flush()
+            created = True
+        return barcode, created
+
     def __repr__(self):
         return "<Barcode(barcode_id='%s')>" % (
                          self.barcode_id)

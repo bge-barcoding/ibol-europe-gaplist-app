@@ -39,7 +39,7 @@ def get_species_barcode_count():
     """
     from sqlalchemy import case
     query = session.query(
-        Specimen.id,
+        Specimen.species_id,
         func.count(),
         func.sum(case(
             (Barcode.database == 1, 1),  # Naturalis barcodes
@@ -49,7 +49,7 @@ def get_species_barcode_count():
             (Barcode.database != 1, 1),  # Other barcodes
             else_=0
         ))
-    ).join(Barcode).group_by(Specimen.id)
+    ).join(Barcode).group_by(Specimen.species_id)
     return {e: [ab, nb, ob] for e, ab, nb, ob in query.all()}
 
 
@@ -172,14 +172,7 @@ if __name__ == '__main__':
     # process command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', default="arise-barcode-metadata.db", help="Input file: SQLite DB")
-    parser.add_argument('-marker', default="", help="Marker name using BOLD vocab, e.g. COI-5P")
-    parser.add_argument('-tsv', help="A TSV file exported from Klasse using the ARISE template")
-    parser.add_argument('--verbose', '-v', action='count', default=1)
     args = parser.parse_args()
-
-    # configure logging
-    args.verbose = 70 - (10 * args.verbose) if args.verbose > 0 else 0
-    logging.basicConfig(level=args.verbose)
 
     # create connection/engine to database file
     dbfile = args.db

@@ -1,6 +1,6 @@
 from orm.common import Base
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
-
+from sqlalchemy.orm import validates
 
 class Barcode(Base):
     __tablename__ = 'barcode'
@@ -24,7 +24,7 @@ class Barcode(Base):
     # - http://www.boldsystems.org/index.php/Public_RecordView?processid=$ID
     # - http://ncbi.nlm.nih.gov/nuccore/$ID
     # - internal ID that doesn't resolve
-    external_id = Column(String)
+    external_id = Column(String, nullable=False)
 
     # find or create barcode object
     @classmethod
@@ -40,7 +40,12 @@ class Barcode(Base):
             created = True
         return barcode, created
 
+    @validates('external_id')
+    def validate_external_id(self, key, value):
+        assert value.strip() != ""
+        return value
+
     def __repr__(self):
-        return "<Barcode(barcode_id='%s')>" % (
-                         self.barcode_id)
+        return "<Barcode(id='%s')>" % (
+                         self.id)
 

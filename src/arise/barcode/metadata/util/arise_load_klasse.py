@@ -26,7 +26,7 @@ def init_record_fields(row):
     # IEEE specs say NaN's can not be equal, so that's how we do the checks for missing values
 
     # check if there is a sequence, otherwise nothing to do
-    if row['Sequence']:
+    if not row['Sequence']:
         lk_logger.warning("Record %s has no sequence, skipping..." % row['label'])
         return None
 
@@ -75,13 +75,13 @@ def load_klasse(marker_name, kingdom, input_file, encoding='utf-8'):
             continue
 
         # initialize species, continue if failed
-        nsr_species = NsrNode.match_species_node(record['taxon'], session, kingdom=kingdom)
-        if nsr_species is None:
+        nsr_species_node = NsrNode.match_species_node(record['taxon'], session, kingdom=kingdom)
+        if nsr_species_node is None:
             fail_matching_nsr_species += 1
             continue
 
         # get or create specimen
-        specimen, created = Specimen.get_or_create_specimen(nsr_species.id,
+        specimen, created = Specimen.get_or_create_specimen(nsr_species_node.species_id,
                                                    record['catalognum'],
                                                    record['institution_storing'],
                                                    record['identification_provided_by'],

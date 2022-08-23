@@ -117,7 +117,7 @@ def load_bold(input_file, kingdom=None, encoding='utf-8'):
 
         # set database field value
         database = DataSource.BOLD
-        if row['genbank_accession'] == row['genbank_accession']:
+        if row['genbank_accession']:
             database = DataSource.NCBI
 
         barcode, created = Barcode.get_or_create_barcode(specimen.id, database, marker.id, None, record['external_id'],

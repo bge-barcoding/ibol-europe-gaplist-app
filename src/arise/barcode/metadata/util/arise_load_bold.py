@@ -44,7 +44,7 @@ def init_record_fields(row):
         return None
 
     # we use process ID as external identifier because it can be resolved for inspection, other fields are for specimens
-    record['catalognum'] = row['catalognum']
+    record['catalognum'] = row['catalognum'] if row['catalognum'] else row['sampleid']
     record['institution_storing'] = row['institution_storing']
     record['identification_provided_by'] = row['identification_provided_by']
     record['locality'] = row['country']

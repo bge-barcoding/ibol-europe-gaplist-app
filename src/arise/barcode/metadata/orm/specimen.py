@@ -14,11 +14,11 @@ locality_set = {
 class Specimen(Base):
     __tablename__ = 'specimen'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    catalognum = Column(String(50), index=True)
+    catalognum = Column(String(50), index=True, nullable=False)
     institution_storing = Column(String(50), index=True)
     identification_provided_by = Column(String(50), index=True)
     locality = Column(String(50))
-    species_id = Column(Integer, ForeignKey('nsr_species.id'))
+    species_id = Column(Integer, ForeignKey('nsr_species.id'), nullable=False)
 
     barcodes = relationship('Barcode', backref=backref("specimen", cascade="all, delete"))
 
@@ -27,10 +27,10 @@ class Specimen(Base):
     def get_or_create_specimen(cls, species_id, catalognum, institution_storing, identification_provided_by,
                                locality,  session):
         created = False
-        specimen = session.query(Specimen).filter(Specimen.species_id == species_id, Specimen.catalognum == catalognum,
-                                                  Specimen.institution_storing == institution_storing,
-                                                  Specimen.identification_provided_by == identification_provided_by).all()
-        # FIXME add locality in the filters?
+        specimen = \
+            session.query(Specimen).filter(Specimen.species_id == species_id, Specimen.catalognum == catalognum,
+                                           Specimen.institution_storing == institution_storing,
+                                           Specimen.identification_provided_by == identification_provided_by).all()
 
         if not specimen:
             specimen = Specimen(species_id=species_id, catalognum=catalognum, institution_storing=institution_storing,

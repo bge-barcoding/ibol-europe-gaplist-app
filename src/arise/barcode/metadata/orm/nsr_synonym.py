@@ -11,10 +11,10 @@ class NsrSynonym(Base):
 
     __tablename__ = 'nsr_synonym'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(50), index=True)
-    taxonomic_status = Column(String(15))
-    species_id = Column(Integer, ForeignKey('nsr_species.id'))
     species = relationship('NsrSpecies', backref=backref("synonyms", cascade="all, delete"))
+    name = Column(String(50), index=True, nullable=False)
+    taxonomic_status = Column(String(15), nullable=False)
+    species_id = Column(Integer, ForeignKey('nsr_species.id'), nullable=False)
 
     @validates('taxonomic_status')
     def validate_taxonomic_status(self, key, value):

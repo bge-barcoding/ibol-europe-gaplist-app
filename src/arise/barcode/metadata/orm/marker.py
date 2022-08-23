@@ -10,7 +10,7 @@ class Marker(Base):
     __tablename__ = 'marker'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(16), unique=True)
+    name = Column(String(16), unique=True, nullable=False)
 
     barcodes = relationship('Barcode', backref=backref("marker", cascade="all, delete"))
 

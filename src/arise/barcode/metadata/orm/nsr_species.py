@@ -19,7 +19,7 @@ class NsrSpecies(Base):
     __tablename__ = 'nsr_species'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    canonical_name = Column(String(50), index=True)
+    canonical_name = Column(String(50), index=True, nullable=False)
     occurrence_status = Column(String(2))
     # need to know the genus id for species with identical names (rare cases involving 'sp.' name )
     genus_id = Column(Integer, ForeignKey('node.id'))

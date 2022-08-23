@@ -29,10 +29,10 @@ class NsrNode(Base):
 
     __tablename__ = 'node'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    parent = Column(Integer, index=True)
+    parent = Column(Integer, index=True, nullable=False)
     left = Column(Integer, index=True, unique=True)
     right = Column(Integer, index=True, unique=True)
-    name = Column(String, index=True)
+    name = Column(String, index=True, nullable=False)
     length = Column(Float)
     height = Column(Float)
 
@@ -40,7 +40,7 @@ class NsrNode(Base):
     rank = Column(String(16))
 
     # foreign key to nsr_species table
-    species_id = Column(Integer, ForeignKey('nsr_species.id'))
+    species_id = Column(Integer, ForeignKey(NsrSpecies.id))
 
     # name of parent node for each rank
     kingdom = Column(String(50))

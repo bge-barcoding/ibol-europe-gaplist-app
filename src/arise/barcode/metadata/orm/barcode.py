@@ -9,13 +9,13 @@ class Barcode(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
     # foreign key to specimen
-    specimen_id = Column(Integer, ForeignKey('specimen.id'))
+    specimen_id = Column(Integer, ForeignKey('specimen.id'), nullable=False)
 
     # data source - use the DataSource enum from imports
-    database = Column(Integer, index=True)
+    database = Column(Integer, index=True, nullable=False)
 
     # foreign key to marker names list
-    marker_id = Column(Integer, ForeignKey('marker.id'))
+    marker_id = Column(Integer, ForeignKey('marker.id'), nullable=False)
 
     # verbatim copy of FAST definition line, to roundtrip ingested data
     defline = Column(String)

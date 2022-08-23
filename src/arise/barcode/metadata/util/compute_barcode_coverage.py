@@ -1,17 +1,20 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import argparse
-import logging
+import shutil
+import pandas as pd
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
-from arise.barcode.metadata.orm.nsr_species import NsrSpecies
-from arise.barcode.metadata.orm.nsr_node import NsrNode
-from arise.barcode.metadata.orm.specimen import Specimen
-from arise.barcode.metadata.orm.marker import Marker
-from arise.barcode.metadata.orm.barcode import Barcode
-from arise.barcode.metadata.orm.imports import *
-import pandas as pd
-import shutil
+from orm.common import RANK_ORDER
+from orm.nsr_node import NsrNode
+from orm.nsr_species import NsrSpecies
+from orm.nsr_synonym import NsrSynonym
+from orm.barcode import Barcode
+from orm.specimen import Specimen
+from orm.marker import Marker
 
-rank_hierarchy = ['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species']
+rank_hierarchy = RANK_ORDER[1:]
 
 
 #

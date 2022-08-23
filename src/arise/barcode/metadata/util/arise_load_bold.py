@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import argparse
 import urllib.request
 import shutil
@@ -5,16 +8,13 @@ import logging
 import pandas as pd
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from taxon_parser import TaxonParser
-from arise.barcode.metadata.orm.nsr_species import NsrSpecies
-from arise.barcode.metadata.orm.nsr_node import NsrNode
-from arise.barcode.metadata.orm.specimen import Specimen
-from arise.barcode.metadata.orm.marker import Marker
-from arise.barcode.metadata.orm.barcode import Barcode
-from arise.barcode.metadata.orm.nsr_synonym import NsrSynonym
-from arise.barcode.metadata.orm.imports import *
-from sqlalchemy.exc import NoResultFound
-from taxon_parser import UnparsableNameException
+from orm.common import DataSource
+from orm.nsr_node import NsrNode
+from orm.nsr_species import NsrSpecies
+from orm.nsr_synonym import NsrSynonym
+from orm.barcode import Barcode
+from orm.specimen import Specimen
+from orm.marker import Marker
 import loggers
 
 main_logger = logging.getLogger('main')

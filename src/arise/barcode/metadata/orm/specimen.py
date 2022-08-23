@@ -1,5 +1,6 @@
-from arise.barcode.metadata.orm.imports import *
-from sqlalchemy.orm import validates
+from orm.common import Base
+from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from sqlalchemy.orm import validates, relationship, backref
 import logging
 
 spm_logger = logging.getLogger('specimen')

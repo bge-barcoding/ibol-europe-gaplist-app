@@ -1,5 +1,9 @@
-from arise.barcode.metadata.orm.imports import *
-from ete3 import Tree, TreeNode
+import logging
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, func
+from sqlalchemy.orm import validates
+from sqlalchemy.schema import UniqueConstraint
+from orm.common import Base, RANK_ORDER
+from ete3 import Tree
 
 RANK_INDEX = {r: i for i, r in enumerate(RANK_ORDER)}
 RANK_ORDER = ['t_class' if e == 'class' else e for e in RANK_ORDER]

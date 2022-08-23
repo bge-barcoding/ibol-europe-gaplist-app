@@ -1,4 +1,3 @@
-from arise.barcode.metadata.orm.imports import *
 from taxon_parser import TaxonParser
 from arise.barcode.metadata.orm.nsr_node import NsrNode
 from arise.barcode.metadata.orm.nsr_synonym import NsrSynonym
@@ -7,6 +6,9 @@ from sqlalchemy.orm import validates
 from taxon_parser import UnparsableNameException
 import logging
 nsm_logger = logging.getLogger('nsr_species_match')
+from orm.common import Base
+from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import validates, relationship, backref
 
 
 class NsrSpecies(Base):

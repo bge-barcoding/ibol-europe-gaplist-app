@@ -1,24 +1,29 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import argparse
 import io
 import pandas as pd
 import requests
 import zipfile
 import os
-from arise.barcode.metadata.orm.nsr_node import NsrNode
-from arise.barcode.metadata.orm.nsr_species import NsrSpecies
-from arise.barcode.metadata.orm.specimen import Specimen
-from arise.barcode.metadata.orm.nsr_synonym import NsrSynonym
-from arise.barcode.metadata.orm.barcode import Barcode
-from arise.barcode.metadata.orm.nsr_node import NsrNode
+
+from orm.nsr_node import NsrNode
+from orm.nsr_species import NsrSpecies
+from orm.nsr_synonym import NsrSynonym
+from orm.barcode import Barcode
+from orm.specimen import Specimen
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import loggers
 import logging
 from collections import defaultdict
+import loggers
 
 DEFAULT_URL = "http://api.biodiversitydata.nl/v2/taxon/dwca/getDataSet/nsr"
 main_logger = logging.getLogger('main')
 lbb_logger = logging.getLogger('load_backbone')
+
 
 def download_and_extract(url):
     main_logger.info('download_and_extract URL:', url)

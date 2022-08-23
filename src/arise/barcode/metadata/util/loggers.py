@@ -9,8 +9,8 @@ class LevelFilter(object):
     def __init__(self, level):
         self.__level = level
 
-    def filter(self, logRecord):
-        return logRecord.levelno >= self.__level
+    def filter(self, log_record):
+        return log_record.levelno >= self.__level
 
 
 def setup_logger(name, log_file, level=logging.INFO, erase=True):

@@ -61,62 +61,110 @@
       color: red;
     }
 
+    .ui-icon-background,
+    .ui-state-active .ui-icon-background {
+        border: #003eff/*{borderColorActive}*/;
+        background-color: #ffffff/*{fcActive}*/;
+    }
+    .ui-state-active a,
+    .ui-state-active a:link,
+    .ui-state-active a:visited {
+        color: #ffffff/*{fcActive}*/;
+        text-decoration: none;
+    }
+
+    .ui-accordion .ui-accordion-content {
+      padding: 0.5em 0.5em;
+    }
+
+
   </style>
 </head>
 <body>
   <div>
     <div style="background: #48387a; display: flex; align-items: center;">
-      <div class="image" style="max-width: 100%">
+      <div class="image" style="max-width: 100%; margin-left: 1em; margin-top: 0.5em">
         <img src="inverted_arise_logo.png" style="height: 100px; background: #48387a;"></img>
       </div>
     </div>
-    <div id="filters">
-      <div style="padding:10px 0px 0px 10px;">
-        <b>Group by:</b>
-        <div style="padding:0px 0px 10px 10px;">
-          <label for="taxonl">Taxon level</label>
-          <select name="taxonlist" id="taxonl">
-          </select>
-        </div>
-        <b>Coverage:</b>
-        <div style="padding:10px 10px 0px 10px;">
-          <label style="width:240px;float:left; line-height: 27px;">Show rows with cov. % between: </label>
-          <div style="padding:3px;">
-            <div style="width:150px;display:inline-block;" id="pcSlider"></div>
-            <div style="display: inline-block;">
-              <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderI1"/> -
-              <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderI2" />
+    <div id="accordion-filter">
+      <h3>Filters</h3>
+      <div id="filters">
+        <div style="padding:10px 0px 0px 10px;">
+          <b>Coverage:</b>
+          <div style="padding:10px 10px 0px 10px;">
+            <label style="width:180px;float:left; line-height: 27px;">Cov. % between: </label>
+            <div style="padding:3px;">
+              <div style="width:150px;display:inline-block;" id="pcSlider"></div>
+              <div style="display: inline-block;">
+                <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderI1"/> -
+                <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderI2" />
+              </div>
             </div>
           </div>
-        </div>
-        <div style="padding:10px 10px 0 10px;">
-          <label style="width:240px;float:left;line-height: 27px;">Show rows with Naturalis cov. % between: </label>
-          <div style="padding:3px;">
-            <div style="width:150px;display:inline-block;" id="pcSliderNat"></div>
-            <div style="display: inline-block;">
-              <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderNatI1"/> -
-              <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderNatI2" />
+          <div style="padding:10px 10px 0 10px;">
+            <label style="width:180px;float:left;line-height: 27px;">Naturalis cov. % between: </label>
+            <div style="padding:3px;">
+              <div style="width:150px;display:inline-block;" id="pcSliderNat"></div>
+              <div style="display: inline-block;">
+                <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderNatI1"/> -
+                <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderNatI2" />
+              </div>
             </div>
           </div>
-        </div>
-        <div style="padding:10px 10px 0 10px;">
-          <label style="width:240px;float:left;line-height: 27px;">Show rows with Other cov. % between: </label>
-          <div style="padding:3px;">
-            <div style="width:150px;display:inline-block;" id="pcSliderOther"></div>
-            <div style="display: inline-block;">
-              <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderOtherI1"/> -
-              <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderOtherI2" />
+          <div style="padding:10px 10px 0 10px;">
+            <label style="width:180px;float:left;line-height: 27px;">Other cov. % between: </label>
+            <div style="padding:3px;">
+              <div style="width:150px;display:inline-block;" id="pcSliderOther"></div>
+              <div style="display: inline-block;">
+                <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderOtherI1"/> -
+                <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderOtherI2" />
+              </div>
             </div>
+          </div>
+          <br>
+          <b>Specimen Locality:</b> <i><span style="color: #991111">Active only in 'species' view</span></i>
+          <div style="padding:10px 10px 0 10px;" id="loc-cb-div">
+          </div>
+          <br>
+          <b><a href="https://www.nederlandsesoorten.nl/content/statuscodes-voorkomen-nederland" target="_blank">Species Occurrence Status &#10548;:</a></b>
+          <i><span style="color: #991111">Active only in 'species' view</span></i>
+          <div style="padding:10px 10px 10px 10px;">
+            <label>0 To be assessed
+              <input type="checkbox" name="oscb" value="0" id="cb-oc0">
+            </label>
+            <label>1 Indigenous
+              <input type="checkbox" name="oscb" value="1" id="cb-oc1">
+            </label>
+            <label>2 Exotic
+              <input type="checkbox" name="oscb" value="2" id="cb-oc2">
+            </label>
+            <label>3 Insufficient data
+              <input type="checkbox" name="oscb" value="3" id="cb-oc3">
+            </label>
+            <label>4 Other
+              <input type="checkbox" name="oscb" value="4" id="cb-oc4">
+            </label>
           </div>
         </div>
       </div>
     </div>
   </div>
-  <div id="exportBut" onclick="exportTable()" 
-  style="margin: 10px; cursor: pointer; background: #48387a; color: white; font-weight: bold; width: fit-content; padding: 5px 5px 3px 5px; border: 1px solid gray; border-radius: 5px;">Export Table</div>
-  <div class="container">
-    <div id="grid"></div>
-    <div id="pager" style="width:100%;height:20px;"></div>
+  <br>
+  <div style="margin-left:1em">
+    <b>Group by:</b>
+    <div style="padding:0px 0px 10px 10px;">
+      <label for="taxonl">Taxon level</label>
+      <select name="taxonlist" id="taxonl">
+      </select>
+    </div>
+  </div>
+  <div id="exportBut" onclick="exportTable()"
+    style="margin: 10px; cursor: pointer; background: #48387a; color: white; font-weight: bold; width: fit-content; padding: 5px 5px 3px 5px; border: 1px solid gray; border-radius: 5px;">Export Table</div>
+    <div class="container">
+      <div id="grid"></div>
+      <div id="pager" style="width:100%;height:20px;"></div>
+    </div>
   </div>
 </div>
 
@@ -161,6 +209,17 @@
      }
      select.appendChild(opt);
      index++;
+  }
+
+  // var localities =  [ "Netherlands", "Belgium", "Germany" ];
+  var localities =  ##LOCALITIES##
+  var cbDiv = document.getElementById('loc-cb-div');
+  for (loc of localities) {
+    var cbId = 'cb-' + loc;
+    var input = $('<input type="checkbox">').attr({id: cbId, name: "ocl", value: loc})
+    var label = $('<label>').text(loc);
+    label.append(input[0]);
+    cbDiv.append(label[0]);
   }
 
   resizer = new Slick.Plugins.Resizer({
@@ -221,7 +280,7 @@
     {id: "genus", name: "Genus", field: "genus", width: 120, columnGroup:"NSR taxonomy", sortable: true},
     {id: "species", name: "Species", field: "species", width: 180, columnGroup:"NSR taxonomy", sortable: true},
     {id: "total_sp", name: "Total", exportName: "Total species", field: "total_sp", columnGroup:"Species count", sortable: true},
-    {id: "sp_w_bc", name: "With barcodes", exportNname: "Species with barcodes", field: "sp_w_bc", columnGroup:"Species count", sortable: true},
+    {id: "sp_w_bc", name: "With barcodes", exportName: "Species with barcodes", field: "sp_w_bc", columnGroup:"Species count", sortable: true},
     {id: "total_bc", name: "Barcodes", exportName: "Total barcodes", field: "total_bc", columnGroup:"All", sortable: true},
     {id: "coverage", name: "% Coverage", field: "coverage", columnGroup:"All", sortable: true},
     //{id: "coveragef", name: "% cov", field: "coverage", width: 80, resizable: false, formatter: Slick.Formatters.PercentCompleteBar, columnGroup:"All", sortable: true},
@@ -229,6 +288,8 @@
     {id: "coverage_nat", name: "% Cov.", exportName: "Naturalis % Coverage", field: "coverage_nat", columnGroup:"Naturalis", sortable: true},
     {id: "not_nat_bc", name: "Barcodes", exportName: "Other barcodes", field: "not_nat_bc", columnGroup:"Other", sortable: true},
     {id: "coverage_not_nat", name: "% Cov.", exportName: "Other % Coverage", field: "coverage_not_nat", columnGroup:"Other", sortable: true},
+    {id: "locality", name: "Locality", exportName: "Specimen(s) Locality", field: "locality", columnGroup:"Specimen(s) info", sortable: true},
+    {id: "occurrence_status", name: "Occurrence Status", exportName: "Species Occurrence Status", field: "occ_status", columnGroup:"Specimen info", sortable: true},
   ];
   var columnFilters = {};
 
@@ -299,6 +360,48 @@
       }
     }
 
+    if (args.groupBy == "species") {
+      var osaLen = args.occurrenceStatus.length;
+      if (osaLen !== 0) {
+        if (item["occ_status"] === "") {
+          return false;
+        }
+        var i = 0, filterEntry = true;
+        while (i < osaLen) {
+            if (args.occurrenceStatus[i] === item["occ_status"][0]) {
+              filterEntry = false;
+              break;
+            }
+            i++;
+        }
+        if (filterEntry) {
+          // console.log(args.occurrenceStatus);
+          // console.log(item["occ_status"]);
+          return false;
+        }
+      }
+
+      var laLen = args.locality.length;
+      if (laLen !== 0) {
+        if (["Unknown", ""].includes(item["locality"])) {
+          return false;
+        }
+        var i = 0, filterEntry = true;
+        while (i < laLen) {
+            if (item["locality"].indexOf(args.locality[i]) !== -1) {
+              filterEntry = false;
+              break;
+            }
+            i++;
+        }
+        if (filterEntry)  {
+          // console.log(args.locality);
+          // console.log(item["locality"]);
+          return false;
+        }
+      }
+    }
+
     return true;
   }
 
@@ -342,6 +445,11 @@
   // }
 
   $(function() {
+    $( "#accordion-filter" ).accordion({
+      collapsible: true
+    });
+    $("input:checkbox").checkboxradio();
+
     dataView = new Slick.Data.DataView({ inlineFilters: true });
     grid = new Slick.Grid("#grid", dataView, columns, options);
     var pager = new Slick.Controls.Pager(dataView, grid, $("#pager"));
@@ -524,6 +632,10 @@
         }
     });
 
+    $('input[type="checkbox"]').click(function() {
+        h_runfilters = window.setTimeout(updateFilter, 10);
+    });
+
 
     function updateFilter() {
       dataView.setFilterArgs({
@@ -534,6 +646,8 @@
         maxNatCoverageThreshold: maxNatCoverageThreshold,
         minOtherCoverageThreshold: minOtherCoverageThreshold,
         maxOtherCoverageThreshold: maxOtherCoverageThreshold,
+        occurrenceStatus: $("input[name='oscb']:checked").map(function(){return $(this).val();}).get(),
+        locality: $("input[name='ocl']:checked").map(function(){return $(this).val();}).get()
       });
       dataView.refresh();
     }

@@ -90,63 +90,61 @@
     <div id="accordion-filter">
       <h3>Filters</h3>
       <div id="filters">
-        <div style="padding:10px 0px 0px 10px;">
-          <b>Coverage:</b>
-          <div style="padding:10px 10px 0px 10px;">
-            <label style="width:180px;float:left; line-height: 27px;">Cov. % between: </label>
-            <div style="padding:3px;">
-              <div style="width:150px;display:inline-block;" id="pcSlider"></div>
-              <div style="display: inline-block;">
-                <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderI1"/> -
-                <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderI2" />
-              </div>
+        <b><a href="https://www.nederlandsesoorten.nl/content/statuscodes-voorkomen-nederland" target="_blank">Species occurrence status &#10548;:</a></b>
+        <i><span style="color: #991111">Active only in 'species' view</span></i>
+        <div style="padding:10px 10px 10px 10px;">
+          <label>0 To be assessed
+            <input type="checkbox" name="oscb" value="0" id="cb-oc0">
+          </label>
+          <label>1 Indigenous
+            <input type="checkbox" name="oscb" value="1" id="cb-oc1">
+          </label>
+          <label>2 Exotic
+            <input type="checkbox" name="oscb" value="2" id="cb-oc2">
+          </label>
+          <label>3 Insufficient data
+            <input type="checkbox" name="oscb" value="3" id="cb-oc3">
+          </label>
+          <label>4 Other
+            <input type="checkbox" name="oscb" value="4" id="cb-oc4">
+          </label>
+        </div>
+        <b>Barcode coverage:</b>
+        <div style="padding:10px 10px 0px 10px;">
+          <label style="width:180px;float:left; line-height: 27px;">Cov. % between: </label>
+          <div style="padding:3px;">
+            <div style="width:150px;display:inline-block;" id="pcSlider"></div>
+            <div style="display: inline-block;">
+              <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderI1"/> -
+              <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderI2" />
             </div>
-          </div>
-          <div style="padding:10px 10px 0 10px;">
-            <label style="width:180px;float:left;line-height: 27px;">Naturalis cov. % between: </label>
-            <div style="padding:3px;">
-              <div style="width:150px;display:inline-block;" id="pcSliderNat"></div>
-              <div style="display: inline-block;">
-                <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderNatI1"/> -
-                <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderNatI2" />
-              </div>
-            </div>
-          </div>
-          <div style="padding:10px 10px 0 10px;">
-            <label style="width:180px;float:left;line-height: 27px;">Other cov. % between: </label>
-            <div style="padding:3px;">
-              <div style="width:150px;display:inline-block;" id="pcSliderOther"></div>
-              <div style="display: inline-block;">
-                <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderOtherI1"/> -
-                <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderOtherI2" />
-              </div>
-            </div>
-          </div>
-          <br>
-          <b>Specimen Locality:</b> <i><span style="color: #991111">Active only in 'species' view</span></i>
-          <div style="padding:10px 10px 0 10px;" id="loc-cb-div">
-          </div>
-          <br>
-          <b><a href="https://www.nederlandsesoorten.nl/content/statuscodes-voorkomen-nederland" target="_blank">Species Occurrence Status &#10548;:</a></b>
-          <i><span style="color: #991111">Active only in 'species' view</span></i>
-          <div style="padding:10px 10px 10px 10px;">
-            <label>0 To be assessed
-              <input type="checkbox" name="oscb" value="0" id="cb-oc0">
-            </label>
-            <label>1 Indigenous
-              <input type="checkbox" name="oscb" value="1" id="cb-oc1">
-            </label>
-            <label>2 Exotic
-              <input type="checkbox" name="oscb" value="2" id="cb-oc2">
-            </label>
-            <label>3 Insufficient data
-              <input type="checkbox" name="oscb" value="3" id="cb-oc3">
-            </label>
-            <label>4 Other
-              <input type="checkbox" name="oscb" value="4" id="cb-oc4">
-            </label>
           </div>
         </div>
+        <div style="padding:10px 10px 0 10px;">
+          <label style="width:180px;float:left;line-height: 27px;">Naturalis cov. % between: </label>
+          <div style="padding:3px;">
+            <div style="width:150px;display:inline-block;" id="pcSliderNat"></div>
+            <div style="display: inline-block;">
+              <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderNatI1"/> -
+              <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderNatI2" />
+            </div>
+          </div>
+        </div>
+        <div style="padding:10px 10px 0 10px;">
+          <label style="width:180px;float:left;line-height: 27px;">Other cov. % between: </label>
+          <div style="padding:3px;">
+            <div style="width:150px;display:inline-block;" id="pcSliderOther"></div>
+            <div style="display: inline-block;">
+              <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderOtherI1"/> -
+              <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderOtherI2" />
+            </div>
+          </div>
+        </div>
+        <br>
+        <b>Barcoded specimen locality:</b> <i><span style="color: #991111">Active only in 'species' view</span></i>
+        <div style="padding:10px 10px 0 10px;" id="loc-cb-div">
+        </div>
+        <br>
       </div>
     </div>
   </div>
@@ -288,8 +286,8 @@
     {id: "coverage_nat", name: "% Cov.", exportName: "Naturalis % Coverage", field: "coverage_nat", columnGroup:"Naturalis", sortable: true},
     {id: "not_nat_bc", name: "Barcodes", exportName: "Other barcodes", field: "not_nat_bc", columnGroup:"Other", sortable: true},
     {id: "coverage_not_nat", name: "% Cov.", exportName: "Other % Coverage", field: "coverage_not_nat", columnGroup:"Other", sortable: true},
-    {id: "locality", name: "Locality", exportName: "Specimen(s) Locality", field: "locality", columnGroup:"Specimen(s) info", sortable: true},
-    {id: "occurrence_status", name: "Occurrence Status", exportName: "Species Occurrence Status", field: "occ_status", columnGroup:"Specimen info", sortable: true},
+    {id: "locality", name: "Specimen(s) Locality", exportName: "Specimen(s) Locality", field: "locality", sortable: true},
+    {id: "occurrence_status", name: "Species Occ. Status", exportName: "Species Occurrence Status", field: "occ_status", sortable: true},
   ];
   var columnFilters = {};
 

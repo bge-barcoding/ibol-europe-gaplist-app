@@ -50,10 +50,10 @@ class Specimen(Base):
             specimen = specimen[0]
         return specimen, created
 
-    @validates('locality')
-    def validate_locality(self, key, value):
-        assert value in locality_set, "%s is not a valid locality, expected in %s" % (value, locality_set)
-        return value
+    # @validates('locality')
+    # def validate_locality(self, key, value):
+    #     assert value in locality_set, "%s is not a valid locality, expected in %s" % (value, locality_set)
+    #     return value
 
     def __repr__(self):
         return "<Specimen(id='%s')>" % (

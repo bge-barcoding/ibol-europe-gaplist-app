@@ -54,17 +54,24 @@ def get_species_barcode_count():
     return {e: [ab, nb, ob] for e, ab, nb, ob in query.all()}
 
 
-def get_species_occ_status_locality():
+def get_specimen_locality():
     query = session.query(
         Specimen.species_id,
-        NsrSpecies.occurrence_status,
         func.group_concat(Specimen.locality.distinct())
     ).join(NsrSpecies).group_by(Specimen.species_id)
     d = dict()
-    for e, ocs, loc in query.all():
+    for e, loc in query.all():
         loc = '; '.join(sorted(loc.split(',')))
-        d[e] = [ocs, loc]
+        d[e] = loc
     return d
+
+
+def get_species_occ_status():
+    query = session.query(
+        NsrSpecies.id,
+        NsrSpecies.occurrence_status
+    )
+    return {e: ocs for e, ocs in query.all()}
 
 
 def add_features(node, total_sp, sp_with_bc, sp_with_bc_nat, sp_with_bc_not_nat, total_bc, nat_bc, not_nat_bc):
@@ -82,7 +89,7 @@ def add_features(node, total_sp, sp_with_bc, sp_with_bc_nat, sp_with_bc_not_nat,
 
 
 # does postorder traversel, propagating total species and total barcodes from tips to root
-def add_count_features(tree, max_rank, species_bc_dict, species_osl_dict):
+def add_count_features(tree, max_rank, species_bc_dict, specimen_loc_dict, species_occ_status_dict):
     """
          does postorder traversel, propagating total species and total barcodes from tips to root
          compute the coverage (% of species with barcodes) at each taxon level
@@ -107,6 +114,9 @@ def add_count_features(tree, max_rank, species_bc_dict, species_osl_dict):
                 # special case, species is the max level, meaning the number of species = 1
                 total_sp = 1
                 nsr_node = session.query(NsrNode).filter(NsrNode.id == node.id).first()
+                if nsr_node.species_id and nsr_node.species_id in species_occ_status_dict:
+                    occurrence_status = species_occ_status_dict[nsr_node.species_id]
+
                 # remove species without left and right index
                 # TODO debug such cases!
                 if nsr_node.species_id is None or (nsr_node.left == nsr_node.right and nsr_node.right is None):
@@ -121,7 +131,8 @@ def add_count_features(tree, max_rank, species_bc_dict, species_osl_dict):
                     coverage = 100
                     coverage_nat = sp_with_bc_nat * 100
                     coverage_not_nat = sp_with_bc_not_nat * 100
-                    occurrence_status, locality = species_osl_dict[nsr_node.species_id]
+                if nsr_node.species_id and nsr_node.species_id in specimen_loc_dict:
+                    locality = specimen_loc_dict[nsr_node.species_id]
 
             else:
                 tips = session.query(NsrNode).filter(NsrNode.id == node.id).first().get_leaves(session).all()
@@ -204,11 +215,12 @@ if __name__ == '__main__':
 
     max_rank = 'species'
     d_sbc = get_species_barcode_count()
-    d_osl = get_species_occ_status_locality()
+    d_os = get_species_occ_status()
+    d_loc = get_specimen_locality()
     ete_tree_of_life = nsr_root.to_ete(session, until_rank=max_rank, remove_empty_rank=True,
                                        remove_incertae_sedis_rank=True)
 
-    coverage_table = add_count_features(ete_tree_of_life, max_rank, d_sbc, d_osl)
+    coverage_table = add_count_features(ete_tree_of_life, max_rank, d_sbc, d_loc, d_os)
     # convert the ttable to json using pandas lib
     df = pd.DataFrame(coverage_table, columns=rank_hierarchy + ['rank', 'total_sp', 'sp_w_bc', 'total_bc', 'coverage',
                                                                 'nat_bc', 'coverage_nat', 'not_nat_bc',

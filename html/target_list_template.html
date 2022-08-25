@@ -310,7 +310,7 @@
     {id: "not_nat_bc", name: "Barcodes", exportName: "Other barcodes", field: "not_nat_bc", columnGroup:"Other", sortable: true},
     {id: "coverage_not_nat", name: "% Cov.", exportName: "Other % Coverage", field: "coverage_not_nat", columnGroup:"Other", sortable: true},
     {id: "locality", name: "Specimen(s) Locality", exportName: "Specimen(s) Locality", field: "locality", sortable: true},
-    {id: "occurrence_status", name: "Species Occ. Status", exportName: "Species Occurrence Status", field: "occ_status", sortable: true},
+    {id: "occ_status", name: "Species Occ. Status", exportName: "Species Occurrence Status", field: "occ_status", sortable: true},
   ];
   var columnFilters = {};
 
@@ -685,10 +685,10 @@
 
     grid.onHeaderRowCellRendered.subscribe(function(e, args) {
         $(args.node).empty();
-        if (!['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'].includes(args.column.id)) {
+        if (!['kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species', 'occ_status', 'locality'].includes(args.column.id)) {
           return;
         }
-        $("<input type='text'>")
+        $("<input type='text' placeholder='Filter'>")
            .data("columnId", args.column.id)
            .val(columnFilters[args.column.id])
            .appendTo(args.node);

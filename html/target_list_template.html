@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="./slickgrid/css/smoothness/jquery-ui.css" type="text/css"/>
   <link rel="stylesheet" href="./slickgrid/css/examples.css" type="text/css"/>
   <link rel="stylesheet" href="./slickgrid/css/select2.css" type="text/css"/>
+  <link rel="stylesheet" href="./slickgrid/css/loader.css" type="text/css"/>
   <style>
     html, body {
       margin: 0;
@@ -77,10 +78,33 @@
       padding: 0.5em 0.5em;
     }
 
+    #loader {
+      z-index:10;
+      position: absolute;
+      top: 120px;
+      bottom: 0;
+      left:0;
+      right:0;
+      background: #FEFEFE;
+    }
+
+    #loader-panel {
+      width:80px;
+      height: 80px;
+      margin: auto;
+      background: #CCC;
+      border-radius: 5px;
+    }
 
   </style>
 </head>
 <body>
+  <div id="loader">
+    <div id="loader-panel">
+      <div class="lds-grid"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+      <div style="width:80px; text-align:center">Loading..</div>
+    </div>
+  </div>
   <div>
     <div style="background: #48387a; display: flex; align-items: center;">
       <div class="image" style="max-width: 100%; margin-left: 1em; margin-top: 0.5em">
@@ -185,8 +209,7 @@
 <script src="./slickgrid/lib/select2.js"></script>
 
 <script>
-
-  var taxonList = { 
+  var taxonList = {
     kingdom: 'kingdom',
     phylum: 'phylum',
     class: 'class',
@@ -447,6 +470,7 @@
       collapsible: true
     });
     $("input:checkbox").checkboxradio();
+    $("#loader").hide();
 
     dataView = new Slick.Data.DataView({ inlineFilters: true });
     grid = new Slick.Grid("#grid", dataView, columns, options);

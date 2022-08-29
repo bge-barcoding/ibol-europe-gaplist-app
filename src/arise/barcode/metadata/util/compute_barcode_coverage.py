@@ -2,9 +2,6 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import argparse
-import shutil
-import pandas as pd
-import json
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 from orm.common import RANK_ORDER, DataSource
@@ -33,7 +30,7 @@ def make_ancestors_list(node, max_rank):
     return l
 
 
-def get_species_barcode_count():
+def get_species_barcode_count(session):
     """
         get the number of barcode per species id
         count
@@ -54,19 +51,26 @@ def get_species_barcode_count():
     return {e: [ab, nb, ob] for e, ab, nb, ob in query.all()}
 
 
-def get_specimen_locality():
+def get_specimen_locality(session):
+    fix_locality_dict = {
+        'USA': "United State of America",
+        'United States': "United State of America",
+        'Faeroe Islands': 'Faroe Islands'
+    }
     query = session.query(
         Specimen.species_id,
         func.group_concat(Specimen.locality.distinct())
     ).join(NsrSpecies).group_by(Specimen.species_id)
     d = dict()
     for e, loc in query.all():
-        loc = '; '.join(sorted(loc.split(',')))
+        loc = '; '.join(
+            [fix_locality_dict[c] if c in fix_locality_dict else c for c in sorted(loc.split(','))]
+        )
         d[e] = loc
     return d
 
 
-def get_species_occ_status():
+def get_species_occ_status(session):
     query = session.query(
         NsrSpecies.id,
         NsrSpecies.occurrence_status
@@ -88,10 +92,14 @@ def add_features(node, total_sp, sp_with_bc, sp_with_bc_nat, sp_with_bc_not_nat,
     node.add_feature('not_nat_bc', not_nat_bc)
 
 
-# does postorder traversel, propagating total species and total barcodes from tips to root
-def add_count_features(tree, max_rank, species_bc_dict, specimen_loc_dict, species_occ_status_dict):
+# does postorder traversal, propagating total species and total barcodes from tips to root
+def add_count_features(session, tree, max_rank):
+    species_bc_dict = get_species_barcode_count(session)
+    specimen_loc_dict = get_specimen_locality(session)
+    species_occ_status_dict = get_species_occ_status(session)
+
     """
-         does postorder traversel, propagating total species and total barcodes from tips to root
+         does postorder traversal, propagating total species and total barcodes from tips to root
          compute the coverage (% of species with barcodes) at each taxon level
          for all barcodes, Naturalis barcodes, non-Naturalis barcodes
     """
@@ -214,31 +222,8 @@ if __name__ == '__main__':
     nsr_root = NsrNode.get_root(session)
 
     max_rank = 'species'
-    d_sbc = get_species_barcode_count()
-    d_os = get_species_occ_status()
-    d_loc = get_specimen_locality()
+
     ete_tree_of_life = nsr_root.to_ete(session, until_rank=max_rank, remove_empty_rank=True,
                                        remove_incertae_sedis_rank=True)
 
-    coverage_table = add_count_features(ete_tree_of_life, max_rank, d_sbc, d_loc, d_os)
-    # convert the ttable to json using pandas lib
-    df = pd.DataFrame(coverage_table, columns=rank_hierarchy + ['rank', 'total_sp', 'sp_w_bc', 'total_bc', 'coverage',
-                                                                'nat_bc', 'coverage_nat', 'not_nat_bc',
-                                                                'coverage_not_nat', 'locality', 'occ_status'])
-    # add id column for slickgrid dataview
-    df.insert(0, 'id', range(1, 1 + len(df)))
-    df = df.fillna("")
-    df[['coverage', 'coverage_nat', 'coverage_not_nat']] = \
-        df[['coverage', 'coverage_nat', 'coverage_not_nat']].apply(lambda x: round(x, 1))
-    shutil.copyfile('html/target_list_template.html', 'html/target_list.html')
-
-    # build a list a distinct localities
-    localities = set()
-    df['locality'].transform(lambda x: [localities.add(e.strip()) for e in x.split(';')
-                                        if e.strip() and e.strip() != "Unknown"])
-
-    html = open('html/target_list.html').read().replace('##LOCALITIES##', json.dumps(sorted(list(localities)))).\
-        replace('##DATA##', df.to_json(orient="records"))
-
-    with open('html/target_list.html', 'w') as fw:
-        fw.write(html)
+    coverage_table = add_count_features(session, ete_tree_of_life, max_rank)

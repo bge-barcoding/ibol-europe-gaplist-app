@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="./slickgrid/css/select2.css" type="text/css"/>
   <link rel="stylesheet" href="./slickgrid/css/loader.css" type="text/css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.css" />
+  <link rel="stylesheet" href="./slickgrid/css/jQuery-plugin-progressbar.css" type="text/css"/>
   <style>
     html, body {
       margin: 0;
@@ -122,165 +123,161 @@
       top: 10px;
       right: 10px;
     }
-
-
-
   </style>
 </head>
 <body>
-  <div id="ex1" class="modal" style="max-height: 90%; max-width: 90%; width: 90%; overflow-y: auto; overflow-x: hidden; font-size: 16px">
-    <p><h1>Target list</h1></p>
-    <div style="width: auto; background: lightblue; display: flex">
-      <div id="about-desc" style="display: flex; background: red; width: 800px">
-      <p>
-         Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus tempus placerat dolor, vel ullamcorper augue
-        posuere finibus. Suspendisse potenti. Proin nec elit blandit, congue est vitae, tristique ante.
-        In hac habitasse platea dictumst. Morbi molestie turpis mi, et luctus sapien convallis et. Vestibulum
-        ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec tincidunt est tortor,
-        eu pulvinar ipsum consectetur ac. Suspendisse potenti. Vivamus id odio nisi. Sed vestibulum vestibulum elit,
-        ut venenatis metus blandit lobortis. Donec at posuere orci, porta fringilla felis. Praesent ultricies ornare
-        justo quis gravida.<br>
+<div id="ex1" class="modal" style="max-height: 90%; max-width: 90%; width: 90%; overflow-y: auto; overflow-x: hidden; font-size: 16px">
+  <p><h1>Target list</h1></p>
+  <div style="width: auto; background: lightblue; display: flex">
+    <div id="about-desc" style="display: flex; background: red; width: 800px">
+    <p>
+       Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus tempus placerat dolor, vel ullamcorper augue
+      posuere finibus. Suspendisse potenti. Proin nec elit blandit, congue est vitae, tristique ante.
+      In hac habitasse platea dictumst. Morbi molestie turpis mi, et luctus sapien convallis et. Vestibulum
+      ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec tincidunt est tortor,
+      eu pulvinar ipsum consectetur ac. Suspendisse potenti. Vivamus id odio nisi. Sed vestibulum vestibulum elit,
+      ut venenatis metus blandit lobortis. Donec at posuere orci, porta fringilla felis. Praesent ultricies ornare
+      justo quis gravida.<br>
 
-        Sed congue turpis sed commodo iaculis. Vivamus lorem eros, congue et tempus sed, maximus quis eros.
-        Mauris vitae lacus vel dolor eleifend porta sed sed ligula. Pellentesque et magna consectetur, tempus eros at,
-        tincidunt nunc. Donec vulputate fermentum gravida. Phasellus in ligula laoreet, pretium velit id,
-        finibus dui. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
-        Donec ac tortor quis mi aliquam mollis vitae non dolor.
-      </p>
-      </div>
-      <div id="about-completness" style="display: flex; background: orange; width: 200px; text-align: center">
-        Overall
-        Completeness
-      </div>
+      Sed congue turpis sed commodo iaculis. Vivamus lorem eros, congue et tempus sed, maximus quis eros.
+      Mauris vitae lacus vel dolor eleifend porta sed sed ligula. Pellentesque et magna consectetur, tempus eros at,
+      tincidunt nunc. Donec vulputate fermentum gravida. Phasellus in ligula laoreet, pretium velit id,
+      finibus dui. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+      Donec ac tortor quis mi aliquam mollis vitae non dolor.
+    </p>
     </div>
-    <p><h1>Statistics</h1></p>
+    <div id="about-completness" style="display: flex; background: orange; width: 200px; text-align: center">
+      <div style="width: 130px; height:0px; text-align:center; vertical-align:top; display: inline-block; font-size: 20px; margin: 40px 0px; color: whitesmoke; font-weight: 600">Overall Completeness</div>
+      <div style="display: inline-block;" class="progress-bar position" data-percent="##COMPLNES##" data-duration="500" data-color="#ccc,green"></div>
+    </div>
+  </div>
+  <p><h1>Statistics</h1></p>
 
-    <table>
-      <tr><td>Barcodes</td><td>##bc##</td></tr>
-      <tr><td>Specimens</td><td>##sc##</td></tr>
-      <tr><td>Markers</td><td>##mc##</td></tr>
-      <tr></tr>
-      <tr><td>NSR species</td><td>##nsrsc##</td></tr>
-      <tr><td>NSR genus</td><td>##nsrgc##</td></tr>
-      <tr><td>NSR family</td><td>##nsrfc##</td></tr>
-      <tr><td>NSR order</td><td>##nsroc##</td></tr>
-      <tr><td>NSR class</td><td>##nsrcc##</td></tr>
-      <tr><td>NSR phylum</td><td>##nsrpc##</td></tr>
-    </table>
+  <table>
+    <tr><td>Barcodes</td><td>##bc##</td></tr>
+    <tr><td>Specimens</td><td>##sc##</td></tr>
+    <tr><td>Markers</td><td>##mc##</td></tr>
+    <tr></tr>
+    <tr><td>NSR species</td><td>##nsrsc##</td></tr>
+    <tr><td>NSR genus</td><td>##nsrgc##</td></tr>
+    <tr><td>NSR family</td><td>##nsrfc##</td></tr>
+    <tr><td>NSR order</td><td>##nsroc##</td></tr>
+    <tr><td>NSR class</td><td>##nsrcc##</td></tr>
+    <tr><td>NSR phylum</td><td>##nsrpc##</td></tr>
+  </table>
 
 
-    <p><h1>Frequently Ask Questions</h1></p>
-    <p><h3>Which taxonomy backbone are you using?</h3></p>
-    The project used the taxonomy provided by the <a href="https://www.nederlandsesoorten.nl/">Dutch Species Register</a>.<br>
-    The data are downloaded from the Netherlands Biodiversity API (NBA) :
-    <a href="http://api.biodiversitydata.nl/v2/taxon/dwca/getDataSet/nsr">http://api.biodiversitydata.nl/v2/taxon/dwca/getDataSet/nsr</a>.<br>
-    Current version: 16/06/22
-    <br>
-    <p><h3>Which barcodes data are currently inserted?</h3></p>
-    Barcodes data originate from two sources:
-    <ul style="margin-left: 15px">
-      <li>BOLD API, filtered by european countries (Retrieved 28/08/22)</li>
-      <li>Naturalis internal data (August 2022)</li>
-    </ul>
+  <p><h1>Frequently Ask Questions</h1></p>
+  <p><h3>Which taxonomy backbone are you using?</h3></p>
+  The project used the taxonomy provided by the <a href="https://www.nederlandsesoorten.nl/">Dutch Species Register</a>.<br>
+  The data are downloaded from the Netherlands Biodiversity API (NBA) :
+  <a href="http://api.biodiversitydata.nl/v2/taxon/dwca/getDataSet/nsr">http://api.biodiversitydata.nl/v2/taxon/dwca/getDataSet/nsr</a>.<br>
+  Current version: 16/06/22
+  <br>
+  <p><h3>Which barcodes data are currently inserted?</h3></p>
+  Barcodes data originate from two sources:
+  <ul style="margin-left: 15px">
+    <li>BOLD API, filtered by european countries (Retrieved 28/08/22)</li>
+    <li>Naturalis internal data (August 2022)</li>
+  </ul>
 <!--    <p><h3>How do you match specimen taxon names against the Dutch Species Register backbone?</h3></p>-->
 <!--    We compare the species canonical name first, if not match is found we search among the list of synonyms.<br>-->
 <!--    If still no hit, we search for the genus name only. If a match if found a new placeholder species "[genus taxon] sp."-->
 <!--    is created (if not already in the database).<br>-->
 <!--    The barcode(s) will be associated to the new species.<br>-->
 <!--    In addition, we include a kingdom filter to the previous queries in order to avoid homonym ambiguity.-->
-    <br>
-    <p><h3>What information is stored in the locality column?</h3></p>
-    The locality column holds the country or list of countries where the specimens have been collected.
-    <br>
-    <p><h3>How is computed the overall completeness?</h3></p>
-    The value displayed is the mean value (average) % barcode coverages (All) of Animalia, Plantae and Fungi Kingdoms.
-    <br>
-    <p><h1>Latest changes</h1></p>
-    <ul style="margin-left: 15px">
-      <li>Add overall completeness percentage</li>
-      <li>Add About information</li>
-    </ul>
-    <br>
-    <p><b>Last update:</b> ##date##<p>
-    <p><b>Version:</b> <a href="https://gitlab.com/arise-biodiversity/sequencing/arise-barcode-metadata/-/commit/##githash##">##githash##</a><p>
-    <a href="#" rel="modal:close">Close</a>
+  <br>
+  <p><h3>What information is stored in the locality column?</h3></p>
+  The locality column holds the country or list of countries where the specimens have been collected.
+  <br>
+  <p><h3>How is computed the overall completeness?</h3></p>
+  The value displayed is the mean value (average) % barcode coverages (All) of Animalia, Plantae and Fungi Kingdoms.
+  <br>
+  <p><h1>Latest changes</h1></p>
+  <ul style="margin-left: 15px">
+    <li>Add overall completeness percentage</li>
+    <li>Add About information</li>
+  </ul>
+  <br>
+  <p><b>Last update:</b> ##date##<p>
+  <p><b>Version:</b> <a href="https://gitlab.com/arise-biodiversity/sequencing/arise-barcode-metadata/-/commit/##githash##">##githash##</a><p>
+  <a href="#" rel="modal:close">Close</a>
+</div>
+<div id="loader">
+  <div id="loader-panel">
+    <div class="lds-grid"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+    <div style="width:80px; text-align:center">Loading..</div>
   </div>
-  <div id="loader">
-    <div id="loader-panel">
-      <div class="lds-grid"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
-      <div style="width:80px; text-align:center">Loading..</div>
+</div>
+<div>
+  <div style="background: #48387a; display: flex; align-items: center; justify-content: space-between;">
+    <div class="image" style="max-width: 100%; margin-left: 1em; margin-top: 0.5em">
+      <img src="inverted_arise_logo.png" style="height: 100px; background: #48387a;"></img>
+    </div>
+    <div>
+      <div id="aboutBut" class="button" onclick="showAboutModal()" style="font-size: 30px">
+        <a style="text-decoration: none; color: inherit" href="#ex1" rel="modal:open">About</a>
+      </div>
     </div>
   </div>
-  <div>
-    <div style="background: #48387a; display: flex; align-items: center; justify-content: space-between;">
-      <div class="image" style="max-width: 100%; margin-left: 1em; margin-top: 0.5em">
-        <img src="inverted_arise_logo.png" style="height: 100px; background: #48387a;"></img>
+  <div id="accordion-filter">
+    <h3>Filters</h3>
+    <div id="filters">
+      <b><a href="https://www.nederlandsesoorten.nl/content/statuscodes-voorkomen-nederland" target="_blank">Species occurrence status &#10548;:</a></b>
+      <i><span style="color: #991111">Active only in 'species' view</span></i>
+      <div style="padding:10px 10px 10px 10px;">
+        <label>0 To be assessed
+          <input type="checkbox" name="oscb" value="0" id="cb-oc0">
+        </label>
+        <label>1 Indigenous
+          <input type="checkbox" name="oscb" value="1" id="cb-oc1">
+        </label>
+        <label>2 Exotic
+          <input type="checkbox" name="oscb" value="2" id="cb-oc2">
+        </label>
+        <label>3 Insufficient data
+          <input type="checkbox" name="oscb" value="3" id="cb-oc3">
+        </label>
+        <label>4 Other
+          <input type="checkbox" name="oscb" value="4" id="cb-oc4">
+        </label>
       </div>
-      <div>
-        <div id="aboutBut" class="button" onclick="showAboutModal()" style="font-size: 30px">
-          <a style="text-decoration: none; color: inherit" href="#ex1" rel="modal:open">About</a>
-        </div>
-      </div>
-    </div>
-    <div id="accordion-filter">
-      <h3>Filters</h3>
-      <div id="filters">
-        <b><a href="https://www.nederlandsesoorten.nl/content/statuscodes-voorkomen-nederland" target="_blank">Species occurrence status &#10548;:</a></b>
-        <i><span style="color: #991111">Active only in 'species' view</span></i>
-        <div style="padding:10px 10px 10px 10px;">
-          <label>0 To be assessed
-            <input type="checkbox" name="oscb" value="0" id="cb-oc0">
-          </label>
-          <label>1 Indigenous
-            <input type="checkbox" name="oscb" value="1" id="cb-oc1">
-          </label>
-          <label>2 Exotic
-            <input type="checkbox" name="oscb" value="2" id="cb-oc2">
-          </label>
-          <label>3 Insufficient data
-            <input type="checkbox" name="oscb" value="3" id="cb-oc3">
-          </label>
-          <label>4 Other
-            <input type="checkbox" name="oscb" value="4" id="cb-oc4">
-          </label>
-        </div>
-        <b>Barcode coverage:</b>
-        <div style="padding:10px 10px 0px 10px;">
-          <label style="width:180px;float:left; line-height: 27px;">Cov. % between: </label>
-          <div style="padding:3px;">
-            <div style="width:150px;display:inline-block;" id="pcSlider"></div>
-            <div style="display: inline-block;">
-              <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderI1"/> -
-              <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderI2" />
-            </div>
+      <b>Barcode coverage:</b>
+      <div style="padding:10px 10px 0px 10px;">
+        <label style="width:180px;float:left; line-height: 27px;">Cov. % between: </label>
+        <div style="padding:3px;">
+          <div style="width:150px;display:inline-block;" id="pcSlider"></div>
+          <div style="display: inline-block;">
+            <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderI1"/> -
+            <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderI2" />
           </div>
         </div>
-        <div style="padding:10px 10px 0 10px;">
-          <label style="width:180px;float:left;line-height: 27px;">Naturalis cov. % between: </label>
-          <div style="padding:3px;">
-            <div style="width:150px;display:inline-block;" id="pcSliderNat"></div>
-            <div style="display: inline-block;">
-              <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderNatI1"/> -
-              <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderNatI2" />
-            </div>
-          </div>
-        </div>
-        <div style="padding:10px 10px 0 10px;">
-          <label style="width:180px;float:left;line-height: 27px;">Other cov. % between: </label>
-          <div style="padding:3px;">
-            <div style="width:150px;display:inline-block;" id="pcSliderOther"></div>
-            <div style="display: inline-block;">
-              <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderOtherI1"/> -
-              <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderOtherI2" />
-            </div>
-          </div>
-        </div>
-        <br>
-        <b>Barcoded specimen locality:</b> <i><span style="color: #991111">Active only in 'species' view</span></i>
-        <div style="padding:10px 10px 0 10px;" id="loc-cb-div">
-        </div>
-        <br>
       </div>
+      <div style="padding:10px 10px 0 10px;">
+        <label style="width:180px;float:left;line-height: 27px;">Naturalis cov. % between: </label>
+        <div style="padding:3px;">
+          <div style="width:150px;display:inline-block;" id="pcSliderNat"></div>
+          <div style="display: inline-block;">
+            <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderNatI1"/> -
+            <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderNatI2" />
+          </div>
+        </div>
+      </div>
+      <div style="padding:10px 10px 0 10px;">
+        <label style="width:180px;float:left;line-height: 27px;">Other cov. % between: </label>
+        <div style="padding:3px;">
+          <div style="width:150px;display:inline-block;" id="pcSliderOther"></div>
+          <div style="display: inline-block;">
+            <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderOtherI1"/> -
+            <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderOtherI2" />
+          </div>
+        </div>
+      </div>
+      <br>
+      <b>Barcoded specimen locality:</b> <i><span style="color: #991111">Active only in 'species' view</span></i>
+      <div style="padding:10px 10px 0 10px;" id="loc-cb-div">
+      </div>
+      <br>
     </div>
   </div>
   <br>
@@ -293,18 +290,19 @@
     </div>
   </div>
   <div id="exportBut" class="button" onclick="exportTable()">Export Table</div>
- <div class="container">
+  <div class="container">
     <div id="grid"></div>
     <div id="pager" style="width:100%;height:20px;"></div>
   </div>`
+</div>
 
 
 <script src="./slickgrid/lib/firebugx.js"></script>
-
 <script src="./slickgrid/lib/jquery-1.12.4.min.js"></script>
 <script src="./slickgrid/lib/jquery-ui.min.js"></script>
 <script src="./slickgrid/lib/jquery.event.drag-2.3.0.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.js"></script>
+<script src="./slickgrid/lib/jQuery-plugin-progressbar.js"></script>
 
 <script src="./slickgrid/slick.core.js"></script>
 <script src="./slickgrid/slick.grid.js"></script>
@@ -343,6 +341,7 @@
   }
 
   // var localities =  [ "Netherlands", "Belgium", "Germany" ];
+
   var localities =  "##LOCALITIES##";
   var cbDiv = document.getElementById('loc-cb-div');
   for (loc of localities) {
@@ -399,7 +398,6 @@
 
   // placeholder for the data array
   var data = "##DATA##";
-
   var dataView;
   var grid;
   var columns = [
@@ -577,6 +575,7 @@
   // }
 
   $(function() {
+    $(".progress-bar").loading();
     $( "#accordion-filter" ).accordion({
       collapsible: true,
       activate: function(event, ui) { resizer.resizeGrid(); }

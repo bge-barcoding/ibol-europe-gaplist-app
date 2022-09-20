@@ -35,14 +35,15 @@ endpoint location and the name of the default output from 1.1
 
 ### 1.3 Loading BOLD metadata
 
-In this step we load the output from BOLD's _Full Data Retrieval (Specimen + Sequence)_ web service. When filtered on
-`Netherlands|Belgium|Germany` this output is ±300MB and takes an hour or so to download. The step can also be done
-from a cached copy. In either case, the format must be TSV. The operation is as follows:
+In this step we load the output from BOLD's _Full Data Retrieval (Specimen + Sequence)_ web service. It is however better to
+specify a cached copy, the format must be TSV. The operation is as follows:
 
-    $ arise_load_bold.py -tsv <file.tsv>
+```commandline
+arise_load_bold.py -tsv <file.tsv>
+```
 
-Bold data filtered on `Netherlands|Belgium|Germany|France|Denmark|United Kingdom` (~425MB) can 
-also be found in the `input_files` folder, but is not currently inserted in the database.
+Bold data current stored in the database is filtered on European country, the files are made available 
+[here](../data/input_files) for the Animalia, Plantae and Fungi kingdoms.
 
 #### Using data per kingdom
 
@@ -51,23 +52,33 @@ Is it better to insert Bold data using the per-kingdom-files in combination with
 to help targeting the correct taxon:
 
 ```commandline
-arise_load_bold.py -db <sqlite.db> -tsv data/input_files/bold_data_animalia_BE_DE_NL.tsv.gz -kingdom animalia
-arise_load_bold.py -db <sqlite.db> -tsv data/input_files/bold_data_plantae_BE_DE_NL.tsv.gz -kingdom plantae
-arise_load_bold.py -db <sqlite.db> -tsv data/input_files/bold_data_fungi_BE_DE_NL.tsv.gz -kingdom fungi
+arise_load_bold.py -db <sqlite.db> -tsv data/input_files/BOLD_eu_Animalia.tsv.gz -kingdom animalia
+arise_load_bold.py -db <sqlite.db> -tsv data/input_files/BOLD_eu_Plantae.tsv.gz -kingdom plantae
+arise_load_bold.py -db <sqlite.db> -tsv data/input_files/BOLD_eu_Fungi.tsv.gz -kingdom fungi
 ```
 
 ### 1.4 Inserting Klasse dump files
 
-To load Naturalis barcoding data, use the arise_load_klasse.py script:
+To load Naturalis barcoding data exported from Geneious/Klasse, use the arise_load_klasse.py script, example:
 
 ```commandline
-python arise_load_klasse.py -db <sqlite.db> -tsv data/input_files/BCP-Bot_ARISE_Rutger_ITS1_20220712.txt -marker ITS1
+python arise_load_klasse.py -db <sqlite.db> -tsv data/input_files/BCP-Bot_ARISE_Rutger_ITS1_20220712.txt -kingdom plantae -marker ITS1
 ```
 
 >Notes
-> * Each file contains barcode for a give marker, so the `-marker` must be specify
-> * 
-### 1.5 Indexing the topology for faster queries
+> * Each file contains barcodes for a give marker, so the `-marker` must be specified.
+> * Always specify the kingdom to avoid homonym errors.
+
+### 1.5 Inserting Jorinde Fungi data
+
+The Fungi database produced by Jorinde & collaborators for Naturalis, must be inserted via the following command:
+
+```commandline
+python arise_load_Jorinde_excel.py -db <sqlite.db> -excel "data/input_files/Fungi barcodes Jorinde.xlsx" -kingdom fungi -marker ITS
+```
+
+
+### 1.6 Indexing the topology for faster queries
 
 Now the tree topology should be indexed. This is easiest done using the
 [Bio::Phylo::Forest::DBTree](https://metacpan.org/pod/Bio::Phylo::Forest::DBTree) package:
@@ -86,7 +97,7 @@ docker-compose -f docker-compose.yml run dbtree
 ```
 (docker-compose 1.xx command, try `docker compose -f ...` for [v2.XX](https://github.com/docker/compose))
 
-### 1.6 Query and visualize the database content using Jupyter Lab
+### 1.7 Query and visualize the database content using Jupyter Lab
 
 Jupyter Lab runs in a docker container, to start it run:
 
@@ -96,16 +107,16 @@ NB_UID=`id -u` docker-compose -f docker-compose.yml up jupyter
 
 and follow the instructions displayed in the terminal to access the interface.
 
-### 1.7 HTML target list table
+### 1.8 Gnerate the HTML target list interface
 
 To generate the HMTL interactive table, run the following command
 
 ```
-python compute_barcode_coverage.py -db data/sqlite/arise-barcode-metadata.db
+python generate_target_list_html.py -db data/sqlite/arise-barcode-metadata.db
 ```
 
 The HTML file `target_list.html` located in `/html/`, can be opened in the web browser.
-The table is also available from the Gitlab pages of the repository: https://arise-biodiversity.gitlab.io/sequencing/arise-barcode-metadata/
+The table is also available online at: https://arise-biodiversity.gitlab.io/sequencing/arise-barcode-metadata/
 
 ### Helper script
 

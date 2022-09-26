@@ -108,7 +108,7 @@ def add_count_features(session, tree, max_rank):
         total_sp = 0  # total species
         sp_with_bc = 0  # species with barcode(s)
         sp_with_bc_nat = 0  # species with barcode(s) from Naturalis
-        sp_with_bc_not_nat = 0  # species with barcode(s) from Other inst. than Naturalis
+        sp_with_bc_not_nat = 0  # species with barcode(s) from inst. other than Naturalis
         total_bc = 0  # total number of barcodes
         nat_bc = 0  # total number of Naturalis barcodes
         not_nat_bc = 0  # total number of not Naturalis barcodes

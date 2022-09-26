@@ -47,4 +47,4 @@ logs/
 # no lock files
 .~lock.*
 
-BDLC/
+BDLC/data/sqlite/ignored

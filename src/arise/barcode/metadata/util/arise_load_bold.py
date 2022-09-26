@@ -1,3 +1,4 @@
+import csv
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -8,8 +9,8 @@ import logging
 import pandas as pd
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
-from orm.common import DataSource
 from sqlalchemy.engine import Engine
+from orm.common import DataSource, get_specimen_index_dict, get_barcode_index_dict
 from orm.nsr_node import NsrNode
 from orm.nsr_species import NsrSpecies
 from orm.nsr_synonym import NsrSynonym
@@ -83,52 +84,79 @@ def fetch_bold_records(geo, institutions, marker, taxon, to_file=None):
 
 
 def load_bold(input_file, kingdom=None, encoding='utf-8'):
-    df = pd.read_csv(input_file, sep='\t', encoding=encoding)
-    df.fillna('', inplace=True)
     specimens_created = 0
+    specimens_existing = 0
     markers_created = 0
     barcodes_created = 0
+    barcodes_existing = 0
     incomplete_records = 0
     fail_matching_nsr_species = 0
-    for index, row in df.iterrows():
+    unknown_taxon_record_set = set()
+    specimen_index_id_dict = get_specimen_index_dict(session, Specimen)
+    barcode_index_id_dict = get_barcode_index_dict(session, Barcode)
 
-        # initialize dict with relevant fields, next row if failed
-        record = init_record_fields(row)
-        if record is None:
-            incomplete_records += 1
-            continue
+    for df in pd.read_csv(input_file, sep='\t', encoding=encoding, error_bad_lines=False, quoting=csv.QUOTE_NONE,
+                          chunksize=200000):
+        df.fillna('', inplace=True)
 
-        # initialize species, next row if failed
-        nsr_species_node = NsrNode.match_species_node(record['taxon'], session, kingdom=kingdom)
-        if nsr_species_node is None:
-            fail_matching_nsr_species += 1
-            continue
+        for index, row in df.iterrows():
+            # initialize dict with relevant fields, next row if failed
+            record = init_record_fields(row)
+            if record is None:
+                incomplete_records += 1
+                continue
 
-        # get or create specimen
-        specimen, created = Specimen.get_or_create_specimen(
-            nsr_species_node.species_id, record['catalognum'], record['institution_storing'],
-            record['identification_provided_by'], record['locality'], session)
-        if created:
-            specimens_created += 1
+            if record['taxon'] in unknown_taxon_record_set:
+                fail_matching_nsr_species += 1
+                continue
 
-        # get or create marker
-        marker, created = Marker.get_or_create_marker(record['marker'], session)
-        if created:
-            markers_created += 1
+            # initialize species, next row if failed
+            nsr_species_node = NsrNode.match_species_node(record['taxon'], session, kingdom=kingdom)
+            if nsr_species_node is None:
+                fail_matching_nsr_species += 1
+                unknown_taxon_record_set.add(record['taxon'])
+                continue
 
-        # set database field value
-        database = DataSource.BOLD
-        if row['genbank_accession']:
-            database = DataSource.NCBI
+            # get or create specimen
+            index = f"{nsr_species_node.species_id}-{record['catalognum']}-{record['institution_storing']}-{record['identification_provided_by']}"
+            if index not in specimen_index_id_dict:
+                specimen, created = Specimen.get_or_create_specimen(
+                    nsr_species_node.species_id, record['catalognum'], record['institution_storing'],
+                    record['identification_provided_by'], record['locality'], session, fast_insert=True)
 
-        barcode, created = Barcode.get_or_create_barcode(specimen.id, database, marker.id, None, record['external_id'],
-                                                         session)
-        if created:
-            barcodes_created += 1
+                specimen_id = specimen.id
+                specimens_created += 1
+                specimen_index_id_dict[index] = specimen_id
+            else:
+                specimen_id = specimen_index_id_dict[index]
+                specimens_existing += 1
+
+            # get or create marker
+            marker, created = Marker.get_or_create_marker(record['marker'], session)
+            if created:
+                markers_created += 1
+
+            # set database field value
+            database = DataSource.BOLD
+            if row['genbank_accession']:
+                database = DataSource.NCBI
+
+            index = f"{specimen_id}-{database}-{marker.id}-{record['external_id']}"
+            if index not in barcode_index_id_dict:
+                barcode, created = Barcode.get_or_create_barcode(specimen_id, database, marker.id, None, record['external_id'],
+                                                                 session, fast_insert=True)
+                barcodes_created += 1
+                barcode_index_id_dict[index] = barcode.id
+            else:
+                barcodes_existing += 1
+
+        session.commit()
 
     main_logger.info(f'{specimens_created=}')
+    main_logger.info(f'{specimens_existing=}')
     main_logger.info(f'{markers_created=}')
     main_logger.info(f'{barcodes_created=}')
+    main_logger.info(f'{barcodes_existing=}')
     main_logger.info(f'{incomplete_records=}')
     main_logger.info(f'{fail_matching_nsr_species=}')
 
@@ -174,4 +202,5 @@ if __name__ == '__main__':
         main_logger.info('START load_bold fetch records')
         file = fetch_bold_records(args.geo, args.institutions, args.marker)
         load_bold(file, kingdom=args.kingdom)
+
     session.commit()

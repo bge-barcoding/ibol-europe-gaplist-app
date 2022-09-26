@@ -5,6 +5,7 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from orm.nsr_node import NsrNode
+import gzip
 
 if __name__ == '__main__':
     # process command line arguments
@@ -13,7 +14,8 @@ if __name__ == '__main__':
     parser.add_argument('bold_country_file', default="", help="list of bold country")
     parser.add_argument('db', default="arise-barcode-metadata.db",
                         help="Input file: SQLite DB, with NSR taxonomy loaded")
-    parser.add_argument('label', help="list of bold country")
+    parser.add_argument('label', help="label for output filename")
+    parser.add_argument('--mock', dest='mock', action='store_true', help="do not write data to file")
 
     args = parser.parse_args()
 
@@ -22,7 +24,6 @@ if __name__ == '__main__':
         [countries.add(line.strip()) for line in fh if line.strip()]
 
     for c in sorted(countries):
-        continue
         out_file = os.path.join(args.outdir, f'bold_{c}.tsv')
         if not os.path.isfile(out_file):
             print("Downloading BOLD data ", out_file)
@@ -48,6 +49,12 @@ if __name__ == '__main__':
         'Gnetophyta': 'Plantae',
         'Streptophyta': 'Plantae',
         'Neocallimastigomycota': 'Fungi',
+        'Brachiopoda': 'Animalia',
+        'Onychophora': 'Animalia',
+        'Placozoa': 'Animalia',
+        'Rhombozoa': 'Animalia',
+        'Cycadophyta': 'Plantae',
+        'Psilophyta': 'Plantae',
     }
 
     ignored_phylum = {
@@ -75,6 +82,13 @@ if __name__ == '__main__':
         'Deinococcus-Thermus': 'bacteria',
         'Crenarchaeota': 'archaea',
         'Air': '?',
+        'Spirochaetes': 'bacteria',
+        'Aquificae': 'bacteria',
+        'Marine': '?',
+        'Prime': '?',
+        'Thaumarchaeota': 'archaea',
+        'Euglenida': 'protist?',
+        'Terrestrial': '?',
     }
 
     engine = create_engine(f'sqlite:///{args.db}', echo=False)
@@ -82,9 +96,9 @@ if __name__ == '__main__':
     session = Session()
 
     write_header = False
-    with open('BOLD_%s_Fungi.tsv' % args.label, 'w', encoding='ISO-8859-1') as fw_f, \
-         open('BOLD_%s_Plantae.tsv' % args.label, 'w', encoding='ISO-8859-1') as fw_p, \
-         open('BOLD_%s_Animalia.tsv' % args.label, 'w', encoding='ISO-8859-1') as fw_a:
+    with gzip.open('BOLD_%s_Fungi.tsv.gz' % args.label, 'wt', encoding='ISO-8859-1') as fw_f, \
+         gzip.open('BOLD_%s_Plantae.tsv.gz' % args.label, 'wt', encoding='ISO-8859-1') as fw_p, \
+         gzip.open('BOLD_%s_Animalia.tsv.gz' % args.label, 'wt', encoding='ISO-8859-1') as fw_a:
         for f in os.listdir(args.outdir):
             full_f = os.path.join(args.outdir, f)
             if os.stat(full_f).st_size == 0:
@@ -92,8 +106,12 @@ if __name__ == '__main__':
                 continue
             print("Parsing %s" % full_f)
 
-            df = pd.read_csv(full_f, sep='\t', encoding='ISO-8859-1')
+            df = pd.read_csv(full_f, sep='\t', encoding='ISO-8859-1', error_bad_lines=False, quoting=3)
             df.fillna('', inplace=True)
+
+            num_lines = sum(1 for line in open(full_f, encoding='ISO-8859-1'))
+            if num_lines != len(df) + 1:
+                print("Warning: Entry parsed:", len(df), ' | Line count:', num_lines)
 
             if not write_header:
                 fw_f.write("\t".join([str(e) for e in list(df.columns.values)]) + "\n")
@@ -112,14 +130,18 @@ if __name__ == '__main__':
                     nodes = session.query(NsrNode).filter(NsrNode.name == row.phylum_name, NsrNode.rank == 'phylum').all()
                     # print(nodes)
                     if len(nodes) != 1:
-                        print("Error no exactly 1 phylum with '%s'" % row.phylum_name)
-                        print(nodes)
-                        print(row.class_name, row.order_name)
+                        print("Error: could not find exactly 1 phylum with name '%s'" % row.phylum_name)
+                        print('results:', nodes)
+                        print('class:', row.class_name, '; order',  row.order_name)
+                        print('Manually specify the kingdom for this phylum')
                         exit()
                     kingdom = nodes[0].kingdom
                     phylum_kingdom_map[row.phylum_name] = kingdom
                 else:
                     kingdom = phylum_kingdom_map[row.phylum_name]
+
+                if args.mock:
+                    continue
 
                 if kingdom == 'Fungi':
                     # df_fungi = df_fungi.append(df.loc[row.Index].to_dict(), ignore_index=True)
@@ -128,6 +150,4 @@ if __name__ == '__main__':
                     fw_p.write("\t".join([str(e) for e in list(row)[1:]]) + "\n")
                 elif kingdom == 'Animalia':
                     fw_a.write("\t".join([str(e) for e in list(row)[1:]]) + "\n")
-
-        # todo compress files
 

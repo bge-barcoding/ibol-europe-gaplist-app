@@ -14,8 +14,9 @@ from orm.nsr_synonym import NsrSynonym
 from orm.barcode import Barcode
 from orm.specimen import Specimen
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.engine import Engine
 import logging
 from collections import defaultdict
 import loggers
@@ -147,6 +148,16 @@ def load_backbone(infile, white_filter=None):
     main_logger.info('Inserted nodes: %s' % node_counter)
     main_logger.info('Inserted species: %s' % species_created)
     main_logger.info('Inserted synonyms: %s' % synonyms_created)
+
+
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute('pragma journal_mode=OFF')
+    cursor.execute('PRAGMA synchronous=OFF')
+    cursor.execute('PRAGMA cache_size=100000')
+    cursor.execute('PRAGMA temp_store = MEMORY')
+    cursor.close()
 
 
 if __name__ == '__main__':

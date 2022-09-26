@@ -6,9 +6,10 @@ import urllib.request
 import shutil
 import logging
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from orm.common import DataSource
+from sqlalchemy.engine import Engine
 from orm.nsr_node import NsrNode
 from orm.nsr_species import NsrSpecies
 from orm.nsr_synonym import NsrSynonym
@@ -130,6 +131,16 @@ def load_bold(input_file, kingdom=None, encoding='utf-8'):
     main_logger.info(f'{barcodes_created=}')
     main_logger.info(f'{incomplete_records=}')
     main_logger.info(f'{fail_matching_nsr_species=}')
+
+
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute('pragma journal_mode=OFF')
+    cursor.execute('PRAGMA synchronous=OFF')
+    cursor.execute('PRAGMA cache_size=100000')
+    cursor.execute('PRAGMA temp_store = MEMORY')
+    cursor.close()
 
 
 if __name__ == '__main__':

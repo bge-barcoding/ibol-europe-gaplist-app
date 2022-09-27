@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="./slickgrid/css/examples.css" type="text/css"/>
   <link rel="stylesheet" href="./slickgrid/css/select2.css" type="text/css"/>
   <link rel="stylesheet" href="./slickgrid/css/loader.css" type="text/css"/>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.css" />
+  <link rel="stylesheet" href="./slickgrid/css/jquery.modal.min.css" />
   <link rel="stylesheet" href="./slickgrid/css/jQuery-plugin-progressbar.css" type="text/css"/>
   <style>
     html, body {
@@ -117,6 +117,7 @@
 
     .modal {
       z-index: 11;
+      background: #FEFEFE;
     }
 
     .modal a.close-modal {
@@ -128,8 +129,8 @@
 <body>
 <div id="ex1" class="modal" style="max-height: 90%; max-width: 90%; width: 90%; overflow-y: auto; overflow-x: hidden; font-size: 16px">
   <p><h1>Target list</h1></p>
-  <div style="width: auto; background: lightblue; display: flex">
-    <div id="about-desc" style="display: flex; background: red; width: 800px">
+  <div style="width: auto;display: flex">
+    <div id="about-desc" style="display: flex;width: 800px">
     <p>
        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus tempus placerat dolor, vel ullamcorper augue
       posuere finibus. Suspendisse potenti. Proin nec elit blandit, congue est vitae, tristique ante.
@@ -146,9 +147,11 @@
       Donec ac tortor quis mi aliquam mollis vitae non dolor.
     </p>
     </div>
-    <div id="about-completness" style="display: flex; background: orange; width: 200px; text-align: center">
-      <div style="width: 130px; height:0px; text-align:center; vertical-align:top; display: inline-block; font-size: 20px; margin: 40px 0px; color: whitesmoke; font-weight: 600">Overall Completeness</div>
-      <div style="display: inline-block;" class="progress-bar position" data-percent="##COMPLNES##" data-duration="500" data-color="#ccc,green"></div>
+    <div id="about-completness">
+      <div style="text-align: center; border-radius: 15px; height: 160px; width: 140px; margin-left: 15px; background: #48387a">
+        <div style="height:40px; text-align:center; font-size: 20px; margin: 0px 0px; font-weight: 600; color: white">Overall Completeness</div>
+        <div class="progress-bar position" data-percent="##COMPLNES##" data-duration="500" data-color="#ccc,green"></div>
+      </div>
     </div>
   </div>
   <p><h1>Statistics</h1></p>
@@ -157,7 +160,7 @@
     <tr><td>Barcodes</td><td>##bc##</td></tr>
     <tr><td>Specimens</td><td>##sc##</td></tr>
     <tr><td>Markers</td><td>##mc##</td></tr>
-    <tr></tr>
+    <tr><td>&nbsp;</td><td></td></tr>
     <tr><td>NSR species</td><td>##nsrsc##</td></tr>
     <tr><td>NSR genus</td><td>##nsrgc##</td></tr>
     <tr><td>NSR family</td><td>##nsrfc##</td></tr>
@@ -172,7 +175,7 @@
   The project used the taxonomy provided by the <a href="https://www.nederlandsesoorten.nl/">Dutch Species Register</a>.<br>
   The data are downloaded from the Netherlands Biodiversity API (NBA) :
   <a href="http://api.biodiversitydata.nl/v2/taxon/dwca/getDataSet/nsr">http://api.biodiversitydata.nl/v2/taxon/dwca/getDataSet/nsr</a>.<br>
-  Current version: 16/06/22
+  Current version: 24/09/22
   <br>
   <p><h3>Which barcodes data are currently inserted?</h3></p>
   Barcodes data originate from two sources:
@@ -195,8 +198,8 @@
   <br>
   <p><h1>Latest changes</h1></p>
   <ul style="margin-left: 15px">
-    <li>Add overall completeness percentage</li>
-    <li>Add About information</li>
+    <li>Add BOLD global data</li>
+    <li>Add About page</li>
   </ul>
   <br>
   <p><b>Last update:</b> ##date##<p>
@@ -215,7 +218,7 @@
       <img src="inverted_arise_logo.png" style="height: 100px; background: #48387a;"></img>
     </div>
     <div>
-      <div id="aboutBut" class="button" onclick="showAboutModal()" style="font-size: 30px">
+      <div id="aboutBut" class="button" style="font-size: 30px">
         <a style="text-decoration: none; color: inherit" href="#ex1" rel="modal:open">About</a>
       </div>
     </div>

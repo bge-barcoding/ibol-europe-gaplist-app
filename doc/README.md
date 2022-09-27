@@ -115,7 +115,7 @@ To generate the HMTL interactive table, run the following command
 python generate_target_list_html.py -db data/sqlite/arise-barcode-metadata.db
 ```
 
-The HTML file `target_list.html` located in `/html/`, can be opened in the web browser.
+The HTML file `target_list.html` located in `/html/`, can be then opened in the web browser.
 The table is also available online at: https://arise-biodiversity.gitlab.io/sequencing/arise-barcode-metadata/
 
 ### Helper script

@@ -1,4 +1,3 @@
-
 from enum import IntEnum
 from sqlalchemy.orm import declarative_base
 

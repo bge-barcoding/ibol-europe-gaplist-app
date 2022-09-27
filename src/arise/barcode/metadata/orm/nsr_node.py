@@ -168,7 +168,7 @@ class NsrNode(Base):
                                        order=nsr_genus_node.order, family=nsr_genus_node.family,
                                        genus=nsr_genus_node.genus, species=sp_name)
             session.add(nsr_species_node)
-            session.flush()
+            # session.flush()
 
         except AttributeError as e:
             nsm_logger.error('Problem parsing taxon name "%s"' % taxon)

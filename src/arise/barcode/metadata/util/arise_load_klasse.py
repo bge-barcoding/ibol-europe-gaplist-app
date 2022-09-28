@@ -112,6 +112,7 @@ def load_klasse(marker_name, kingdom, input_file, encoding='utf-8'):
         if created:
             markers_created += 1
 
+        # get or create barcode
         index = f"{specimen_id}-{DataSource.NATURALIS}-{marker.id}-{record['external_id']}"
         if index not in barcode_index_id_dict:
             barcode, created = Barcode.get_or_create_barcode(specimen_id, DataSource.NATURALIS, marker.id, None,

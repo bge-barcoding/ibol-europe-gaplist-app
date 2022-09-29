@@ -5,6 +5,11 @@
 # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Pages/HTML.gitlab-ci.yml
 
 # Full project: https://gitlab.com/pages/plain-html
+
+before_script:
+  - export COMMIT_TIME=$(git show -s --format=%cd $CI_COMMIT_SHA --date=short)
+  - export COMMIT_HASH=$(git rev-parse --short HEAD)
+
 pages:
   stage: deploy
   script:
@@ -12,7 +17,10 @@ pages:
     - cp -r ./html/* .public
     - rm -rf public
     - mv .public/target_list.html .public/index.html
+    - sed -i "s/##date##/$COMMIT_TIME/g" .public/index.html
+    - sed -i "s/##githash##/COMMIT_HASH/g" .public/index.html
     - mv .public public
+
   artifacts:
     paths:
       - public

@@ -25,12 +25,15 @@ class Specimen(Base):
     # find or create specimen object
     @classmethod
     def get_or_create_specimen(cls, species_id, catalognum, institution_storing, identification_provided_by,
-                               locality,  session):
+                               locality, session, fast_insert=False):
         created = False
-        specimen = \
-            session.query(Specimen).filter(Specimen.species_id == species_id, Specimen.catalognum == catalognum,
-                                           Specimen.institution_storing == institution_storing,
-                                           Specimen.identification_provided_by == identification_provided_by).all()
+        if not fast_insert:
+            specimen = \
+                session.query(Specimen).filter(Specimen.species_id == species_id, Specimen.catalognum == catalognum,
+                                               Specimen.institution_storing == institution_storing,
+                                               Specimen.identification_provided_by == identification_provided_by).all()
+        else:
+            specimen = False
 
         if not specimen:
             specimen = Specimen(species_id=species_id, catalognum=catalognum, institution_storing=institution_storing,

@@ -31,41 +31,35 @@ def has_unusual_name(taxon):
 
 # initializes a dict with the fields that should go in barcode and specimen table, or None if any of the checks fail
 def init_record_fields(row):
+    # print(row)
     record = {}
     # print(row.__dict__)
     # IEEE specs say NaN's can not be equal, so that's how we do the checks for missing values
 
     # check if there is a sequence, otherwise nothing to do
-    if not row['ITS sequence']:
-        lk_logger.warning("Record %s has no ITS sequence, skipping..." % row['Number'])
+    if not row['Sequence']:
+        lk_logger.warning("Record %s has no sequence, skipping..." % row['GBnumber'])
         return None
 
-    genus = row['Revised genus'] if row['Revised genus'] else row['Genus']
-    if genus:
-        record['taxon'] = genus
-        # try to include the species epithet
-        if row['Revised species epithet'] and \
-                not has_unusual_name(row['Revised species epithet']):
-            record['taxon'] += " " + row['Revised species epithet']
-        elif row['original species epithet/field identification'] and \
-                not has_unusual_name(row['original species epithet/field identification']):
-            record['taxon'] += " " + row['original species epithet/field identification']
-    else:
-        lk_logger.warning("Record %s has no Taxon field, skipping..." % row['Number'])
+    if not row['Taxon name']:
+        lk_logger.warning("Record %s has no Taxon field, skipping..." % row['GBnumber'])
         return None
 
     # set up the other required fields
-    record['catalognum'] = row['Herbarium number (collector number if herbarium number not available)']
-    record['institution_storing'] = 'Naturalis Biodiversity Center'  # same as in BOLD
-    record['identification_provided_by'] = row['Collector (Leg.)']  # XXX can be NaN!
-    record['external_id'] = row['Number']
+    record['taxon'] = row['Taxon name']
+    record['marker'] = row['Biomarker']
+    record['catalognum'] = row['StrainID']
+    record['institution_storing'] = 'Westerdijk Fungal Biodiversity Institute'  # same as in BOLD
+    record['identification_provided_by'] = row['Collected_by']  # XXX can be NaN!
+    record['external_id'] = row['GBnumber']
     record['locality'] = row['Country'] if row['Country'] else 'Unknown'
+    record['kingdom'] = row['kingdom']
 
     return record
 
 
-def load_excel(marker_name, kingdom, input_file):
-    df = pd.read_excel(input_file, sheet_name="JNL DNA extraction table", header=1,
+def load_excel(input_file):
+    df = pd.read_excel(input_file, sheet_name="Sheet1", header=0,
                        engine='openpyxl')  # req. openpyxl package to be installed
     df.fillna('', inplace=True)
     specimens_created = 0
@@ -91,7 +85,7 @@ def load_excel(marker_name, kingdom, input_file):
             continue
 
         # initialize species, continue if failed
-        nsr_species_node = NsrNode.match_species_node(record['taxon'], session, kingdom=kingdom)
+        nsr_species_node = NsrNode.match_species_node(record['taxon'], session, kingdom=record['kingdom'])
         if nsr_species_node is None:
             fail_matching_nsr_species += 1
             unknown_taxon_record_set.add(record['taxon'])
@@ -114,15 +108,15 @@ def load_excel(marker_name, kingdom, input_file):
             specimens_existing += 1
 
         # get or create marker
-        marker, created = Marker.get_or_create_marker(marker_name, session)
+        marker, created = Marker.get_or_create_marker(record['marker'], session)
         if created:
             markers_created += 1
 
         # get or create barcode
-        index = f"{specimen_id}-{DataSource.NATURALIS}-{marker.id}-{record['external_id']}"
+        index = f"{specimen_id}-{record['institution_storing']}-{marker.id}-{record['external_id']}"
         if index not in barcode_index_id_dict:
-            barcode, created = Barcode.get_or_create_barcode(specimen_id, DataSource.NATURALIS, marker.id, None,
-                                                             record['external_id'],
+            barcode, created = Barcode.get_or_create_barcode(specimen_id, record['institution_storing'],
+                                                             marker.id, None, record['external_id'],
                                                              session, fast_insert=True)
             barcodes_created += 1
             barcode_index_id_dict[index] = barcode.id
@@ -152,10 +146,6 @@ if __name__ == '__main__':
     # process command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', default="arise-barcode-metadata.db", help="Input file: SQLite DB")
-    parser.add_argument('-marker', choices=['ITS'],  # currently only suppose to par ITS data in that file
-                        help="Marker name using BOLD vocab, e.g. ITS", required=True)
-    parser.add_argument('-kingdom', choices=['fungi'],
-                        help="match only species / taxon in the given kingdom")
     parser.add_argument('-excel', help="A TSV file exported from Klasse using the ARISE template")
     parser.add_argument('--verbose', '-v', action='count', default=1)
 
@@ -171,5 +161,5 @@ if __name__ == '__main__':
     Session = sessionmaker(engine)
     session = Session()
     main_logger.info('Load excel file "%s"', args.excel)
-    load_excel(args.marker, args.kingdom, args.excel)
+    load_excel(args.excel)
     session.commit()

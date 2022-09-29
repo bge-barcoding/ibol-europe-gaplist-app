@@ -12,7 +12,7 @@ class Barcode(Base):
     specimen_id = Column(Integer, ForeignKey('specimen.id'), nullable=False)
 
     # data source - use the DataSource enum from imports
-    database = Column(Integer, index=True, nullable=False)
+    database = Column(Integer, nullable=False)
 
     # foreign key to marker names list
     marker_id = Column(Integer, ForeignKey('marker.id'), nullable=False)
@@ -28,12 +28,16 @@ class Barcode(Base):
 
     # find or create barcode object
     @classmethod
-    def get_or_create_barcode(cls, specimen_id, database, marker_id, defline, external_id, session):
+    def get_or_create_barcode(cls, specimen_id, database, marker_id, defline, external_id, session, fast_insert=False):
         created = False
-        barcode = session.query(Barcode).filter(Barcode.specimen_id == specimen_id, Barcode.database == database,
-                                                Barcode.marker_id == marker_id, Barcode.defline == defline,
-                                                Barcode.external_id == external_id).first()
-        if barcode is None:
+        if not fast_insert:
+            barcode = session.query(Barcode).filter(Barcode.specimen_id == specimen_id, Barcode.database == database,
+                                                    Barcode.marker_id == marker_id, Barcode.defline == defline,
+                                                    Barcode.external_id == external_id).first()
+        else:
+            barcode = False
+
+        if not barcode:
             barcode = Barcode(specimen_id=specimen_id, database=database, marker_id=marker_id, external_id=external_id)
             session.add(barcode)
             session.flush()

@@ -36,13 +36,13 @@ if __name__ == '__main__':
     coverage_table = compute_barcode_coverage.add_count_features(session, ete_tree_of_life, max_rank)
     # convert the table to json using pandas lib
     df = pd.DataFrame(coverage_table, columns=rank_hierarchy + ['rank', 'total_sp', 'sp_w_bc', 'total_bc', 'coverage',
-                                                                'nat_bc', 'coverage_nat', 'not_nat_bc',
-                                                                'coverage_not_nat', 'locality', 'occ_status'])
+                                                                'arise_bc', 'coverage_arise', 'not_arise_bc',
+                                                                'coverage_not_arise', 'locality', 'occ_status'])
     # add id column for slickgrid dataview
     df.insert(0, 'id', range(1, 1 + len(df)))
     df = df.fillna("")
-    df[['coverage', 'coverage_nat', 'coverage_not_nat']] = \
-        df[['coverage', 'coverage_nat', 'coverage_not_nat']].apply(lambda x: round(x, 1))
+    df[['coverage', 'coverage_arise', 'coverage_not_arise']] = \
+        df[['coverage', 'coverage_arise', 'coverage_not_arise']].apply(lambda x: round(x, 1))
     shutil.copyfile('html/target_list_template.html', 'html/target_list.html')
 
     # build a list a distinct localities

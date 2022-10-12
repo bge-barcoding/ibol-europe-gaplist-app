@@ -55,7 +55,7 @@ if __name__ == '__main__':
     overall_completeness = df_kingdom[df_kingdom.kingdom.isin(['Animalia', 'Plantae', 'Fungi'])]['coverage'].mean()
 
     html = open('html/target_list.html').read() \
-        .replace('##COMPLNES##', str(overall_completeness)) \
+        .replace('##COMPLNES##', '{0:3.1f}'.format(overall_completeness)) \
         .replace('"##LOCALITIES##"', json.dumps(sorted(list(localities)))) \
         .replace('"##DATA##"', df.to_json(orient="records"))
 

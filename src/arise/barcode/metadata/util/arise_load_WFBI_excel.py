@@ -113,9 +113,9 @@ def load_excel(input_file):
             markers_created += 1
 
         # get or create barcode
-        index = f"{specimen_id}-{record['institution_storing']}-{marker.id}-{record['external_id']}"
+        index = f"{specimen_id}-{DataSource.WFBI}-{marker.id}-{record['external_id']}"
         if index not in barcode_index_id_dict:
-            barcode, created = Barcode.get_or_create_barcode(specimen_id, record['institution_storing'],
+            barcode, created = Barcode.get_or_create_barcode(specimen_id, DataSource.WFBI,
                                                              marker.id, None, record['external_id'],
                                                              session, fast_insert=True)
             barcodes_created += 1

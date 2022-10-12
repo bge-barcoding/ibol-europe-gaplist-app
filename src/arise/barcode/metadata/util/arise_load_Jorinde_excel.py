@@ -102,6 +102,7 @@ def load_excel(marker_name, kingdom, input_file):
         if index not in specimen_index_id_dict:
             specimen, created = Specimen.get_or_create_specimen(nsr_species_node.species_id,
                                                                 record['catalognum'],
+                                                                record['catalognum'],
                                                                 record['institution_storing'],
                                                                 record['identification_provided_by'],
                                                                 record['locality'], session, fast_insert=True)

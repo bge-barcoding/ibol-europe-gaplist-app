@@ -14,6 +14,7 @@ locality_set = {
 class Specimen(Base):
     __tablename__ = 'specimen'
     id = Column(Integer, primary_key=True, autoincrement=True)
+    sampleid = Column(String(50), index=True, nullable=False)
     catalognum = Column(String(50), index=True, nullable=False)
     institution_storing = Column(String(50), index=True)
     identification_provided_by = Column(String(50), index=True)
@@ -24,10 +25,11 @@ class Specimen(Base):
 
     # find or create specimen object
     @classmethod
-    def get_or_create_specimen(cls, species_id, catalognum, institution_storing, identification_provided_by,
+    def get_or_create_specimen(cls, species_id, sampleid, catalognum, institution_storing, identification_provided_by,
                                locality, session, fast_insert=False):
         created = False
         if not fast_insert:
+            # do not use sampleid in the query for now
             specimen = \
                 session.query(Specimen).filter(Specimen.species_id == species_id, Specimen.catalognum == catalognum,
                                                Specimen.institution_storing == institution_storing,
@@ -36,7 +38,7 @@ class Specimen(Base):
             specimen = False
 
         if not specimen:
-            specimen = Specimen(species_id=species_id, catalognum=catalognum, institution_storing=institution_storing,
+            specimen = Specimen(species_id=species_id, sampleid=sampleid, catalognum=catalognum, institution_storing=institution_storing,
                                 identification_provided_by=identification_provided_by, locality=locality)
             session.add(specimen)
             session.flush()
@@ -44,6 +46,7 @@ class Specimen(Base):
         elif len(specimen) > 1:
             spm_logger.error('multiple specimen matched the following criteria:')
             spm_logger.error(f'{species_id=}')
+            spm_logger.error(f'{sampleid=}')
             spm_logger.error(f'{catalognum=}')
             spm_logger.error(f'{institution_storing=}')
             spm_logger.error(f'{identification_provided_by=}')

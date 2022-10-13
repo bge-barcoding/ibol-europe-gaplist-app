@@ -131,21 +131,15 @@
   <p><h1>Target list</h1></p>
   <div style="width: auto;display: flex">
     <div id="about-desc" style="display: flex;width: 800px">
-    <p>
-       Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus tempus placerat dolor, vel ullamcorper augue
-      posuere finibus. Suspendisse potenti. Proin nec elit blandit, congue est vitae, tristique ante.
-      In hac habitasse platea dictumst. Morbi molestie turpis mi, et luctus sapien convallis et. Vestibulum
-      ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec tincidunt est tortor,
-      eu pulvinar ipsum consectetur ac. Suspendisse potenti. Vivamus id odio nisi. Sed vestibulum vestibulum elit,
-      ut venenatis metus blandit lobortis. Donec at posuere orci, porta fringilla felis. Praesent ultricies ornare
-      justo quis gravida.<br>
-
-      Sed congue turpis sed commodo iaculis. Vivamus lorem eros, congue et tempus sed, maximus quis eros.
-      Mauris vitae lacus vel dolor eleifend porta sed sed ligula. Pellentesque et magna consectetur, tempus eros at,
-      tincidunt nunc. Donec vulputate fermentum gravida. Phasellus in ligula laoreet, pretium velit id,
-      finibus dui. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
-      Donec ac tortor quis mi aliquam mollis vitae non dolor.
-    </p>
+      The ARISE program aims to enable large-scale biomonitoring using, among others, DNA methods. We strive to create
+      an infrastructure that enables high-throughput species identification, as well as molecular biodiversity discovery
+      and monitoring. With plans to sequence 350,000 specimens, we aim to cover at least 95% of all Dutch species,
+      ranging from plants and insects we see around us, to fungi hidden in our soil and the multitude of planktonic
+      organisms inhabiting our water. This target list is where we keep track of which species of the Dutch flora and
+      fauna have been sequenced for the DNA reference library, both in-house at Naturalis Biodiversity Center and the
+      Westerdijk Fungal Biodiversity Institute and at other laboratories around the world. By comparing all that has
+      been sequenced to the current list of Dutch species as recorded by Nederlandsesoorten.nl, we can find the gaps
+      in our reference database, and create a target list for species to be collected and sequenced with the ARISE program.
     </div>
     <div id="about-completness">
       <div style="text-align: center; border-radius: 15px; height: 160px; width: 140px; margin-left: 15px; background: #48387a">
@@ -154,19 +148,23 @@
       </div>
     </div>
   </div>
+  <p><h1>Contact Us</h1></p>
+  <p>By email: arise[at]naturalis.nl or via Gitlab issue (soon)
   <p><h1>Statistics</h1></p>
-
   <table>
-    <tr><td>Barcodes</td><td>##bc##</td></tr>
-    <tr><td>Specimens</td><td>##sc##</td></tr>
-    <tr><td>Markers</td><td>##mc##</td></tr>
+    <tr><td>Total Barcodes</td><td>##bc##</td></tr>
+    <tr><td>Total Specimens</td><td>##sc##</td></tr>
+    <tr><td>Total Markers</td><td>##mc##</td></tr>
+    <tr><td>Arise Barcodes</td><td>##abc##</td></tr>
+    <tr><td>Arise Specimens</td><td>##asc##</td></tr>
+    <tr><td>Arise Markers</td><td>##amc##</td></tr>
     <tr><td>&nbsp;</td><td></td></tr>
-    <tr><td>NSR species</td><td>##nsrsc##</td></tr>
-    <tr><td>NSR genus</td><td>##nsrgc##</td></tr>
-    <tr><td>NSR family</td><td>##nsrfc##</td></tr>
-    <tr><td>NSR order</td><td>##nsroc##</td></tr>
-    <tr><td>NSR class</td><td>##nsrcc##</td></tr>
-    <tr><td>NSR phylum</td><td>##nsrpc##</td></tr>
+    <tr><td>NSR species</td><td>##species##</td></tr>
+    <tr><td>NSR genus</td><td>##genus##</td></tr>
+    <tr><td>NSR family</td><td>##family##</td></tr>
+    <tr><td>NSR order</td><td>##order##</td></tr>
+    <tr><td>NSR class</td><td>##class##</td></tr>
+    <tr><td>NSR phylum</td><td>##phylum##</td></tr>
   </table>
 
 
@@ -180,17 +178,14 @@
   <p><h3>Which barcodes data are currently inserted?</h3></p>
   Barcodes data originate from two sources:
   <ul style="margin-left: 15px">
-    <li>BOLD API, filtered by european countries (Retrieved 28/08/22)</li>
-    <li>Naturalis internal data (August 2022)</li>
+    <li>BOLD (Retrieved 28/08/22)</li>
+    <li>Arise</li>
+    <ul style="margin-left: 15px">
+      <li>Naturalis Biodiversity Center (August 2022)</li>
+      <li>Westerdijk Fungal Biodiversity Institute (September 2022)</li>
+    </ul>
   </ul>
-<!--    <p><h3>How do you match specimen taxon names against the Dutch Species Register backbone?</h3></p>-->
-<!--    We compare the species canonical name first, if not match is found we search among the list of synonyms.<br>-->
-<!--    If still no hit, we search for the genus name only. If a match if found a new placeholder species "[genus taxon] sp."-->
-<!--    is created (if not already in the database).<br>-->
-<!--    The barcode(s) will be associated to the new species.<br>-->
-<!--    In addition, we include a kingdom filter to the previous queries in order to avoid homonym ambiguity.-->
-  <br>
-  <p><h3>What information is stored in the locality column?</h3></p>
+  <p><h3>What information is stored in the <i>locality</i> column?</h3></p>
   The locality column holds the country or list of countries where the specimens have been collected.
   <br>
   <p><h3>How is computed the overall completeness?</h3></p>
@@ -198,8 +193,8 @@
   <br>
   <p><h1>Latest changes</h1></p>
   <ul style="margin-left: 15px">
-    <li>Add BOLD global data</li>
-    <li>Add About page</li>
+    <li>update BOLD with global data</li>
+    <li>Add an About page</li>
   </ul>
   <br>
   <p><b>Last update:</b> ##date##<p>
@@ -257,12 +252,12 @@
         </div>
       </div>
       <div style="padding:10px 10px 0 10px;">
-        <label style="width:180px;float:left;line-height: 27px;">Naturalis cov. % between: </label>
+        <label style="width:180px;float:left;line-height: 27px;">Arise cov. % between: </label>
         <div style="padding:3px;">
-          <div style="width:150px;display:inline-block;" id="pcSliderNat"></div>
+          <div style="width:150px;display:inline-block;" id="pcSliderArise"></div>
           <div style="display: inline-block;">
-            <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderNatI1"/> -
-            <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderNatI2" />
+            <input style="width: 45px; margin-left: 10px;" type="number" min="0" max="100" value="0" id="pcSliderAriseI1"/> -
+            <input style="width: 45px;" type="number" min="0" max="100" value="100" id="pcSliderAriseI2" />
           </div>
         </div>
       </div>
@@ -416,10 +411,10 @@
     {id: "total_bc", name: "Barcodes", exportName: "Total barcodes", field: "total_bc", columnGroup:"All", sortable: true},
     {id: "coverage", name: "% Coverage", field: "coverage", columnGroup:"All", sortable: true},
     //{id: "coveragef", name: "% cov", field: "coverage", width: 80, resizable: false, formatter: Slick.Formatters.PercentCompleteBar, columnGroup:"All", sortable: true},
-    {id: "nat_bc", name: "Barcodes", exportName: "Naturalis barcodes", field: "nat_bc", columnGroup:"Naturalis", sortable: true},
-    {id: "coverage_nat", name: "% Cov.", exportName: "Naturalis % Coverage", field: "coverage_nat", columnGroup:"Naturalis", sortable: true},
-    {id: "not_nat_bc", name: "Barcodes", exportName: "Other barcodes", field: "not_nat_bc", columnGroup:"Other", sortable: true},
-    {id: "coverage_not_nat", name: "% Cov.", exportName: "Other % Coverage", field: "coverage_not_nat", columnGroup:"Other", sortable: true},
+    {id: "arise_bc", name: "Barcodes", exportName: "Arise barcodes", field: "arise_bc", columnGroup:"Arise", sortable: true},
+    {id: "coverage_arise", name: "% Cov.", exportName: "Arise % Coverage", field: "coverage_arise", columnGroup:"Arise", sortable: true},
+    {id: "not_arise_bc", name: "Barcodes", exportName: "Other barcodes", field: "not_arise_bc", columnGroup:"Other", sortable: true},
+    {id: "coverage_not_arise", name: "% Cov.", exportName: "Other % Coverage", field: "coverage_not_arise", columnGroup:"Other", sortable: true},
     {id: "locality", name: "Specimen(s) Locality", exportName: "Specimen(s) Locality", field: "locality", sortable: true},
     {id: "occ_status", name: "Species Occ. Status", exportName: "Species Occurrence Status", field: "occ_status", sortable: true},
   ];
@@ -452,11 +447,11 @@
   $("#pcSliderI1").val(minCoverageThreshold);
   $("#pcSliderI2").val(maxCoverageThreshold);
 
-  var minNatCoverageThreshold = 0;
-  var maxNatCoverageThreshold = 100;
+  var minAriseCoverageThreshold = 0;
+  var maxAriseCoverageThreshold = 100;
 
-  $("#pcSliderNatI1").val(minNatCoverageThreshold);
-  $("#pcSliderNatI2").val(maxNatCoverageThreshold);
+  $("#pcSliderAriseI1").val(minAriseCoverageThreshold);
+  $("#pcSliderAriseI2").val(maxAriseCoverageThreshold);
 
   var minOtherCoverageThreshold = 0;
   var maxOtherCoverageThreshold = 100;
@@ -476,11 +471,11 @@
       return false;
     }
 
-    if (item["coverage_nat"] < args.minNatCoverageThreshold || item["coverage_nat"] > maxNatCoverageThreshold) {
+    if (item["coverage_arise"] < args.minAriseCoverageThreshold || item["coverage_arise"] > maxAriseCoverageThreshold) {
       return false;
     }
 
-    if (item["coverage_not_nat"] < args.minOtherCoverageThreshold || item["coverage_not_nat"] > maxOtherCoverageThreshold) {
+    if (item["coverage_not_arise"] < args.minOtherCoverageThreshold || item["coverage_not_arise"] > maxOtherCoverageThreshold) {
       return false;
     }
 
@@ -684,42 +679,42 @@
     });
 
     // wire up the slider to apply the filter to the model
-    $("#pcSliderNat").slider({
+    $("#pcSliderArise").slider({
       range: true,
       min: 0,
       max: 100,
       values: [ 0, 100 ],
       slide: function (event, ui) {
-        if (minNatCoverageThreshold != ui.values[0] || maxNatCoverageThreshold != ui.values[1]) {
+        if (minAriseCoverageThreshold != ui.values[0] || maxAriseCoverageThreshold != ui.values[1]) {
           window.clearTimeout(h_runfilters);
           h_runfilters = window.setTimeout(updateFilter, 10);
-          minNatCoverageThreshold = ui.values[0];
-          maxNatCoverageThreshold = ui.values[1];
-          $("#pcSliderNatI1").val(ui.values[0]);
-          $("#pcSliderNatI2").val(ui.values[1]);
+          minAriseCoverageThreshold = ui.values[0];
+          maxAriseCoverageThreshold = ui.values[1];
+          $("#pcSliderAriseI1").val(ui.values[0]);
+          $("#pcSliderAriseI2").val(ui.values[1]);
         }
       }
     });
 
-    $("#pcSliderNatI1").change(function () {
+    $("#pcSliderAriseI1").change(function () {
       var v = Math.max($(this).val(), 0);
       v = Math.min($(this).val(), 100);
-      if (v > $("#pcSliderNatI2").val()) {
-        v = $("#pcSliderNatI2").val()
+      if (v > $("#pcSliderAriseI2").val()) {
+        v = $("#pcSliderAriseI2").val()
       }
-      $("#pcSliderNat").slider("option", "values", [v, $("#pcSliderNatI2").val()]);
-      $("#pcSliderNat").data("ui-slider")._slide();
+      $("#pcSliderArise").slider("option", "values", [v, $("#pcSliderAriseI2").val()]);
+      $("#pcSliderArise").data("ui-slider")._slide();
     });
 
-    $("#pcSliderNatI2").change(function () {
+    $("#pcSliderAriseI2").change(function () {
       var v = Math.max($(this).val(), 0);
       v = Math.min($(this).val(), 100);
-      if (v < $("#pcSliderNatI1").val()) {
-        v = $("#pcSliderNatI1").val()
+      if (v < $("#pcSliderAriseI1").val()) {
+        v = $("#pcSliderAriseI1").val()
       }
       $(this).val(v);
-      $("#pcSliderNat").slider("option", "values", [$("#pcSliderNatI1").val(), v]);
-      $("#pcSliderNat").data("ui-slider")._slide();
+      $("#pcSliderArise").slider("option", "values", [$("#pcSliderAriseI1").val(), v]);
+      $("#pcSliderArise").data("ui-slider")._slide();
     });
 
         // wire up the slider to apply the filter to the model
@@ -778,8 +773,8 @@
         groupBy: groupBy,
         minCoverageThreshold: minCoverageThreshold,
         maxCoverageThreshold: maxCoverageThreshold,
-        minNatCoverageThreshold: minNatCoverageThreshold,
-        maxNatCoverageThreshold: maxNatCoverageThreshold,
+        minAriseCoverageThreshold: minAriseCoverageThreshold,
+        maxAriseCoverageThreshold: maxAriseCoverageThreshold,
         minOtherCoverageThreshold: minOtherCoverageThreshold,
         maxOtherCoverageThreshold: maxOtherCoverageThreshold,
         occurrenceStatus: $("input[name='oscb']:checked").map(function(){return $(this).val();}).get(),
@@ -824,8 +819,8 @@
       groupBy: groupBy,
         minCoverageThreshold: minCoverageThreshold,
         maxCoverageThreshold: maxCoverageThreshold,
-        minNatCoverageThreshold: minNatCoverageThreshold,
-        maxNatCoverageThreshold: maxNatCoverageThreshold,
+        minAriseCoverageThreshold: minAriseCoverageThreshold,
+        maxAriseCoverageThreshold: maxAriseCoverageThreshold,
         minOtherCoverageThreshold: minOtherCoverageThreshold,
         maxOtherCoverageThreshold: maxOtherCoverageThreshold,
     });

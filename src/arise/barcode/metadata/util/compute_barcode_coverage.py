@@ -40,11 +40,11 @@ def get_species_barcode_count(session):
         Specimen.species_id,
         func.count(),
         func.sum(case(
-            (Barcode.database == DataSource.NATURALIS, 1),  # Naturalis barcodes
+            (Barcode.database.in_([DataSource.NATURALIS, DataSource.WFBI]), 1),  # ARISE barcodes
             else_=0
         )),
         func.sum(case(
-            (Barcode.database != DataSource.NATURALIS, 1),  # Other barcodes
+            (Barcode.database.not_in([DataSource.NATURALIS, DataSource.WFBI]), 1),  # Other barcodes
             else_=0
         ))
     ).join(Barcode).group_by(Specimen.species_id)
@@ -78,18 +78,18 @@ def get_species_occ_status(session):
     return {e: ocs for e, ocs in query.all()}
 
 
-def add_features(node, total_sp, sp_with_bc, sp_with_bc_nat, sp_with_bc_not_nat, total_bc, nat_bc, not_nat_bc):
+def add_features(node, total_sp, sp_with_bc, sp_with_bc_arise, sp_with_bc_not_arise, total_bc, arise_bc, not_arise_bc):
     """
         add multi ete feature to node
         (to replace with ete3.TreeNode.add_features?)
     """
     node.add_feature('total_sp', total_sp)
     node.add_feature('sp_with_bc', sp_with_bc)
-    node.add_feature('sp_with_bc_nat', sp_with_bc_nat)
-    node.add_feature('sp_with_bc_not_nat', sp_with_bc_not_nat)
+    node.add_feature('sp_with_bc_arise', sp_with_bc_arise)
+    node.add_feature('sp_with_bc_not_arise', sp_with_bc_not_arise)
     node.add_feature('total_bc', total_bc)
-    node.add_feature('nat_bc', nat_bc)
-    node.add_feature('not_nat_bc', not_nat_bc)
+    node.add_feature('arise_bc', arise_bc)
+    node.add_feature('not_arise_bc', not_arise_bc)
 
 
 # does postorder traversal, propagating total species and total barcodes from tips to root
@@ -101,20 +101,20 @@ def add_count_features(session, tree, max_rank):
     """
          does postorder traversal, propagating total species and total barcodes from tips to root
          compute the coverage (% of species with barcodes) at each taxon level
-         for all barcodes, Naturalis barcodes, non-Naturalis barcodes
+         for all barcodes, Arise barcodes, non-Arise barcodes
     """
     coverage_table = []
     for node in tree.iter_descendants(strategy='postorder'):
         total_sp = 0  # total species
         sp_with_bc = 0  # species with barcode(s)
-        sp_with_bc_nat = 0  # species with barcode(s) from Naturalis
-        sp_with_bc_not_nat = 0  # species with barcode(s) from inst. other than Naturalis
+        sp_with_bc_arise = 0  # species with barcode(s) from Arise
+        sp_with_bc_not_arise = 0  # species with barcode(s) from inst. other than Arise
         total_bc = 0  # total number of barcodes
-        nat_bc = 0  # total number of Naturalis barcodes
-        not_nat_bc = 0  # total number of not Naturalis barcodes
+        arise_bc = 0  # total number of Arise barcodes
+        not_arise_bc = 0  # total number of not Arise barcodes
         coverage = 0  # percentage of species having at least one barcode
-        coverage_nat = 0  # percentage of species with barcode(s) from Nat.
-        coverage_not_nat = 0  # etc
+        coverage_arise = 0  # percentage of species with barcode(s) from Arise.
+        coverage_not_arise = 0  # etc
         occurrence_status = None
         locality = None
         if node.rank == max_rank:
@@ -132,13 +132,13 @@ def add_count_features(session, tree, max_rank):
                     continue
 
                 if nsr_node.species_id and nsr_node.species_id in species_bc_dict:
-                    total_bc, nat_bc, not_nat_bc = species_bc_dict[nsr_node.species_id]
+                    total_bc, arise_bc, not_arise_bc = species_bc_dict[nsr_node.species_id]
                     sp_with_bc = 1
-                    sp_with_bc_nat = 1 if nat_bc else 0
-                    sp_with_bc_not_nat = 1 if not_nat_bc else 0
+                    sp_with_bc_arise = 1 if arise_bc else 0
+                    sp_with_bc_not_arise = 1 if not_arise_bc else 0
                     coverage = 100
-                    coverage_nat = sp_with_bc_nat * 100
-                    coverage_not_nat = sp_with_bc_not_nat * 100
+                    coverage_arise = sp_with_bc_arise * 100
+                    coverage_not_arise = sp_with_bc_not_arise * 100
                 if nsr_node.species_id and nsr_node.species_id in specimen_loc_dict:
                     locality = specimen_loc_dict[nsr_node.species_id]
 
@@ -146,62 +146,62 @@ def add_count_features(session, tree, max_rank):
                 tips = session.query(NsrNode).filter(NsrNode.id == node.id).first().get_leaves(session).all()
                 if len(tips) != 0:
                     total_sp = len(tips)
-                    sp_with_bc_nat = 0
-                    sp_with_bc_not_nat = 0
+                    sp_with_bc_arise = 0
+                    sp_with_bc_not_arise = 0
                     for tip in tips:
                         if tip.species_id and tip.species_id in species_bc_dict:
-                            c_total_bc, c_nat_bc, c_not_nat_bc = species_bc_dict[tip.species_id]
+                            c_total_bc, c_arise_bc, c_not_arise_bc = species_bc_dict[tip.species_id]
                             total_bc += c_total_bc
-                            nat_bc += c_nat_bc
-                            not_nat_bc += c_not_nat_bc
+                            arise_bc += c_arise_bc
+                            not_arise_bc += c_not_arise_bc
                             sp_with_bc += 1
-                            sp_with_bc_nat += 1 if c_nat_bc else 0
-                            sp_with_bc_not_nat += 1 if c_not_nat_bc else 0
+                            sp_with_bc_arise += 1 if c_arise_bc else 0
+                            sp_with_bc_not_arise += 1 if c_not_arise_bc else 0
 
                     coverage = sp_with_bc / len(tips) * 100
-                    coverage_nat = sp_with_bc_nat / len(tips) * 100
-                    coverage_not_nat = sp_with_bc_not_nat / len(tips) * 100
+                    coverage_arise = sp_with_bc_arise / len(tips) * 100
+                    coverage_not_arise = sp_with_bc_not_arise / len(tips) * 100
         else:
             for child in node.get_children():
                 total_sp += child.total_sp
                 sp_with_bc += child.sp_with_bc
-                sp_with_bc_nat += child.sp_with_bc_nat
-                sp_with_bc_not_nat += child.sp_with_bc_not_nat
+                sp_with_bc_arise += child.sp_with_bc_arise
+                sp_with_bc_not_arise += child.sp_with_bc_not_arise
                 total_bc += child.total_bc
-                nat_bc += child.nat_bc
-                not_nat_bc += child.not_nat_bc
+                arise_bc += child.arise_bc
+                not_arise_bc += child.not_arise_bc
 
             coverage = sp_with_bc / total_sp * 100
-            coverage_nat = sp_with_bc_nat / total_sp * 100
-            coverage_not_nat = sp_with_bc_not_nat / total_sp * 100
+            coverage_arise = sp_with_bc_arise / total_sp * 100
+            coverage_not_arise = sp_with_bc_not_arise / total_sp * 100
 
-        add_features(node, total_sp, sp_with_bc, sp_with_bc_nat, sp_with_bc_not_nat, total_bc, nat_bc, not_nat_bc)
+        add_features(node, total_sp, sp_with_bc, sp_with_bc_arise, sp_with_bc_not_arise, total_bc, arise_bc, not_arise_bc)
         if node.name != "All of life":
             coverage_table.append(make_ancestors_list(node, max_rank) +
                                                               [node.rank, total_sp, sp_with_bc,
                                                                total_bc, coverage,
-                                                               nat_bc, coverage_nat,
-                                                               not_nat_bc, coverage_not_nat,
+                                                               arise_bc, coverage_arise,
+                                                               not_arise_bc, coverage_not_arise,
                                                                locality, occurrence_status])
 
     # finally also do the tree root itself
     total_sp = 0
     sp_with_bc = 0
-    sp_with_bc_nat = 0
-    sp_with_bc_not_nat = 0
+    sp_with_bc_arise = 0
+    sp_with_bc_not_arise = 0
     total_bc = 0
-    nat_bc = 0
-    not_nat_bc = 0
+    arise_bc = 0
+    not_arise_bc = 0
     for child in tree.get_children():
         total_sp += child.total_sp
         sp_with_bc += child.sp_with_bc
-        sp_with_bc_nat += child.sp_with_bc_nat
-        sp_with_bc_not_nat += child.sp_with_bc_not_nat
+        sp_with_bc_arise += child.sp_with_bc_arise
+        sp_with_bc_not_arise += child.sp_with_bc_not_arise
         total_bc += child.total_bc
-        nat_bc += child.nat_bc
-        not_nat_bc += child.not_nat_bc
+        arise_bc += child.arise_bc
+        not_arise_bc += child.not_arise_bc
 
-    add_features(tree, total_sp, sp_with_bc, sp_with_bc_nat, sp_with_bc_not_nat, total_bc, nat_bc, not_nat_bc)
+    add_features(tree, total_sp, sp_with_bc, sp_with_bc_arise, sp_with_bc_not_arise, total_bc, arise_bc, not_arise_bc)
 
     return coverage_table
 

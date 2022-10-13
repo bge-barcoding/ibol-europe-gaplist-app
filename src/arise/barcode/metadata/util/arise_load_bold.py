@@ -35,18 +35,21 @@ def init_record_fields(row):
         if row['genus_name']:
             record['taxon'] = row['genus_name']
         else:
-            lbd_logger.warning('Taxonomic identification not specific enough, skip record "%s"' % row['catalognum'])
+            lbd_logger.warning('Taxonomic identification not specific enough, skip record "%s / %s"' %
+                               (row['catalognum'], row['sampleid']))
             return None
 
     # check marker name
     if row['markercode']:
         record['marker'] = row['markercode']
     else:
-        lbd_logger.warning('The marker code is undefined, skip record "%s"' % row['catalognum'])
+        lbd_logger.warning('The marker code is undefined, skip record "%s / %s"' %
+                           (row['catalognum'], row['sampleid']))
         return None
 
     # we use process ID as external identifier because it can be resolved for inspection, other fields are for specimens
-    record['catalognum'] = row['catalognum'] if row['catalognum'] else row['sampleid']
+    record['sampleid'] = row['sampleid']
+    record['catalognum'] = row['catalognum']
     record['institution_storing'] = row['institution_storing']
     record['identification_provided_by'] = row['identification_provided_by']
     record['locality'] = row['country']

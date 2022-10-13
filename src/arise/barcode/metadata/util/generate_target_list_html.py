@@ -5,10 +5,12 @@ import argparse
 import shutil
 import pandas as pd
 import json
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, func, distinct, union_all
 from sqlalchemy.orm import sessionmaker
-from orm.common import RANK_ORDER
+from orm.common import RANK_ORDER, DataSource
 from orm.nsr_node import NsrNode
+from orm.barcode import Barcode
+from orm.specimen import Specimen
 import compute_barcode_coverage
 
 rank_hierarchy = RANK_ORDER[1:]
@@ -36,13 +38,13 @@ if __name__ == '__main__':
     coverage_table = compute_barcode_coverage.add_count_features(session, ete_tree_of_life, max_rank)
     # convert the table to json using pandas lib
     df = pd.DataFrame(coverage_table, columns=rank_hierarchy + ['rank', 'total_sp', 'sp_w_bc', 'total_bc', 'coverage',
-                                                                'nat_bc', 'coverage_nat', 'not_nat_bc',
-                                                                'coverage_not_nat', 'locality', 'occ_status'])
+                                                                'arise_bc', 'coverage_arise', 'not_arise_bc',
+                                                                'coverage_not_arise', 'locality', 'occ_status'])
     # add id column for slickgrid dataview
     df.insert(0, 'id', range(1, 1 + len(df)))
     df = df.fillna("")
-    df[['coverage', 'coverage_nat', 'coverage_not_nat']] = \
-        df[['coverage', 'coverage_nat', 'coverage_not_nat']].apply(lambda x: round(x, 1))
+    df[['coverage', 'coverage_arise', 'coverage_not_arise']] = \
+        df[['coverage', 'coverage_arise', 'coverage_not_arise']].apply(lambda x: round(x, 1))
     shutil.copyfile('html/target_list_template.html', 'html/target_list.html')
 
     # build a list a distinct localities
@@ -55,9 +57,27 @@ if __name__ == '__main__':
     overall_completeness = df_kingdom[df_kingdom.kingdom.isin(['Animalia', 'Plantae', 'Fungi'])]['coverage'].mean()
 
     html = open('html/target_list.html').read() \
-        .replace('##COMPLNES##', str(overall_completeness)) \
+        .replace('##COMPLNES##', '{0:3.1f}'.format(overall_completeness)) \
         .replace('"##LOCALITIES##"', json.dumps(sorted(list(localities)))) \
         .replace('"##DATA##"', df.to_json(orient="records"))
+
+    # compute stats
+    for rank in RANK_ORDER[1:]:
+        html = html.replace('##%s##' % rank, str(len(df[df['rank'] == rank])))
+
+    stats = list(session.query(
+        func.count(distinct(Specimen.id)),
+        func.count(distinct(Barcode.id)),
+        func.count(distinct(Barcode.marker_id)),
+    ).join(Barcode).all()[0])
+    stats += list(session.query(
+        func.count(distinct(Specimen.id)),
+        func.count(distinct(Barcode.id)),
+        func.count(distinct(Barcode.marker_id)),
+    ).join(Barcode).filter(Barcode.database.in_([DataSource.NATURALIS, DataSource.WFBI])).all()[0])
+
+    for v, n in zip(['bc', 'sc', 'mc', 'abc', 'asc', 'amc'], stats):
+        html = html.replace('##%s##' % v, str(n))
 
     with open('html/target_list.html', 'w') as fw:
         fw.write(html)

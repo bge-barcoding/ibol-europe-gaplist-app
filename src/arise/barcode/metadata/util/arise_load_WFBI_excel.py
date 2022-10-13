@@ -96,6 +96,7 @@ def load_excel(input_file):
         if index not in specimen_index_id_dict:
             specimen, created = Specimen.get_or_create_specimen(nsr_species_node.species_id,
                                                                 record['catalognum'],
+                                                                record['catalognum'],
                                                                 record['institution_storing'],
                                                                 record['identification_provided_by'],
                                                                 record['locality'], session, fast_insert=True)
@@ -113,9 +114,9 @@ def load_excel(input_file):
             markers_created += 1
 
         # get or create barcode
-        index = f"{specimen_id}-{record['institution_storing']}-{marker.id}-{record['external_id']}"
+        index = f"{specimen_id}-{DataSource.WFBI}-{marker.id}-{record['external_id']}"
         if index not in barcode_index_id_dict:
-            barcode, created = Barcode.get_or_create_barcode(specimen_id, record['institution_storing'],
+            barcode, created = Barcode.get_or_create_barcode(specimen_id, DataSource.WFBI,
                                                              marker.id, None, record['external_id'],
                                                              session, fast_insert=True)
             barcodes_created += 1

@@ -131,21 +131,15 @@
   <p><h1>Target list</h1></p>
   <div style="width: auto;display: flex">
     <div id="about-desc" style="display: flex;width: 800px">
-    <p>
-       Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus tempus placerat dolor, vel ullamcorper augue
-      posuere finibus. Suspendisse potenti. Proin nec elit blandit, congue est vitae, tristique ante.
-      In hac habitasse platea dictumst. Morbi molestie turpis mi, et luctus sapien convallis et. Vestibulum
-      ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec tincidunt est tortor,
-      eu pulvinar ipsum consectetur ac. Suspendisse potenti. Vivamus id odio nisi. Sed vestibulum vestibulum elit,
-      ut venenatis metus blandit lobortis. Donec at posuere orci, porta fringilla felis. Praesent ultricies ornare
-      justo quis gravida.<br>
-
-      Sed congue turpis sed commodo iaculis. Vivamus lorem eros, congue et tempus sed, maximus quis eros.
-      Mauris vitae lacus vel dolor eleifend porta sed sed ligula. Pellentesque et magna consectetur, tempus eros at,
-      tincidunt nunc. Donec vulputate fermentum gravida. Phasellus in ligula laoreet, pretium velit id,
-      finibus dui. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
-      Donec ac tortor quis mi aliquam mollis vitae non dolor.
-    </p>
+      The ARISE program aims to enable large-scale biomonitoring using, among others, DNA methods. We strive to create
+      an infrastructure that enables high-throughput species identification, as well as molecular biodiversity discovery
+      and monitoring. With plans to sequence 350,000 specimens, we aim to cover at least 95% of all Dutch species,
+      ranging from plants and insects we see around us, to fungi hidden in our soil and the multitude of planktonic
+      organisms inhabiting our water. This target list is where we keep track of which species of the Dutch flora and
+      fauna have been sequenced for the DNA reference library, both in-house at Naturalis Biodiversity Center and the
+      Westerdijk Fungal Biodiversity Institute and at other laboratories around the world. By comparing all that has
+      been sequenced to the current list of Dutch species as recorded by Nederlandsesoorten.nl, we can find the gaps
+      in our reference database, and create a target list for species to be collected and sequenced with the ARISE program.
     </div>
     <div id="about-completness">
       <div style="text-align: center; border-radius: 15px; height: 160px; width: 140px; margin-left: 15px; background: #48387a">
@@ -154,19 +148,23 @@
       </div>
     </div>
   </div>
+  <p><h1>Contact Us</h1></p>
+  <p>By email: arise[at]naturalis.nl or via Gitlab issue (soon)
   <p><h1>Statistics</h1></p>
-
   <table>
-    <tr><td>Barcodes</td><td>##bc##</td></tr>
-    <tr><td>Specimens</td><td>##sc##</td></tr>
-    <tr><td>Markers</td><td>##mc##</td></tr>
+    <tr><td>Total Barcodes</td><td>##bc##</td></tr>
+    <tr><td>Total Specimens</td><td>##sc##</td></tr>
+    <tr><td>Total Markers</td><td>##mc##</td></tr>
+    <tr><td>Arise Barcodes</td><td>##abc##</td></tr>
+    <tr><td>Arise Specimens</td><td>##asc##</td></tr>
+    <tr><td>Arise Markers</td><td>##amc##</td></tr>
     <tr><td>&nbsp;</td><td></td></tr>
-    <tr><td>NSR species</td><td>##nsrsc##</td></tr>
-    <tr><td>NSR genus</td><td>##nsrgc##</td></tr>
-    <tr><td>NSR family</td><td>##nsrfc##</td></tr>
-    <tr><td>NSR order</td><td>##nsroc##</td></tr>
-    <tr><td>NSR class</td><td>##nsrcc##</td></tr>
-    <tr><td>NSR phylum</td><td>##nsrpc##</td></tr>
+    <tr><td>NSR species</td><td>##species##</td></tr>
+    <tr><td>NSR genus</td><td>##genus##</td></tr>
+    <tr><td>NSR family</td><td>##family##</td></tr>
+    <tr><td>NSR order</td><td>##order##</td></tr>
+    <tr><td>NSR class</td><td>##class##</td></tr>
+    <tr><td>NSR phylum</td><td>##phylum##</td></tr>
   </table>
 
 
@@ -180,17 +178,14 @@
   <p><h3>Which barcodes data are currently inserted?</h3></p>
   Barcodes data originate from two sources:
   <ul style="margin-left: 15px">
-    <li>BOLD API, filtered by european countries (Retrieved 28/08/22)</li>
-    <li>Naturalis internal data (August 2022)</li>
+    <li>BOLD (Retrieved 28/08/22)</li>
+    <li>Arise</li>
+    <ul style="margin-left: 15px">
+      <li>Naturalis Biodiversity Center (August 2022)</li>
+      <li>Westerdijk Fungal Biodiversity Institute (September 2022)</li>
+    </ul>
   </ul>
-<!--    <p><h3>How do you match specimen taxon names against the Dutch Species Register backbone?</h3></p>-->
-<!--    We compare the species canonical name first, if not match is found we search among the list of synonyms.<br>-->
-<!--    If still no hit, we search for the genus name only. If a match if found a new placeholder species "[genus taxon] sp."-->
-<!--    is created (if not already in the database).<br>-->
-<!--    The barcode(s) will be associated to the new species.<br>-->
-<!--    In addition, we include a kingdom filter to the previous queries in order to avoid homonym ambiguity.-->
-  <br>
-  <p><h3>What information is stored in the locality column?</h3></p>
+  <p><h3>What information is stored in the <i>locality</i> column?</h3></p>
   The locality column holds the country or list of countries where the specimens have been collected.
   <br>
   <p><h3>How is computed the overall completeness?</h3></p>
@@ -198,8 +193,8 @@
   <br>
   <p><h1>Latest changes</h1></p>
   <ul style="margin-left: 15px">
-    <li>Add BOLD global data</li>
-    <li>Add About page</li>
+    <li>update BOLD with global data</li>
+    <li>Add an About page</li>
   </ul>
   <br>
   <p><b>Last update:</b> ##date##<p>

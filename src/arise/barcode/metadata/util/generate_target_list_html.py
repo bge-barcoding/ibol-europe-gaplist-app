@@ -5,10 +5,12 @@ import argparse
 import shutil
 import pandas as pd
 import json
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, func, distinct, union_all
 from sqlalchemy.orm import sessionmaker
-from orm.common import RANK_ORDER
+from orm.common import RANK_ORDER, DataSource
 from orm.nsr_node import NsrNode
+from orm.barcode import Barcode
+from orm.specimen import Specimen
 import compute_barcode_coverage
 
 rank_hierarchy = RANK_ORDER[1:]
@@ -58,6 +60,24 @@ if __name__ == '__main__':
         .replace('##COMPLNES##', '{0:3.1f}'.format(overall_completeness)) \
         .replace('"##LOCALITIES##"', json.dumps(sorted(list(localities)))) \
         .replace('"##DATA##"', df.to_json(orient="records"))
+
+    # compute stats
+    for rank in RANK_ORDER[1:]:
+        html = html.replace('##%s##' % rank, str(len(df[df['rank'] == rank])))
+
+    stats = list(session.query(
+        func.count(distinct(Specimen.id)),
+        func.count(distinct(Barcode.id)),
+        func.count(distinct(Barcode.marker_id)),
+    ).join(Barcode).all()[0])
+    stats += list(session.query(
+        func.count(distinct(Specimen.id)),
+        func.count(distinct(Barcode.id)),
+        func.count(distinct(Barcode.marker_id)),
+    ).join(Barcode).filter(Barcode.database.in_([DataSource.NATURALIS, DataSource.WFBI])).all()[0])
+
+    for v, n in zip(['bc', 'sc', 'mc', 'abc', 'asc', 'amc'], stats):
+        html = html.replace('##%s##' % v, str(n))
 
     with open('html/target_list.html', 'w') as fw:
         fw.write(html)

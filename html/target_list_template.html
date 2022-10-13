@@ -155,19 +155,20 @@
     <tr><td>Total Barcodes</td><td>##bc##</td></tr>
     <tr><td>Total Specimens</td><td>##sc##</td></tr>
     <tr><td>Total Markers</td><td>##mc##</td></tr>
-    <tr><td>Arise Barcodes</td><td>##abc##</td></tr>
-    <tr><td>Arise Specimens</td><td>##asc##</td></tr>
-    <tr><td>Arise Markers</td><td>##amc##</td></tr>
-    <tr><td>&nbsp;</td><td></td></tr>
-    <tr><td>NSR species</td><td>##species##</td></tr>
-    <tr><td>NSR genus</td><td>##genus##</td></tr>
-    <tr><td>NSR family</td><td>##family##</td></tr>
-    <tr><td>NSR order</td><td>##order##</td></tr>
-    <tr><td>NSR class</td><td>##class##</td></tr>
-    <tr><td>NSR phylum</td><td>##phylum##</td></tr>
+    <tr><td>ARISE Barcodes</td><td>##abc##</td></tr>
+    <tr><td>ARISE Specimens</td><td>##asc##</td></tr>
+    <tr><td>ARISE Markers</td><td>##amc##</td></tr>
   </table>
-
-
+  <br>
+  <table>
+    <tr><td>Number of Dutch species</td><td>##species##</td></tr>
+    <tr><td>Number of Dutch genus</td><td>##genus##</td></tr>
+    <tr><td>Number of Dutch family</td><td>##family##</td></tr>
+    <tr><td>Number of Dutch order</td><td>##order##</td></tr>
+    <tr><td>Number of Dutch class</td><td>##class##</td></tr>
+    <tr><td>Number of Dutch phylum</td><td>##phylum##</td></tr>
+  </table>
+  
   <p><h1>Frequently Ask Questions</h1></p>
   <p><h3>Which taxonomy backbone are you using?</h3></p>
   The project uses the taxonomy provided by the <a href="https://www.nederlandsesoorten.nl/">Dutch Species Register</a>.<br>
@@ -178,14 +179,17 @@
   <p><h3>Which barcode data are currently inserted?</h3></p>
   Barcode data come from two sources:
   <ul style="margin-left: 15px">
-    <li>BOLD (Retrieved 28/08/22)</li>
-    <li>Arise</li>
+    <li>Public data from the Barcode of Life Database (BOLD) has been included in this overview as well, to be able to
+      see which gaps in the Dutch barcode database may already be covered by using international data, which helps in
+      the prioritization of collection efforts. BOLD data is taxonomically curated and in most cases the sequences are
+      linked to voucher specimens in collections, improving the value of the reference sequences. (Retrieved 28/08/22)</li>
+    <li>ARISE</li>
     <ul style="margin-left: 15px">
       <li>Naturalis Biodiversity Center (August 2022)</li>
       <li>Westerdijk Fungal Biodiversity Institute (September 2022)</li>
     </ul>
   </ul>
-  <p><h3>What information is stored in the <i>locality</i> column?</h3></p>
+  <p><h3>What information is stored in the locality column?</h3></p>
   The locality column holds the country or list of countries where the specimens have been collected.
   <br>
   <p><h3>How is computed the overall completeness?</h3></p>
@@ -197,8 +201,9 @@
     <li>Add an About page</li>
   </ul>
   <br>
-  <p><b>Last update:</b> ##date##<p>
-  <p><b>Version:</b> <a href="https://gitlab.com/arise-biodiversity/sequencing/arise-target-list/-/commit/##githash##">##githash##</a><p>
+  <p><b>Last update:</b> ##date## 13/10/22<p>
+  <p><b>repository:</b> <a href="https://gitlab.com/arise-biodiversity/sequencing/arise-target-list/">
+    https://gitlab.com/arise-biodiversity/sequencing/arise-target-list/##githash##</a><p>
   <a href="#" rel="modal:close">Close</a>
 </div>
 <div id="loader">

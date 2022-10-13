@@ -76,7 +76,7 @@ if __name__ == '__main__':
         func.count(distinct(Barcode.marker_id)),
     ).join(Barcode).filter(Barcode.database.in_([DataSource.NATURALIS, DataSource.WFBI])).all()[0])
 
-    for v, n in zip(['bc', 'sc', 'mc', 'abc', 'asc', 'amc'], stats):
+    for v, n in zip(['sc', 'bc', 'mc', 'asc', 'abc', 'amc'], stats):
         html = html.replace('##%s##' % v, str(n))
 
     with open('html/target_list.html', 'w') as fw:

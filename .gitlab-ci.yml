@@ -18,7 +18,7 @@ pages:
     - rm -rf public
     - mv .public/target_list.html .public/index.html
     - sed -i "s/##date##/$COMMIT_TIME/g" .public/index.html
-    - sed -i "s/##githash##/COMMIT_HASH/g" .public/index.html
+    - sed -i "s/##githash##/$COMMIT_HASH/g" .public/index.html
     - mv .public public
 
   artifacts:

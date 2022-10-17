@@ -139,7 +139,7 @@
       fauna have been sequenced for the DNA reference library, both in-house at Naturalis Biodiversity Center and the
       Westerdijk Fungal Biodiversity Institute and at other laboratories around the world. By comparing all that has
       been sequenced to the current list of Dutch species as recorded by Nederlandsesoorten.nl, we can find the gaps
-      in our reference database, and create a target list for species to be collected and sequenced with the ARISE program.
+      in our reference database, and create a target list for species to be collected and sequenced within the ARISE program.
     </div>
     <div id="about-completness">
       <div style="text-align: center; border-radius: 15px; height: 160px; width: 140px; margin-left: 15px; background: #48387a">
@@ -162,11 +162,11 @@
   <br>
   <table>
     <tr><td>Number of Dutch species</td><td>##species##</td></tr>
-    <tr><td>Number of Dutch genus</td><td>##genus##</td></tr>
-    <tr><td>Number of Dutch family</td><td>##family##</td></tr>
-    <tr><td>Number of Dutch order</td><td>##order##</td></tr>
-    <tr><td>Number of Dutch class</td><td>##class##</td></tr>
-    <tr><td>Number of Dutch phylum</td><td>##phylum##</td></tr>
+    <tr><td>Number of Dutch genera</td><td>##genus##</td></tr>
+    <tr><td>Number of Dutch families</td><td>##family##</td></tr>
+    <tr><td>Number of Dutch orders</td><td>##order##</td></tr>
+    <tr><td>Number of Dutch classes</td><td>##class##</td></tr>
+    <tr><td>Number of Dutch phyla</td><td>##phylum##</td></tr>
   </table>
   
   <p><h1>Frequently Ask Questions</h1></p>
@@ -198,11 +198,11 @@
   <p><h1>Latest changes</h1></p>
   <ul style="margin-left: 15px">
     <li>Update BOLD with global data</li>
-    <li>Add an About page</li>
+    <li>Add the About modal window</li>
   </ul>
   <br>
-  <p><b>Last update:</b> ##date## 13/10/22<p>
-  <p><b>repository:</b> <a href="https://gitlab.com/arise-biodiversity/sequencing/arise-target-list/">
+  <p><b>Last update:</b> ##date## 17/10/22<p>
+  <p><b>Repository:</b> <a href="https://gitlab.com/arise-biodiversity/sequencing/arise-target-list/">
     https://gitlab.com/arise-biodiversity/sequencing/arise-target-list/##githash##</a><p>
   <a href="#" rel="modal:close">Close</a>
 </div>
@@ -278,7 +278,13 @@
       </div>
       <br>
       <b>Barcoded specimen locality:</b> <i><span style="color: #991111">Active only in 'species' view</span></i>
-      <div style="padding:10px 10px 0 10px;" id="loc-cb-div">
+      <div style="padding:10px 10px 0 10px;">
+        <select id="loc-select2" class="js-states form-control" multiple="multiple" style="width: 75%">
+          <optgroup id="grp-1" label="Netherlands and neighboring countries">
+          </optgroup>
+          <optgroup id="grp-2" label="Others">
+          </optgroup>
+        </select>
       </div>
       <br>
     </div>
@@ -343,16 +349,17 @@
      index++;
   }
 
-  // var localities =  [ "Netherlands", "Belgium", "Germany" ];
-
+  var close_localities =  [ "Netherlands", "Belgium", "Germany" ];
   var localities =  "##LOCALITIES##";
-  var cbDiv = document.getElementById('loc-cb-div');
+  var index = 0;
   for (loc of localities) {
-    var cbId = 'cb-' + loc;
-    var input = $('<input type="checkbox">').attr({id: cbId, name: "ocl", value: loc})
-    var label = $('<label>').text(loc);
-    label.append(input[0]);
-    cbDiv.append(label[0]);
+    var option = $('<option>').text(loc);
+    if (close_localities.indexOf(loc) !== -1) {
+      document.getElementById('grp-1').append(option[0]);
+    } else {
+      document.getElementById('grp-2').append(option[0]);
+    }
+    index++;
   }
 
   resizer = new Slick.Plugins.Resizer({
@@ -585,6 +592,12 @@
     });
     $("input:checkbox").checkboxradio();
     $("#loader").hide();
+    $("#loc-select2").select2({
+      placeholder: "Select one or more countries"
+    });
+    $('#loc-select2').on('change', function (e) {
+      window.setTimeout(updateFilter, 10);
+    });
 
     dataView = new Slick.Data.DataView({ inlineFilters: true });
     grid = new Slick.Grid("#grid", dataView, columns, options);
@@ -783,7 +796,7 @@
         minOtherCoverageThreshold: minOtherCoverageThreshold,
         maxOtherCoverageThreshold: maxOtherCoverageThreshold,
         occurrenceStatus: $("input[name='oscb']:checked").map(function(){return $(this).val();}).get(),
-        locality: $("input[name='ocl']:checked").map(function(){return $(this).val();}).get()
+        locality: $('#loc-select2').find(':selected').map(function(){return $(this).text();})
       });
       dataView.refresh();
     }
@@ -822,12 +835,12 @@
     dataView.setFilter(myFilter);
     dataView.setFilterArgs({
       groupBy: groupBy,
-        minCoverageThreshold: minCoverageThreshold,
-        maxCoverageThreshold: maxCoverageThreshold,
-        minAriseCoverageThreshold: minAriseCoverageThreshold,
-        maxAriseCoverageThreshold: maxAriseCoverageThreshold,
-        minOtherCoverageThreshold: minOtherCoverageThreshold,
-        maxOtherCoverageThreshold: maxOtherCoverageThreshold,
+      minCoverageThreshold: minCoverageThreshold,
+      maxCoverageThreshold: maxCoverageThreshold,
+      minAriseCoverageThreshold: minAriseCoverageThreshold,
+      maxAriseCoverageThreshold: maxAriseCoverageThreshold,
+      minOtherCoverageThreshold: minOtherCoverageThreshold,
+      maxOtherCoverageThreshold: maxOtherCoverageThreshold,
     });
     dataView.endUpdate();
   })

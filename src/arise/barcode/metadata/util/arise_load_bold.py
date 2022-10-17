@@ -124,7 +124,7 @@ def load_bold(input_file, kingdom=None, encoding='utf-8'):
             index = f"{nsr_species_node.species_id}-{record['catalognum']}-{record['institution_storing']}-{record['identification_provided_by']}"
             if index not in specimen_index_id_dict:
                 specimen, created = Specimen.get_or_create_specimen(
-                    nsr_species_node.species_id, record['catalognum'], record['institution_storing'],
+                    nsr_species_node.species_id, record['sampleid'], record['catalognum'], record['institution_storing'],
                     record['identification_provided_by'], record['locality'], session, fast_insert=True)
 
                 specimen_id = specimen.id

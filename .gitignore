@@ -34,10 +34,6 @@ meta.xml
 # no virtual environments
 venv
 
-# no jupyper notebooks
-.ipynb_checkpoints
-*/.ipynb_checkpoints/*
-
 # no private files from klasse
 klasse
 
@@ -47,5 +43,6 @@ logs/
 # no lock files
 .~lock.*
 
+# location to generate the database without having to git/lfs to inflate the git objects
+# due to sqlite's log or journal file changes
 data/sqlite/ignored/
-data/input_files/

@@ -79,6 +79,9 @@ def load_backbone(infile, white_filter=None):
             exit()
 
         if row.taxonomicStatus != "accepted name":
+            if row.infraspecificEpithet:
+                lbb_logger.warning(f"ignore synonym '{row.species}' with infraspecificEpithet")
+                continue
             ref_id = row.acceptedNameUsageId
             # this assumes synonyms & co are at the end of the file
             if ref_id in taxid_node_dict:

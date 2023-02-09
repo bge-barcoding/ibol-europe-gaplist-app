@@ -32,28 +32,58 @@ http://api.biodiversitydata.nl/v2/taxon/dwca/getDataSet/nsr - use the script as 
     $ arise_load_backbone.py -db <sqlite.db> -endpoint <url>
 
 The terms between pointed brackets are merely placeholders here; the script uses sensible defaults, i.e. the actual
-endpoint location and the name of the default output from 1.1
+endpoint location and the name of the default output from 1.
+
+Synonyms are also loaded during the process. Note that synonyms involving infra-specific epithet are ignored.
 
 >Notes: 
 > - the `-endpoint` argument is actually not used if a file named 'Taxa.txt' is present in
 > the current working directory. This local file will be used instead.
 > - the database file is updated in place
 
+### 3. generate BOLD data files
 
-### 3 Loading Batcoding data
-### 3.1 Loading BOLD metadata
+BOLD data are retrieved by downloading the latest datapackage release file
+available at https://www.boldsystems.org/index.php/datapackages. This project do not use
+the BOLD (Full Data Retrieval) API anymore.
+
+While the .tsv file inside the data package archive can be directly use with the `load_bold_data` script,
+users are invited to generate 3 subset files, one per kingdom of interest (Animalia, Plantae and Fungi),
+using the `generate_bold_gz_files.py` script:
+
+```commandline
+python generate_bold_gz_files.py <datapackage.tar.gz> <label>
+```
+with `label` usually the date (YYYYMMDD) associated with the datapackage files downloaded.
+
+The script:  
+ 
+- Reports any invalid line found in the datapackage file (it seems there are none, but there were many in the
+data retrieved by the API)
+- Can be used to filter data on countries and produced subset of BOLD data
+- Indicates the number of entries saved in the output files and the number of ignored. Moreover, inserting
+the "kingdom" file separately provides additional useful statistics.
+
+The latest downloaded and generated files are described [here](../data/input_files/README.md): 
+
+### 4. Loading Barcoding data
+
+### 4.1 Loading BOLD data
 
 In this step we load the output from BOLD's _Full Data Retrieval (Specimen + Sequence)_ web service. It is however better to
 specify a cached copy, the format must be TSV.GZ. The operation is as follows:
 
 ```commandline
-arise_load_bold.py -tsv <file.tsv>
+python arise_load_bold.py -db <sqlite.db> -tsv <file.tsv>
 ```
 
-BOLD data currently inserted in the database that is used on the target list interface
-is filtered on all countries, the files are made available 
+BOLD data currently inserted in the database and displayed on the target list interface
+is not filtered on location. The files are made available 
 [here](https://drive.google.com/drive/folders/1XJpYYg-nF6bs48fvbBAeu3vaoZEOLxHJ) 
-for the Animalia, Plantae and Fungi kingdoms.
+for the Animalia, Plantae and Fungi kingdoms only.
+
+> Note: this script cannot be used to load data retrieve with BOLD API anymore as the names
+> of the fields/columns differ from the data package file.
 
 #### Using data per kingdom
 
@@ -61,13 +91,13 @@ Some clades (e.g. genus name) have homonyms, leading to ambiguous cases, prevent
 Is it advise to insert BOLD data using the per-kingdom-files in combination with the `-kingdom` argument 
 to help targeting the correct taxon:
 
-```commandline
-arise_load_bold.py -db <sqlite.db> -tsv data/input_files/BOLD_eu_Animalia.tsv.gz -kingdom animalia
-arise_load_bold.py -db <sqlite.db> -tsv data/input_files/BOLD_eu_Plantae.tsv.gz -kingdom plantae
-arise_load_bold.py -db <sqlite.db> -tsv data/input_files/BOLD_eu_Fungi.tsv.gz -kingdom fungi
+```commandlin
+arise_load_bold.py -db <sqlite.db> -tsv data/input_files/BOLD_<date>_Animalia.tsv.gz -kingdom animalia
+arise_load_bold.py -db <sqlite.db> -tsv data/input_files/BOLD_<date>_Plantae.tsv.gz -kingdom plantae
+arise_load_bold.py -db <sqlite.db> -tsv data/input_files/BOLD_<date>_Fungi.tsv.gz -kingdom fungi
 ```
 
-### 3.2 Inserting Klasse dump files
+### 4.2 Inserting Klasse dump files
 
 To load Naturalis barcoding data exported from Geneious/Klasse, use the arise_load_klasse.py script, example:
 
@@ -79,7 +109,7 @@ python arise_load_klasse.py -db <sqlite.db> -tsv data/input_files/BCP-Bot_ARISE_
 > * Each file contains barcodes for a give marker, so the `-marker` must be specified.
 > * Always better specify the kingdom to avoid homonym errors.
 
-### 3.3 Inserting Jorinde Fungi data
+### 4.3 Inserting Jorinde Fungi data
 
 The Fungi database produced by Jorinde & collaborators for Naturalis must be inserted via the following command:
 
@@ -88,9 +118,9 @@ python arise_load_Jorinde_excel.py -db <sqlite.db> -excel "data/input_files/Fung
 ```
 
 > Note: The Excel file contain barcode information for other markers than ITS but only ITS barcode are currently
-> relevant. This is why `-marker ITS` is applied
+> relevant. This is why `-marker ITS` is applied.
 
-### 3.4 Inserting Westerdijk data
+### 4.4 Inserting Westerdijk data
 
 The Fungi database provided by Duong Vu for ARISE must be inserted via the following command:
 
@@ -99,9 +129,10 @@ python arise_load_WFBI_excel.py -db <sqlite.db> -excel data/input_files/WI_Dutch
 ```
 
 > Note: The Excel file contain a _kingdom_ column that is used to insert the data
-> consequently the argument '-kingdom' is not available for that script.
+> consequently the argument '-kingdom' is not available for that script. However, 
+> only Fungi barcodes are expected in that file.
 
-### 4. Indexing the topology for faster queries
+### 5. Indexing the topology for faster queries
 
 Now the tree topology should be indexed. This is easiest done using the
 [Bio::Phylo::Forest::DBTree](https://metacpan.org/pod/Bio::Phylo::Forest::DBTree) package:
@@ -120,7 +151,7 @@ docker-compose -f docker-compose.yml run dbtree
 ```
 (docker-compose 1.xx command, try `docker compose -f ...` for [v2.XX](https://github.com/docker/compose))
 
-### 5. Query and visualize the database content using Jupyter Lab
+### 6. Query and visualize the database content using Jupyter Lab
 
 **DEPRECATED: may not work correctly with the recent updates**
 
@@ -132,7 +163,7 @@ NB_UID=`id -u` docker-compose -f docker-compose.yml up jupyter
 
 and follow the instructions displayed in the terminal to access the interface.
 
-### 6. Generate the HTML target list interface
+### 7. Generate the HTML target list interface
 
 To generate the HTML interactive table, run the following command
 
@@ -142,6 +173,10 @@ python generate_target_list_html.py -db data/sqlite/arise-barcode-metadata.db
 
 The HTML file `target_list.html` located in `/html/`, can be then opened in the web browser.
 The HTML table is also available online at: https://arise-biodiversity.gitlab.io/sequencing/arise-target-list/
+
+This script also produces a file `coverage_table.tsv` in the current working directory. 
+This table, also integrated inside the HTML document, contains the information
+presented on the target list HTML table. i.e. the barcodes count for each taxonomic level.
 
 ### Helper script
 

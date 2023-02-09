@@ -13,4 +13,4 @@ Target list interactive table powered by [SlickGrid](https://slickgrid.net/)
    python src/arise/barcode/metadata/util/compute_barcode_coverage.py -db data/sqlite/arise-barcode-metadata.db 
    ```
 * Access the target list table via the [gitlab page](https://arise-biodiversity.gitlab.io/sequencing/arise-barcode-metadata/)
-   >The online page shows data of barcodes from Belgium, Germany and Netherlands and for all markers.
+   >The online page shows data of barcodes from all locations and for all markers.

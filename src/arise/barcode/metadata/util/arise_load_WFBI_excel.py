@@ -21,19 +21,9 @@ main_logger = logging.getLogger('main')
 lk_logger = logging.getLogger('load_klasse')
 
 
-def has_unusual_name(taxon):
-    ignore_name_pattern = ['?', '(', 'to be checked']
-    for el in ignore_name_pattern:
-        if el in taxon:
-            return True
-    return False
-
-
 # initializes a dict with the fields that should go in barcode and specimen table, or None if any of the checks fail
 def init_record_fields(row):
-    # print(row)
     record = {}
-    # print(row.__dict__)
     # IEEE specs say NaN's can not be equal, so that's how we do the checks for missing values
 
     # check if there is a sequence, otherwise nothing to do
@@ -130,7 +120,7 @@ def load_excel(input_file):
     main_logger.info(f'{barcodes_created=}')
     main_logger.info(f'{barcodes_existing=}')
     main_logger.info(f'{incomplete_records=}')
-    main_logger.info(f'{fail_matching_nsr_species=}')
+    main_logger.info(f'{fail_matching_nsr_species=} ({len(unknown_taxon_record_set)})')
 
 
 @event.listens_for(Engine, "connect")

@@ -38,7 +38,9 @@ def load_backbone(infile, white_filter=None):
     df = pd.read_csv(infile, sep=',')
     df.reset_index(inplace=True)  # make sure indexes pair with number of rows
     df.fillna('', inplace=True)
+    # create a column species to store the binomial name
     df.insert(loc=14, column='species', value='')
+    # need to rename the attr 'class' otherwise is will clash with reversed keywords, see methode get_or_create_node
     df.rename(columns={'class': 't_class'}, inplace=True)
     node_counter = 3  # magic number because root will be 2 with parent 1
     species_created = 0
@@ -50,6 +52,8 @@ def load_backbone(infile, white_filter=None):
     taxon_homonym_dict = defaultdict(list)
 
     for row in df.itertuples(name='Entry'):
+        if row.taxonID == "177PVU2ZQYA":
+            continue
         if row.taxonomicStatus != "accepted name" and row.taxonomicStatus not in NsrSynonym.taxonomic_status_set:
             lbb_logger.warning('ignore row index %s with taxonomicStatus=%s' % (row.index, row.taxonomicStatus))
             continue
@@ -68,7 +72,7 @@ def load_backbone(infile, white_filter=None):
             if ignore_entry:
                 continue
 
-        # compose binomial name, see if it exists
+        # compose binomial name
         try:
             row = row._replace(species=row.genus + ' ' + row.specificEpithet)
         except Exception as e:
@@ -77,8 +81,13 @@ def load_backbone(infile, white_filter=None):
             exit()
 
         if row.taxonomicStatus != "accepted name":
+            if row.infraspecificEpithet:
+                lbb_logger.warning(f"ignore synonym '{row.species}' with infraspecificEpithet")
+                continue
             ref_id = row.acceptedNameUsageId
             # this assumes synonyms & co are at the end of the file
+            # if red_id in taxid_node_dict, it means the species node has been created,
+            # and that the current row is a synomyn/basionym/etc.. linked to that node
             if ref_id in taxid_node_dict:
                 synonym, created = NsrSynonym.insert_synonym(
                     session, row.species, row.taxonomicStatus, taxid_node_dict[ref_id].species_id)
@@ -87,7 +96,8 @@ def load_backbone(infile, white_filter=None):
 
             continue
 
-        # create the nsr_node if needed, starting from the full taxonomy
+        # create the nsr_nodes if needed, starting from the full taxonomy
+        # 'if needed' => only if the node do not already exist
         prev_node = None
         for level in taxon_levels:  # start from species up to kingdom
             higher_taxon = getattr(row, level)
@@ -95,11 +105,16 @@ def load_backbone(infile, white_filter=None):
                 lbb_logger.warning(f'taxon is "N/A" for level "{level}", index {row.index}')
 
             # create a dict of the full taxonomy, from kingdom up to the current level
+            # if one level of the taxonomy is different from the existing nodes in the DB,
+            # a new node will be created!
             taxonomy = {e: getattr(row, e) for e in taxon_levels[taxon_levels.index(level):]}
 
             node, created = NsrNode.get_or_create_node(
                 session, node_counter, level, 0 if level == 'species' else None, **taxonomy
-                # set species_id to 0 to avoid validation error, the correct species_id will be set a few lines below
+                # species must have a valid species_id (should be id that references the NsrSpecies table)
+                # see nsr_node.validates_fields
+                # but the species entry is not yet created, so we use 0 temporary
+                # the correct species_id will be set a few lines below once the nsr_species entry is created
             )
 
             if prev_node:
@@ -113,7 +128,7 @@ def load_backbone(infile, white_filter=None):
             prev_node = node
             node_counter += 1
 
-            # keep track of taxon for homonyms
+            # store each taxon name to detect homonyms
             taxon_homonym_dict[higher_taxon.lower()].append(
                 {'index': row.index, 'name': higher_taxon, 'level': level, 'taxonomy': taxonomy}
             )
@@ -139,6 +154,7 @@ def load_backbone(infile, white_filter=None):
                 taxid_node_dict[row.taxonID] = node
 
     for k, lst in taxon_homonym_dict.items():
+        # log the homonyms
         if len(lst) > 1:
             # {'index': row.index, 'name': higher_taxon, 'level': level, 'taxonomy': d}
             lbb_logger.warning('taxon "%s" is duplicated:' % k)

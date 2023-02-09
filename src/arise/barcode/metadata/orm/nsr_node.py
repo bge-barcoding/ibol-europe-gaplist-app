@@ -6,8 +6,7 @@ from orm.common import Base, RANK_ORDER
 from orm.nsr_species import NsrSpecies
 from orm.nsr_synonym import NsrSynonym
 from ete3 import Tree
-from taxon_parser import TaxonParser
-from taxon_parser import UnparsableNameException
+from taxon_parser import TaxonParser, UnparsableNameException, Rank
 
 nsm_logger = logging.getLogger('nsr_species_match')
 # from sqlalchemy.orm import declarative_base
@@ -83,19 +82,21 @@ class NsrNode(Base):
             node = nodes[0]
         return node, created
 
-        # find or create species for specimen
 
     @classmethod
     def match_species_node(cls, taxon, session, kingdom=""):
         # parse species name
-        name_parser = TaxonParser(taxon)
+        name_parser = TaxonParser(taxon, rank=Rank.SPECIES)
         nsr_species_node = None
         try:
             parsed = name_parser.parse()
             cleaned = parsed.canonicalNameWithoutAuthorship()
-            # TaxonParser replaces "sp." by "spec.", lets reverse this change
-            if cleaned[-6:] == ' spec.':
-                cleaned = cleaned.replace(' spec.', ' sp.')
+
+            for pattern in [" var.", " subsp.", " f.", " f.sp. ", " f. sp. ", " nothovar. ", " spec."]:
+                if pattern in cleaned:
+                    cleaned = cleaned.split(pattern)[0]
+                    break
+
             # find exact species match
             query = session.query(NsrNode).filter(NsrNode.name == cleaned, NsrNode.rank == 'species')
             if kingdom:
@@ -104,7 +105,7 @@ class NsrNode(Base):
 
             if len(nsr_species_nodes) > 1:
                 nsm_logger.error('multiple species match using name: "%s"' % cleaned)
-                nsm_logger.error('matches:', nsr_species_nodes)
+                nsm_logger.error('matches:', list(nsr_species_nodes))
                 exit()
 
             # check also synonyms regardless if a species node was found or not
@@ -147,7 +148,7 @@ class NsrNode(Base):
             nsr_genus_nodes = query.all()
 
             if len(nsr_genus_nodes) == 0:
-                nsm_logger.warning('Taxon "%s" not found anywhere in NSR topology' % cleaned)
+                nsm_logger.info('Taxon "%s" not found anywhere in NSR topology' % cleaned)
                 return None
 
             if len(nsr_genus_nodes) > 1:

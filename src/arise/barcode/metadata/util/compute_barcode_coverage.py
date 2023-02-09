@@ -33,7 +33,6 @@ def make_ancestors_list(node, max_rank):
 def get_species_barcode_count(session):
     """
         get the number of barcode per species id
-        count
     """
     from sqlalchemy import case
     query = session.query(
@@ -107,13 +106,13 @@ def add_count_features(session, tree, max_rank):
     for node in tree.iter_descendants(strategy='postorder'):
         total_sp = 0  # total species
         sp_with_bc = 0  # species with barcode(s)
-        sp_with_bc_arise = 0  # species with barcode(s) from Arise
-        sp_with_bc_not_arise = 0  # species with barcode(s) from inst. other than Arise
+        sp_with_bc_arise = 0  # species with barcode(s) from ARISE
+        sp_with_bc_not_arise = 0  # species with barcode(s) from inst. other than ARISE
         total_bc = 0  # total number of barcodes
-        arise_bc = 0  # total number of Arise barcodes
-        not_arise_bc = 0  # total number of not Arise barcodes
+        arise_bc = 0  # total number of ARISE barcodes
+        not_arise_bc = 0  # total number of not ARISE barcodes
         coverage = 0  # percentage of species having at least one barcode
-        coverage_arise = 0  # percentage of species with barcode(s) from Arise.
+        coverage_arise = 0  # percentage of species with barcode(s) from ARISE.
         coverage_not_arise = 0  # etc
         occurrence_status = None
         locality = None
@@ -222,8 +221,6 @@ if __name__ == '__main__':
     nsr_root = NsrNode.get_root(session)
 
     max_rank = 'species'
-
     ete_tree_of_life = nsr_root.to_ete(session, until_rank=max_rank, remove_empty_rank=True,
                                        remove_incertae_sedis_rank=True)
-
     coverage_table = add_count_features(session, ete_tree_of_life, max_rank)

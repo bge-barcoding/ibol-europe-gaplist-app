@@ -50,6 +50,8 @@ def load_backbone(infile, white_filter=None):
     taxon_homonym_dict = defaultdict(list)
 
     for row in df.itertuples(name='Entry'):
+        if row.taxonID == "177PVU2ZQYA":
+            continue
         if row.taxonomicStatus != "accepted name" and row.taxonomicStatus not in NsrSynonym.taxonomic_status_set:
             lbb_logger.warning('ignore row index %s with taxonomicStatus=%s' % (row.index, row.taxonomicStatus))
             continue

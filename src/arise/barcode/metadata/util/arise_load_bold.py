@@ -26,37 +26,39 @@ lbd_logger = logging.getLogger('load_bold')
 # initializes a dict with the fields that should go in barcode and specimen table, or None if any of the checks fail
 def init_record_fields(row):
     record = {}
-    # IEEE specs say NaN's can not be equal, so that's how we do the checks for missing values
+    if not row['nucraw']:
+        return
 
     # check taxon names
-    if row['species_name']:
-        record['taxon'] = row['species_name']
+    if row['species']:
+        record['taxon'] = row['species']
     else:
-        if row['genus_name']:
-            record['taxon'] = row['genus_name']
+        if row['genus']:
+            record['taxon'] = row['genus']
         else:
             lbd_logger.warning('Taxonomic identification not specific enough, skip record "%s / %s"' %
-                               (row['catalognum'], row['sampleid']))
-            return None
+                               (row['museumid'], row['sampleid']))
+            return
 
     # check marker name
-    if row['markercode']:
-        record['marker'] = row['markercode']
+    if row['marker_code']:
+        record['marker'] = row['marker_code']
     else:
         lbd_logger.warning('The marker code is undefined, skip record "%s / %s"' %
-                           (row['catalognum'], row['sampleid']))
-        return None
+                           (row['museumid'], row['sampleid']))
+        return
 
     # we use process ID as external identifier because it can be resolved for inspection, other fields are for specimens
     record['sampleid'] = row['sampleid']
-    record['catalognum'] = row['catalognum']
-    record['institution_storing'] = row['institution_storing']
-    record['identification_provided_by'] = row['identification_provided_by']
+    record['catalognum'] = row['museumid']
+    record['institution_storing'] = row['inst']
+    record['identification_provided_by'] = row['taxonomist']
     record['locality'] = row['country']
+    record['kingdom'] = row['kingdom']
 
     # distinguish between bold and ncbi
-    if row['genbank_accession']:
-        record['external_id'] = row['genbank_accession']
+    if row['gb_acs']:
+        record['external_id'] = row['gb_acs']
         lbd_logger.info("Record for %s was harvested from NCBI: %s" % (record['taxon'], record['external_id']))
     else:
         record['external_id'] = row['processid']
@@ -66,13 +68,16 @@ def init_record_fields(row):
 
 
 # download TSV file from BOLD 'combined' API endpoint
+# not used anymore, the project uses BOLD data package instead
+# see https://www.boldsystems.org/index.php/datapackages
 def fetch_bold_records(geo, institutions, marker, taxon, to_file=None):
     # compose URL
     default_url = "https://www.boldsystems.org/index.php/API_Public/combined?"
     query_string = f'format=tsv&geo={geo}&institutions={institutions}&marker={marker}&taxon={taxon}'
     url = default_url + query_string.replace(' ', '+')
 
-    # we're going to be brave/stupid and just fetch all sequences in one query. For the default geo restriction
+    # we're going to be brave/stupid and just fetch all sequences in one query.
+    # For the default geo restriction (NL and surrounding countries?)
     # that means ±200,000 records, ±150MB of data, which is fine
     lbd_logger.info("Going to fetch TSV from %s" % url)
 
@@ -86,7 +91,7 @@ def fetch_bold_records(geo, institutions, marker, taxon, to_file=None):
     return file
 
 
-def load_bold(input_file, kingdom=None, encoding='utf-8'):
+def load_bold(input_file, kingdom=None, encoding='UTF-8'):
     specimens_created = 0
     specimens_existing = 0
     markers_created = 0
@@ -98,8 +103,8 @@ def load_bold(input_file, kingdom=None, encoding='utf-8'):
     specimen_index_id_dict = get_specimen_index_dict(session, Specimen)
     barcode_index_id_dict = get_barcode_index_dict(session, Barcode)
 
-    for df in pd.read_csv(input_file, sep='\t', encoding=encoding, error_bad_lines=False, quoting=csv.QUOTE_NONE,
-                          chunksize=200000):
+    for df in pd.read_csv(input_file, sep='\t', encoding=encoding, error_bad_lines=False, warn_bad_lines=True,
+                          quoting=csv.QUOTE_NONE, chunksize=500000):
         df.fillna('', inplace=True)
 
         for index, row in df.iterrows():
@@ -114,7 +119,8 @@ def load_bold(input_file, kingdom=None, encoding='utf-8'):
                 continue
 
             # initialize species, next row if failed
-            nsr_species_node = NsrNode.match_species_node(record['taxon'], session, kingdom=kingdom)
+            nsr_species_node = NsrNode.match_species_node(record['taxon'], session,
+                                                          kingdom=kingdom if kingdom else record['kingdom'])
             if nsr_species_node is None:
                 fail_matching_nsr_species += 1
                 unknown_taxon_record_set.add(record['taxon'])
@@ -124,8 +130,9 @@ def load_bold(input_file, kingdom=None, encoding='utf-8'):
             index = f"{nsr_species_node.species_id}-{record['catalognum']}-{record['institution_storing']}-{record['identification_provided_by']}"
             if index not in specimen_index_id_dict:
                 specimen, created = Specimen.get_or_create_specimen(
-                    nsr_species_node.species_id, record['sampleid'], record['catalognum'], record['institution_storing'],
-                    record['identification_provided_by'], record['locality'], session, fast_insert=True)
+                    nsr_species_node.species_id, record['sampleid'], record['catalognum'],
+                    record['institution_storing'], record['identification_provided_by'], record['locality'],
+                    session, fast_insert=True)
 
                 specimen_id = specimen.id
                 specimens_created += 1
@@ -141,12 +148,14 @@ def load_bold(input_file, kingdom=None, encoding='utf-8'):
 
             # set database field value
             database = DataSource.BOLD
-            if row['genbank_accession']:
+            if row['gb_acs']:
+                # does it necessary means it was harvested from NCBI?
                 database = DataSource.NCBI
 
             index = f"{specimen_id}-{database}-{marker.id}-{record['external_id']}"
             if index not in barcode_index_id_dict:
-                barcode, created = Barcode.get_or_create_barcode(specimen_id, database, marker.id, None, record['external_id'],
+                barcode, created = Barcode.get_or_create_barcode(specimen_id, database, marker.id, None,
+                                                                 record['external_id'],
                                                                  session, fast_insert=True)
                 barcodes_created += 1
                 barcode_index_id_dict[index] = barcode.id
@@ -200,10 +209,11 @@ if __name__ == '__main__':
 
     if args.tsv:
         main_logger.info('START load_bold using TSV file "%s"' % args.tsv)
-        load_bold(args.tsv, kingdom=args.kingdom, encoding="ISO-8859-1")
+        load_bold(args.tsv, kingdom=args.kingdom, encoding="UTF-8")
     else:
-        main_logger.info('START load_bold fetch records')
-        file = fetch_bold_records(args.geo, args.institutions, args.marker)
-        load_bold(file, kingdom=args.kingdom)
+        raise DeprecationWarning()
+        # main_logger.info('START load_bold fetch records')
+        # file = fetch_bold_records(args.geo, args.institutions, args.marker)
+        # load_bold(file, kingdom=args.kingdom)
 
     session.commit()

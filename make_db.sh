@@ -24,4 +24,4 @@ python src/arise/barcode/metadata/util/arise_load_WFBI_excel.py -db data/sqlite/
 
 # build DB tree
 export DBFILE=ignored/arise-barcode-metadata.db &&
-docker-compose -f docker-compose.yml run dbtree
+docker compose -f docker-compose.yml run dbtree

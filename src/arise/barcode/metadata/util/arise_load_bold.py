@@ -52,7 +52,7 @@ def init_record_fields(row):
     record['sampleid'] = row['sampleid']
     record['catalognum'] = row['museumid']
     record['institution_storing'] = row['inst']
-    record['identification_provided_by'] = row['taxonomist']
+    record['identification_provided_by'] = row['identified_by']
     record['locality'] = row['country']
     record['kingdom'] = row['kingdom']
 

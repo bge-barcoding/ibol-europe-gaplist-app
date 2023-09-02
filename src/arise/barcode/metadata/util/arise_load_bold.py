@@ -30,10 +30,10 @@ def init_record_fields(row):
         return
 
     # check taxon names
-    if row['species']:
+    if row['species'] and row['species'] != "None":
         record['taxon'] = row['species']
     else:
-        if row['genus']:
+        if row['genus'] and row['genus'] != "None":
             record['taxon'] = row['genus']
         else:
             lbd_logger.warning('Taxonomic identification not specific enough, skip record "%s / %s"' %

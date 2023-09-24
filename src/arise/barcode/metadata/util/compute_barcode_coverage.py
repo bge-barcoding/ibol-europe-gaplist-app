@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import argparse
-from sqlalchemy import create_engine, func
+from sqlalchemy import case, create_engine, func, or_
 from sqlalchemy.orm import sessionmaker
 from orm.common import RANK_ORDER, DataSource
 from orm.nsr_node import NsrNode
@@ -30,36 +30,65 @@ def make_ancestors_list(node, max_rank):
     return l
 
 
-def get_species_barcode_count(session):
+def get_species_barcode_count(session, ignore_genus_sp):
     """
         get the number of barcode per species id
     """
-    from sqlalchemy import case
-    query = session.query(
-        Specimen.species_id,
-        func.count(),
-        func.sum(case(
-            (Barcode.database.in_([DataSource.NATURALIS, DataSource.WFBI]), 1),  # ARISE barcodes
-            else_=0
-        )),
-        func.sum(case(
-            (Barcode.database.not_in([DataSource.NATURALIS, DataSource.WFBI]), 1),  # Other barcodes
-            else_=0
-        ))
-    ).join(Barcode).group_by(Specimen.species_id)
+    if ignore_genus_sp:
+        query = (session.query(
+            Specimen.species_id,
+            func.count(),
+            func.sum(case(
+                (Barcode.database.in_([DataSource.NATURALIS, DataSource.WFBI]), 1),  # ARISE barcodes
+                else_=0
+            )),
+            func.sum(case(
+                (Barcode.database.not_in([DataSource.NATURALIS, DataSource.WFBI]), 1),  # Other barcodes
+                else_=0
+            ))
+        ).join(Barcode).join(NsrSpecies)
+                 .where(
+                    or_(
+                        NsrSpecies.canonical_name.not_like("% sp."),
+                        NsrSpecies.occurrence_status is not None)
+                    )
+                 .group_by(Specimen.species_id))
+    else:
+        query = session.query(
+            Specimen.species_id,
+            func.count(),
+            func.sum(case(
+                (Barcode.database.in_([DataSource.NATURALIS, DataSource.WFBI]), 1),  # ARISE barcodes
+                else_=0
+            )),
+            func.sum(case(
+                (Barcode.database.not_in([DataSource.NATURALIS, DataSource.WFBI]), 1),  # Other barcodes
+                else_=0
+            ))
+        ).join(Barcode).group_by(Specimen.species_id)
     return {e: [ab, nb, ob] for e, ab, nb, ob in query.all()}
 
 
-def get_specimen_locality(session):
+def get_specimen_locality(session, ignore_genus_sp):
     fix_locality_dict = {
         'USA': "United State of America",
         'United States': "United State of America",
         'Faeroe Islands': 'Faroe Islands'
     }
-    query = session.query(
-        Specimen.species_id,
-        func.group_concat(Specimen.locality.distinct())
-    ).join(NsrSpecies).group_by(Specimen.species_id)
+    if ignore_genus_sp:
+        query = session.query(
+            Specimen.species_id,
+            func.group_concat(Specimen.locality.distinct())
+        ).join(NsrSpecies).where(
+                    or_(
+                        NsrSpecies.canonical_name.not_like("% sp."),
+                        NsrSpecies.occurrence_status is not None)
+                    ).group_by(Specimen.species_id)
+    else:
+        query = session.query(
+            Specimen.species_id,
+            func.group_concat(Specimen.locality.distinct())
+        ).join(NsrSpecies).group_by(Specimen.species_id)
     d = dict()
     for e, loc in query.all():
         loc = '; '.join(
@@ -69,11 +98,17 @@ def get_specimen_locality(session):
     return d
 
 
-def get_species_occ_status(session):
+def get_species_occ_status(session, ignore_genus_sp):
     query = session.query(
         NsrSpecies.id,
         NsrSpecies.occurrence_status
     )
+    if ignore_genus_sp:
+        query.where(
+                    or_(
+                        NsrSpecies.canonical_name.not_like("% sp."),
+                        NsrSpecies.occurrence_status is not None)
+                    )
     return {e: ocs for e, ocs in query.all()}
 
 
@@ -92,15 +127,24 @@ def add_features(node, total_sp, sp_with_bc, sp_with_bc_arise, sp_with_bc_not_ar
 
 
 # does postorder traversal, propagating total species and total barcodes from tips to root
-def add_count_features(session, tree, max_rank):
-    species_bc_dict = get_species_barcode_count(session)
-    specimen_loc_dict = get_specimen_locality(session)
-    species_occ_status_dict = get_species_occ_status(session)
+def add_count_features(session, tree, max_rank, ignore_genus_sp) -> list:
+    """
+    :param session: SQLite session
+    :param tree: ETE tree of life
+    :param max_rank: the lowest rank level to consider
+    :param ignore_genus_sp: ignore "genus sp." nodes created by the pipeline. These nodes have a name endding with
+    " sp." and a NsrSpecies.occurrence_status set to NULL. NSR contains also several species name (32 at this moment)
+     ending with " sp.". These one have and occurrence status != None and will not be ignored.
+    :return: Coverage table
+    """
+    species_bc_dict = get_species_barcode_count(session, ignore_genus_sp)
+    specimen_loc_dict = get_specimen_locality(session, ignore_genus_sp)
+    species_occ_status_dict = get_species_occ_status(session, ignore_genus_sp)
 
     """
-         does postorder traversal, propagating total species and total barcodes from tips to root
-         compute the coverage (% of species with barcodes) at each taxon level
-         for all barcodes, Arise barcodes, non-Arise barcodes
+    does postorder traversal, propagating total species and total barcodes from tips to root
+    compute the coverage (% of species with barcodes) at each taxon level
+    for all barcodes, ARISE barcodes, non-ARISE barcodes
     """
     coverage_table = []
     for node in tree.iter_descendants(strategy='postorder'):
@@ -127,6 +171,10 @@ def add_count_features(session, tree, max_rank):
                 # remove species without left and right index
                 # TODO debug such cases!
                 if nsr_node.species_id is None or (nsr_node.left == nsr_node.right and nsr_node.right is None):
+                    add_features(node, 0, 0, 0, 0, 0, 0, 0)
+                    continue
+
+                if ignore_genus_sp and (nsr_node.name.endswith(" sp.") and occurrence_status is None):
                     add_features(node, 0, 0, 0, 0, 0, 0, 0)
                     continue
 
@@ -157,9 +205,10 @@ def add_count_features(session, tree, max_rank):
                             sp_with_bc_arise += 1 if c_arise_bc else 0
                             sp_with_bc_not_arise += 1 if c_not_arise_bc else 0
 
-                    coverage = sp_with_bc / len(tips) * 100
-                    coverage_arise = sp_with_bc_arise / len(tips) * 100
-                    coverage_not_arise = sp_with_bc_not_arise / len(tips) * 100
+                    if total_sp != 0:
+                        coverage = sp_with_bc / len(tips) * 100
+                        coverage_arise = sp_with_bc_arise / len(tips) * 100
+                        coverage_not_arise = sp_with_bc_not_arise / len(tips) * 100
         else:
             for child in node.get_children():
                 total_sp += child.total_sp
@@ -170,9 +219,10 @@ def add_count_features(session, tree, max_rank):
                 arise_bc += child.arise_bc
                 not_arise_bc += child.not_arise_bc
 
-            coverage = sp_with_bc / total_sp * 100
-            coverage_arise = sp_with_bc_arise / total_sp * 100
-            coverage_not_arise = sp_with_bc_not_arise / total_sp * 100
+            if total_sp != 0:
+                coverage = sp_with_bc / total_sp * 100
+                coverage_arise = sp_with_bc_arise / total_sp * 100
+                coverage_not_arise = sp_with_bc_not_arise / total_sp * 100
 
         add_features(node, total_sp, sp_with_bc, sp_with_bc_arise, sp_with_bc_not_arise, total_bc, arise_bc, not_arise_bc)
         if node.name != "All of life":
@@ -209,6 +259,8 @@ if __name__ == '__main__':
     # process command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', default="arise-barcode-metadata.db", help="Input file: SQLite DB")
+    parser.add_argument('--ignore-genus-sp', action="store_true",
+                        help="Do not include <genus> sp. species created by the pipeline, in the coverage table")
     args = parser.parse_args()
 
     # create connection/engine to database file
@@ -223,4 +275,4 @@ if __name__ == '__main__':
     max_rank = 'species'
     ete_tree_of_life = nsr_root.to_ete(session, until_rank=max_rank, remove_empty_rank=True,
                                        remove_incertae_sedis_rank=True)
-    coverage_table = add_count_features(session, ete_tree_of_life, max_rank)
+    add_count_features(session, ete_tree_of_life, max_rank, args.ignore_genus_sp)

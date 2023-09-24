@@ -5,10 +5,11 @@ import argparse
 import shutil
 import pandas as pd
 import json
-from sqlalchemy import create_engine, func, distinct, union_all
+from sqlalchemy import create_engine, func, distinct, union_all, or_
 from sqlalchemy.orm import sessionmaker
 from orm.common import RANK_ORDER, DataSource
 from orm.nsr_node import NsrNode
+from orm.nsr_species import NsrSpecies
 from orm.barcode import Barcode
 from orm.specimen import Specimen
 import compute_barcode_coverage
@@ -20,6 +21,8 @@ if __name__ == '__main__':
     # process command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', default="arise-barcode-metadata.db", help="Input file: SQLite DB")
+    parser.add_argument('--ignore-genus-sp', action="store_true",
+                        help="Do not include <genus> sp. species created by the pipeline, in the coverage table")
     args = parser.parse_args()
 
     # create connection/engine to database file
@@ -35,8 +38,9 @@ if __name__ == '__main__':
     ete_tree_of_life = nsr_root.to_ete(session, until_rank=max_rank, remove_empty_rank=True,
                                        remove_incertae_sedis_rank=True)
 
-    coverage_table = compute_barcode_coverage.add_count_features(session, ete_tree_of_life, max_rank)
-    # convert the table to json using pandas lib
+    coverage_table = compute_barcode_coverage.add_count_features(session, ete_tree_of_life, max_rank,
+                                                                 args.ignore_genus_sp)
+    # convert the table to json using pandas
     df = pd.DataFrame(coverage_table, columns=rank_hierarchy + ['rank', 'total_sp', 'sp_w_bc', 'total_bc', 'coverage',
                                                                 'arise_bc', 'coverage_arise', 'not_arise_bc',
                                                                 'coverage_not_arise', 'locality', 'occ_status'])
@@ -47,7 +51,7 @@ if __name__ == '__main__':
         df[['coverage', 'coverage_arise', 'coverage_not_arise']].apply(lambda x: round(x, 1))
     shutil.copyfile('html/target_list_template.html', 'html/target_list.html')
 
-    # build a list a distinct localities
+    # build a list a distinct localities, remove empty and "Unknown"
     localities = set()
     df['locality'].transform(lambda x: [localities.add(e.strip()) for e in x.split(';')
                                         if e.strip() and e.strip() != "Unknown"])
@@ -57,6 +61,7 @@ if __name__ == '__main__':
 
     # compute the overall completeness
     df_kingdom = df[df['rank'] == 'kingdom']
+    # use only three kingdoms!
     overall_completeness = df_kingdom[df_kingdom.kingdom.isin(['Animalia', 'Plantae', 'Fungi'])]['coverage'].mean()
 
     html = open('html/target_list.html').read() \
@@ -64,20 +69,42 @@ if __name__ == '__main__':
         .replace('"##LOCALITIES##"', json.dumps(sorted(list(localities)))) \
         .replace('"##DATA##"', df.to_json(orient="records"))
 
-    # compute stats
+    # get the number of entries/nodes per rank and replace them in the stats modal windons
     for rank in RANK_ORDER[1:]:
         html = html.replace('##%s##' % rank, str(len(df[df['rank'] == rank])))
 
-    stats = list(session.query(
-        func.count(distinct(Specimen.id)),
-        func.count(distinct(Barcode.id)),
-        func.count(distinct(Barcode.marker_id)),
-    ).join(Barcode).all()[0])
-    stats += list(session.query(
-        func.count(distinct(Specimen.id)),
-        func.count(distinct(Barcode.id)),
-        func.count(distinct(Barcode.marker_id)),
-    ).join(Barcode).filter(Barcode.database.in_([DataSource.NATURALIS, DataSource.WFBI])).all()[0])
+    # compute stats
+    if args.ignore_genus_sp:
+        stats = list(session.query(
+            func.count(distinct(Specimen.id)),
+            func.count(distinct(Barcode.id)),
+            func.count(distinct(Barcode.marker_id)),
+        ).join(Barcode).join(NsrSpecies)
+                     .filter(or_(
+                            NsrSpecies.canonical_name.not_like("% sp."),
+                            NsrSpecies.occurrence_status is not None)
+                        ).one())
+        stats += list(session.query(
+            func.count(distinct(Specimen.id)),
+            func.count(distinct(Barcode.id)),
+            func.count(distinct(Barcode.marker_id)),
+        ).join(Barcode).join(NsrSpecies)
+                      .filter(or_(
+                            NsrSpecies.canonical_name.not_like("% sp."),
+                            NsrSpecies.occurrence_status is not None)
+                        )
+                      .filter(Barcode.database.in_([DataSource.NATURALIS, DataSource.WFBI])).one())
+    else:
+        stats = list(session.query(
+            func.count(distinct(Specimen.id)),
+            func.count(distinct(Barcode.id)),
+            func.count(distinct(Barcode.marker_id)),
+        ).join(Barcode).one())
+        stats += list(session.query(
+            func.count(distinct(Specimen.id)),
+            func.count(distinct(Barcode.id)),
+            func.count(distinct(Barcode.marker_id)),
+        ).join(Barcode).filter(Barcode.database.in_([DataSource.NATURALIS, DataSource.WFBI])).one())
 
     for v, n in zip(['sc', 'bc', 'mc', 'asc', 'abc', 'amc'], stats):
         html = html.replace('##%s##' % v, str(n))

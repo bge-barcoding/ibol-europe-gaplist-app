@@ -13,7 +13,7 @@ the following:
 ✅ Ingest NSR synonyms from tab-separated tables
 
 ✅ Harvest remote data and metadata accessible through 
-   [BOLD APIs](https://www.boldsystems.org/index.php/api_home)   
+   [BOLD datapackage files](https://www.boldsystems.org/index.php/datapackages)   
    
 ✅ Integrate data ([FASTA/BLAST DB](https://www.ncbi.nlm.nih.gov/books/NBK279690/)) 
    and metadata ([SQLite](https://www.sqlite.org/index.html)) to enrich sequence records

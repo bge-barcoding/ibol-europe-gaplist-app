@@ -488,6 +488,9 @@
     for (var columnId in columnFilters) {
       if (columnId !== undefined && columnFilters[columnId] !== "") {
         var c = grid.getColumns()[grid.getColumnIndex(columnId)];
+        if (!item[c.field] && columnFilters[columnId] === "-") {
+          return true;
+        }
         if (!item[c.field] || item[c.field].toLowerCase().indexOf(columnFilters[columnId].toLowerCase()) === -1) {
           return false;
         }

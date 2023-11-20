@@ -34,7 +34,7 @@ class NsrSynonym(Base):
             syn_logger.info('new synonym "%s status=%s (species_id=%s)" created' % (name, taxonomic_status, species_id))
         elif taxonomic_status != synonym.taxonomic_status:
             syn_logger.warning('synonym "%s (species_id=%s)" already exists but taxonomic_status "%s" != "%s"' %
-                            (name, species_id, synonym.taxonomic_status, taxonomic_status))
+                               (name, species_id, synonym.taxonomic_status, taxonomic_status))
 
         return synonym, created
 
@@ -46,5 +46,4 @@ class NsrSynonym(Base):
 
     def __repr__(self):
         return "<NsrSynonym(synonym_name='%s')>" % (
-                         self.name)
-
+            self.name)

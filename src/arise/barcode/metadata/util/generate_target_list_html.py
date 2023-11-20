@@ -5,7 +5,7 @@ import argparse
 import shutil
 import pandas as pd
 import json
-from sqlalchemy import create_engine, func, distinct, union_all, or_
+from sqlalchemy import create_engine, func, distinct, union_all, and_
 from sqlalchemy.orm import sessionmaker
 from orm.common import RANK_ORDER, DataSource
 from orm.nsr_node import NsrNode
@@ -21,8 +21,10 @@ if __name__ == '__main__':
     # process command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', default="arise-barcode-metadata.db", help="Input file: SQLite DB")
-    parser.add_argument('--ignore-genus-sp', action="store_true",
-                        help="Do not include <genus> sp. species created by the pipeline, in the coverage table")
+    parser.add_argument('--filter-species', action="store_true",
+                        help="Do not include in the coverage table"
+                             "<genus> sp. species created by the pipeline or in NSR AND "
+                             "species with occurrence status not being 0a, 1 or 2")
     args = parser.parse_args()
 
     # create connection/engine to database file
@@ -39,7 +41,7 @@ if __name__ == '__main__':
                                        remove_incertae_sedis_rank=True)
 
     coverage_table = compute_barcode_coverage.add_count_features(session, ete_tree_of_life, max_rank,
-                                                                 args.ignore_genus_sp)
+                                                                 args.filter_species)
     # convert the table to json using pandas
     df = pd.DataFrame(coverage_table, columns=rank_hierarchy + ['rank', 'total_sp', 'sp_w_bc', 'total_bc', 'coverage',
                                                                 'arise_bc', 'coverage_arise', 'not_arise_bc',
@@ -74,24 +76,30 @@ if __name__ == '__main__':
         html = html.replace('##%s##' % rank, str(len(df[df['rank'] == rank])))
 
     # compute stats
-    if args.ignore_genus_sp:
+    if args.filter_species:
         stats = list(session.query(
             func.count(distinct(Specimen.id)),
             func.count(distinct(Barcode.id)),
             func.count(distinct(Barcode.marker_id)),
-        ).join(Barcode).join(NsrSpecies)
-                     .filter(or_(
-                            NsrSpecies.canonical_name.not_like("% sp."),
-                            NsrSpecies.occurrence_status is not None)
-                        ).one())
+        ).join(Barcode, Barcode.specimen_id == Specimen.id)
+         .join(NsrSpecies, NsrSpecies.id == Specimen.species_id)
+            .filter(
+                and_(
+                    NsrSpecies.canonical_name.not_like("% sp."),
+                    NsrSpecies.occurrence_status.in_(["0a", "1", "1a", "1b", "2a", "2b", "2c", "2d"]),
+                )
+            ).one())
         stats += list(session.query(
             func.count(distinct(Specimen.id)),
             func.count(distinct(Barcode.id)),
             func.count(distinct(Barcode.marker_id)),
-        ).join(Barcode).join(NsrSpecies)
-                      .filter(or_(
-                            NsrSpecies.canonical_name.not_like("% sp."),
-                            NsrSpecies.occurrence_status is not None)
+        ).join(Barcode, Barcode.specimen_id == Specimen.id)
+         .join(NsrSpecies, NsrSpecies.id == Specimen.species_id)
+                      .filter(
+                            and_(
+                                NsrSpecies.canonical_name.not_like("% sp."),
+                                NsrSpecies.occurrence_status.in_(["0a", "1", "1a", "1b", "2a", "2b", "2c", "2d"]),
+                            )
                         )
                       .filter(Barcode.database.in_([DataSource.NATURALIS, DataSource.WFBI])).one())
     else:

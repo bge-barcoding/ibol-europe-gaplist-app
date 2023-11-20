@@ -14,7 +14,7 @@ from orm.nsr_synonym import NsrSynonym
 from orm.barcode import Barcode
 from orm.specimen import Specimen
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, func, or_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import Engine
 import logging
@@ -27,7 +27,7 @@ lbb_logger = logging.getLogger('load_backbone')
 
 
 def download_and_extract(url):
-    main_logger.info('download_and_extract URL:', url)
+    main_logger.info(f'download_and_extract URL: {url}')
     r = requests.get(url)
     z = zipfile.ZipFile(io.BytesIO(r.content))
     z.extractall()
@@ -50,12 +50,32 @@ def load_backbone(infile, white_filter=None):
     # map taxid (DwC) => species id, used to create the synonyms
     taxid_node_dict = dict()
     taxon_homonym_dict = defaultdict(list)
+    ignored_entries = 0
+    ignored_entries_kingdom = 0
+    ignored_synonyms = 0
+    existing_species = 0
+    existing_synonyms = 0
+    occ_status_species_dict = {
+        "0": 0, "0a": 0,
+        "1": 0, "1a": 0, "1b": 0,
+        "2": 0, "2a": 0, "2b": 0, "2c": 0, "2d": 0,
+        "3a": 0, "3b": 0, "3c": 0, "3d": 0,
+        "4": 0,
+        "Null": 0,
+    }
+    line_count = 0
 
     for row in df.itertuples(name='Entry'):
-        if row.taxonID == "177PVU2ZQYA":
+        line_count += 1
+        if row.kingdom == "":
+            # ignore *many* rows with only genus and species information
+            ignored_entries_kingdom += 1
+            ignored_entries += 1
             continue
         if row.taxonomicStatus != "accepted name" and row.taxonomicStatus not in NsrSynonym.taxonomic_status_set:
+            # synonyms
             lbb_logger.warning('ignore row index %s with taxonomicStatus=%s' % (row.index, row.taxonomicStatus))
+            ignored_synonyms += 1
             continue
 
         if row.taxonomicStatus == "accepted name":
@@ -70,6 +90,7 @@ def load_backbone(infile, white_filter=None):
                     ignore_entry = True
                     break
             if ignore_entry:
+                ignored_entries += 1
                 continue
 
         # compose binomial name
@@ -83,26 +104,29 @@ def load_backbone(infile, white_filter=None):
         if row.taxonomicStatus != "accepted name":
             if row.infraspecificEpithet:
                 lbb_logger.warning(f"ignore synonym '{row.species}' with infraspecificEpithet")
+                ignored_synonyms += 1
                 continue
             ref_id = row.acceptedNameUsageId
             # this assumes synonyms & co are at the end of the file
             # if red_id in taxid_node_dict, it means the species node has been created,
-            # and that the current row is a synomyn/basionym/etc.. linked to that node
+            # and that the current row is a synomyn/basionym/etc... linked to that node
             if ref_id in taxid_node_dict:
                 synonym, created = NsrSynonym.insert_synonym(
                     session, row.species, row.taxonomicStatus, taxid_node_dict[ref_id].species_id)
                 if created:
                     synonyms_created += 1
-
+                else:
+                    existing_synonyms += 1
             continue
 
-        # create the nsr_nodes if needed, starting from the full taxonomy
-        # 'if needed' => only if the node do not already exist
+        # create the nsr_nodes if the node do not already exist,
+        # insert each level as a node, starting from "species"
         prev_node = None
         for level in taxon_levels:  # start from species up to kingdom
             higher_taxon = getattr(row, level)
             if not higher_taxon:
                 lbb_logger.warning(f'taxon is "N/A" for level "{level}", index {row.index}')
+                print(f'taxon is name is empty for level "{level}", index {row.index}')
 
             # create a dict of the full taxonomy, from kingdom up to the current level
             # if one level of the taxonomy is different from the existing nodes in the DB,
@@ -122,6 +146,7 @@ def load_backbone(infile, white_filter=None):
                 prev_node.parent = node.id
             if not created:
                 if level == 'species':
+                    existing_species += 1
                     lbb_logger.info('species "%s" already in the database' % row.species)
                 break
 
@@ -139,8 +164,10 @@ def load_backbone(infile, white_filter=None):
                     occurrence_status = row.occurrenceStatus.split(' ')[0]
                     if occurrence_status == '3cE':
                         occurrence_status = '3c'  # fix invalid status
+                    occ_status_species_dict[occurrence_status] += 1
                 else:
                     occurrence_status = None
+                    occ_status_species_dict["Null"] += 1
                     lbb_logger.warning('occurrence status is null for species "%s"' % row.species)
 
                 nsr_species = NsrSpecies(canonical_name=row.species, occurrence_status=occurrence_status)
@@ -153,9 +180,12 @@ def load_backbone(infile, white_filter=None):
                 # keep track of the species created for mapping the synonyms
                 taxid_node_dict[row.taxonID] = node
 
+    homonyms = 0
     for k, lst in taxon_homonym_dict.items():
         # log the homonyms
         if len(lst) > 1:
+            if k:
+                homonyms += 1
             # {'index': row.index, 'name': higher_taxon, 'level': level, 'taxonomy': d}
             lbb_logger.warning('taxon "%s" is duplicated:' % k)
             for e in lst:
@@ -164,6 +194,52 @@ def load_backbone(infile, white_filter=None):
     main_logger.info('Inserted nodes: %s' % node_counter)
     main_logger.info('Inserted species: %s' % species_created)
     main_logger.info('Inserted synonyms: %s' % synonyms_created)
+    main_logger.info('Ignored entries: %s' % ignored_entries)
+    main_logger.info('Ignored synonyms: %s' % ignored_synonyms)
+    main_logger.info('Existing species: %s' % existing_species)
+    main_logger.info('Existing synonyms: %s' % existing_synonyms)
+
+    ranks_node_counts = {}
+    query = session.query(NsrNode.rank, func.count()).group_by(NsrNode.rank)
+    for r, c in query.all():
+        main_logger.info('Inserted %s %s' % (c, r))
+        ranks_node_counts[r] = c
+        if r == "species":
+            assert c == species_created
+
+    # get additional stats
+    species_per_kingdom_dict = \
+        {k: c for (k, c) in session.query(
+            NsrNode.kingdom, func.count()).where(NsrNode.rank == "species").group_by(NsrNode.kingdom).all()}
+    # number of entries with incomplete taxonomy
+    query = (session.query(func.count()).
+             where(or_(NsrNode.phylum == "", NsrNode.t_class == "", NsrNode.order == "", NsrNode.family == "",
+                   NsrNode.order == "", NsrNode.species == "")))
+    species_incomplete_taxo = query.where(NsrNode.rank == "species").first()[0]
+    empty_name_nodes = query.where(NsrNode.name == "").first()[0]
+    sp_species = session.query(func.count()).where(NsrNode.name.like("% sp.")).first()[0]
+
+    with open("nsr_backbone_stats.tsv", "w") as st:
+        st.write(f"lines_in_file\t{line_count}\n")
+        st.write(f"inserted_nodes\t{node_counter}\n")
+        for r in ["kingdom", "phylum", "class", "order", "family", "genus", "species"]:
+            st.write(f"inserted_{r}\t{ranks_node_counts[r]}\n")
+        for k in sorted(species_per_kingdom_dict.keys()):
+            st.write(f"inserted_species_{k}\t{species_per_kingdom_dict[k]}\n")
+        st.write(f"ignored_entries\t{ignored_entries}\n")
+        st.write(f"ignored_entries_empty_kingdom\t{ignored_entries_kingdom}\n")
+        st.write(f"existing_species\t{existing_species}\n")
+
+        st.write(f"inserted_synonyms\t{synonyms_created}\n")
+        st.write(f"ignored_synonyms\t{ignored_synonyms}\n")
+        st.write(f"existing_synonyms\t{existing_synonyms}\n")
+
+        st.write(f"homonyms\t{homonyms}\n")
+        st.write(f"species_incomplete_taxo\t{species_incomplete_taxo}\n")
+        st.write(f"nodes_without_name\t{empty_name_nodes}\n")
+        st.write(f"sp_name_species\t{sp_species}\n")
+        for occ, count in occ_status_species_dict.items():
+            st.write(f"occ_status_{occ}\t{count}\n")
 
 
 @event.listens_for(Engine, "connect")

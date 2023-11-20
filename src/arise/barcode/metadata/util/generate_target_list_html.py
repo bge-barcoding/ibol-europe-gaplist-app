@@ -22,9 +22,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', default="arise-barcode-metadata.db", help="Input file: SQLite DB")
     parser.add_argument('--filter-species', action="store_true",
-                        help="Do not include in the coverage table: "
-                             " - <genus> sp. species created by the pipeline or in NSR,"
-                             " - species with occurrence status not being 0a, 1 or 2")
+                        help="Do not include in the coverage table"
+                             "<genus> sp. species created by the pipeline or in NSR AND "
+                             "species with occurrence status not being 0a, 1 or 2")
     args = parser.parse_args()
 
     # create connection/engine to database file

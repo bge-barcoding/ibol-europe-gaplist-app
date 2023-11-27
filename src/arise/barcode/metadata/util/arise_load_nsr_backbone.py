@@ -14,7 +14,7 @@ from orm.nsr_synonym import NsrSynonym
 from orm.barcode import Barcode
 from orm.specimen import Specimen
 
-from sqlalchemy import create_engine, event, func, or_
+from sqlalchemy import create_engine, event, func, or_, and_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import Engine
 import logging
@@ -211,13 +211,36 @@ def load_backbone(infile, white_filter=None):
     species_per_kingdom_dict = \
         {k: c for (k, c) in session.query(
             NsrNode.kingdom, func.count()).where(NsrNode.rank == "species").group_by(NsrNode.kingdom).all()}
-    # number of entries with incomplete taxonomy
-    query = (session.query(func.count()).
-             where(or_(NsrNode.phylum == "", NsrNode.t_class == "", NsrNode.order == "", NsrNode.family == "",
-                   NsrNode.order == "", NsrNode.species == "")))
-    species_incomplete_taxo = query.where(NsrNode.rank == "species").first()[0]
-    empty_name_nodes = query.where(NsrNode.name == "").first()[0]
     sp_species = session.query(func.count()).where(NsrNode.name.like("% sp.")).first()[0]
+
+    # empty node global + per kingdom
+    empty_name_nodes = (session.query(func.count()).
+             where(and_(or_(NsrNode.phylum == "", NsrNode.t_class == "", NsrNode.order == "", NsrNode.family == "",
+                   NsrNode.order == "", NsrNode.species == ""), NsrNode.name == ""))).first()[0]
+    query = (session.query(NsrNode.kingdom, func.count(NsrNode.kingdom)).
+             where(and_(or_(NsrNode.phylum == "", NsrNode.t_class == "", NsrNode.order == "", NsrNode.family == "",
+                       NsrNode.order == "", NsrNode.species == ""), NsrNode.rank == "species")).group_by(NsrNode.kingdom))
+    species_missing_taxo_kingdom = {k: c for k, c in query.all()}
+
+    # undetermined ranks
+    nodes_incertae_sedis_taxo = 0
+    nodes_unassigned_taxo = 0
+    unsure_name_kingdom = {}
+    for s in ["Incertae sedis", "[unassigned]"]:
+        res = (session.query(func.count()).
+                 where(or_(NsrNode.phylum.like(f"%{s}%"), NsrNode.t_class.like(f"%{s}%"), NsrNode.order.like(f"%{s}%"),
+                           NsrNode.family.like(f"%{s}%"), NsrNode.order.like(f"%{s}%"), NsrNode.species.like(f"%{s}%"))
+                       ))
+        if s == "Incertae sedis":
+            nodes_incertae_sedis_taxo = res.first()[0]
+        else:
+            nodes_unassigned_taxo = res.first()[0]
+
+        query = (session.query(NsrNode.kingdom, func.count()).
+                 where(and_(or_(NsrNode.phylum.like(f"%{s}%"), NsrNode.t_class.like(f"%{s}%"), NsrNode.order.like(f"%{s}%"),
+                           NsrNode.family.like(f"%{s}%"), NsrNode.order.like(f"%{s}%"), NsrNode.species.like(f"%{s}%"))
+                       , NsrNode.rank == "species")).group_by(NsrNode.kingdom))
+        unsure_name_kingdom[s] = {k: c for k, c in query.all()}
 
     with open("nsr_backbone_stats.tsv", "w") as st:
         st.write(f"lines_in_file\t{line_count}\n")
@@ -235,8 +258,27 @@ def load_backbone(infile, white_filter=None):
         st.write(f"existing_synonyms\t{existing_synonyms}\n")
 
         st.write(f"homonyms\t{homonyms}\n")
-        st.write(f"species_incomplete_taxo\t{species_incomplete_taxo}\n")
         st.write(f"nodes_without_name\t{empty_name_nodes}\n")
+        for k in sorted(species_per_kingdom_dict.keys()):
+            if k in species_missing_taxo_kingdom:
+                st.write(f"species_incomplete_taxo_{k}\t{species_missing_taxo_kingdom[k]}\n")
+            else:
+                st.write(f"species_incomplete_taxo_{k}\t0\n")
+
+        st.write(f"nodes_Incertae_sedis_taxo\t{nodes_incertae_sedis_taxo}\n")
+        for k in sorted(species_per_kingdom_dict.keys()):
+            if k in unsure_name_kingdom["Incertae sedis"]:
+                st.write(f"species_Incertae_sedis_{k}\t{unsure_name_kingdom['Incertae sedis'][k]}\n")
+            else:
+                st.write(f"species_Incertae_sedis_{k}\t0\n")
+
+        st.write(f"nodes_Unassigned_taxo\t{nodes_unassigned_taxo}\n")
+        for k in sorted(species_per_kingdom_dict.keys()):
+            if k in unsure_name_kingdom["[unassigned]"]:
+                st.write(f"species_Unassigned_{k}\t{unsure_name_kingdom['[unassigned]'][k]}\n")
+            else:
+                st.write(f"species_Unassigned_{k}\t0\n")
+
         st.write(f"sp_name_species\t{sp_species}\n")
         for occ, count in occ_status_species_dict.items():
             st.write(f"occ_status_{occ}\t{count}\n")

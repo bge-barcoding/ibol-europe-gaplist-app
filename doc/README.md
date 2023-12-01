@@ -153,8 +153,6 @@ docker-compose -f docker-compose.yml run dbtree
 
 ### 6. Query and visualize the database content using Jupyter Lab
 
-**DEPRECATED: may not work correctly with the recent updates**
-
 Jupyter Lab runs in a docker container, to start it run:
 
 ```

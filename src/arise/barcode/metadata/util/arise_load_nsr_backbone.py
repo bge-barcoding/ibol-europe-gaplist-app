@@ -20,6 +20,8 @@ from sqlalchemy.engine import Engine
 import logging
 from collections import defaultdict
 import loggers
+from datetime import datetime
+
 
 DEFAULT_URL = "http://api.biodiversitydata.nl/v2/taxon/dwca/getDataSet/nsr"
 main_logger = logging.getLogger('main')
@@ -242,7 +244,7 @@ def load_backbone(infile, white_filter=None):
                        , NsrNode.rank == "species")).group_by(NsrNode.kingdom))
         unsure_name_kingdom[s] = {k: c for k, c in query.all()}
 
-    with open("nsr_backbone_stats.tsv", "w") as st:
+    with open("nsr_backbone_stats_%s.tsv" % "{:%b_%d_%Y}".format(datetime.now()), "w") as st:
         st.write(f"lines_in_file\t{line_count}\n")
         st.write(f"inserted_nodes\t{node_counter}\n")
         for r in ["kingdom", "phylum", "class", "order", "family", "genus", "species"]:

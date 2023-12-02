@@ -1,7 +1,7 @@
 import argparse
 import pandas as pd
 import csv
-
+from datetime import datetime
 
 def get_coverage_table_stats(coverage_table):
     stats = {
@@ -104,7 +104,7 @@ if __name__ == '__main__':
     """
 
     stats = get_coverage_table_stats(args.coverage_table)
-    with open("coverage_table_stats.tsv", "w") as fw:
+    with open("coverage_table_stats_%s.tsv" % "{:%b_%d_%Y}".format(datetime.now()), "w") as fw:
         for k in sorted(stats["ranks"]):
             for level in stats["ranks"][k]:
                 if level != "kingdom":

@@ -22,7 +22,7 @@ def get_specimen_index_dict(session, Specimen):
     The index is a concatenation of fields [species_id, catalognum, institution_storing, and identification_provided_by]
     The index must be consistent with the query in specimen.py get_or_create_specimen()
     The returned dict is used to test if a specimen is already in the database, avoiding
-    to query the database to do the check. This dict is used in many util/ scripts to
+    querying the database to do the check. This dict is used in many util/ scripts to
     greatly speed up the insertion of input files.
     """
     specimen_data = session.query(Specimen).with_entities(Specimen.id, Specimen.species_id, Specimen.catalognum,

@@ -41,6 +41,13 @@ Synonyms are also loaded during the process. Note that synonyms involving infra-
 > the current working directory. This local file will be used instead.
 > - the database file is updated in place
 
+#### 2.1 NSR statistics
+
+During this process statistics are computed and stored in an
+independent file named *nsr_backbone_stats_<date>.tsv*. These statistics are used
+to populate the [Google Drive document](https://docs.google.com/spreadsheets/d/1ZbOblN7XOmeet3WeOV_MB-3uBR8_rbvQ8J44duxWBJg/edit#gid=1362329747)
+(first sheet - first section: NSR content).
+
 ### 3. generate BOLD data files
 
 BOLD data are retrieved by downloading the latest datapackage release file
@@ -56,8 +63,8 @@ python generate_bold_gz_files.py <datapackage.tar.gz> <label>
 ```
 with `label` usually the date (YYYYMMDD) associated with the datapackage files downloaded.
 
-The script:  
- 
+The script:
+
 - Reports any invalid line found in the datapackage file (it seems there are none, but there were many in the
 data retrieved by the API)
 - Can be used to filter data on countries and produced subset of BOLD data
@@ -175,6 +182,20 @@ The HTML table is also available online at: https://arise-biodiversity.gitlab.io
 This script also produces a file `coverage_table.tsv` in the current working directory. 
 This table, also integrated inside the HTML document, contains the information
 presented on the target list HTML table. i.e. the barcodes count for each taxonomic level.
+
+#### 7.1 Coverage table statistics
+
+The statistics of the newly generated coverage table can be computed 
+with the [dedicated script](/src/arise/barcode/metadata/util/stats_coverage_table.py). Stats are written in a file named
+*coverage_table_stats_<date>.tsv*. These statistics are used
+to populate this [Google Drive document](https://docs.google.com/spreadsheets/d/1ZbOblN7XOmeet3WeOV_MB-3uBR8_rbvQ8J44duxWBJg/edit#gid=1362329747)
+(first sheet - second section: Target List content).
+
+It is preferred to call the script with the additional option `--old_coverage_table <file>` in order to
+generate additional statistics about the comparison between the two tables. 
+the comparison statistics are written at the end of *coverage_table_stats_<date>.tsv* and must
+be also inserted in the Google Drive document, at the end of the table, first sheet.
+
 
 ### Helper script
 

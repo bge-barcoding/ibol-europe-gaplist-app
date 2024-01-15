@@ -67,11 +67,9 @@ The script:
 
 - Reports any invalid line found in the datapackage file (it seems there are none, but there were many in the
 data retrieved by the API)
-- Can be used to filter data on countries and produced subset of BOLD data
-- Indicates the number of entries saved in the output files and the number of ignored. Moreover, inserting
-the "kingdom" file separately provides additional useful statistics.
+- Indicates the number of entries saved in the output files and the number of ignored entries.
 
-The latest downloaded and generated files are described [here](../data/input_files/README.md): 
+The latest downloaded and generated files are described [here](../data/README.md)
 
 ### 4. Loading Barcoding data
 
@@ -137,7 +135,23 @@ python arise_load_WFBI_excel.py -db <sqlite.db> -excel data/input_files/WI_Dutch
 
 > Note: The Excel file contain a _kingdom_ column that is used to insert the data
 > consequently the argument '-kingdom' is not available for that script. However, 
+> only Fungi barcodes are expected from Westerdijk.
+
+### 4.5 Inserting recent Naturalis/ARISE data
+
+The Fungi database provided by Duong Vu for ARISE must be inserted via the following command:
+
+```commandline
+python arise_load_naturalis.py -db <sqlite.db> -tsv data/input_files/ARISE_identified_barcodes.tsv
+```
+
+> Note: The Excel file contain a _kingdom_ column that is used to insert the data
+> consequently the argument '-kingdom' is not available for that script. However, 
 > only Fungi barcodes are expected in that file.
+---
+>All files inserted during steps 4.2 to 4.5 are available on Google drive 
+> [here](https://drive.google.com/drive/folders/1K8lnQkQfhRAu4X45hgMoOaiLTM3lZt9O). Again
+> check the [Readme](../data/README.md) in /data/ for more information.
 
 ### 5. Indexing the topology for faster queries
 

@@ -56,7 +56,7 @@ the BOLD (Full Data Retrieval) API anymore.
 
 While the .tsv file inside the data package archive can be directly use with the `load_bold_data` script,
 users are invited to generate 3 subset files, one per kingdom of interest (Animalia, Plantae and Fungi),
-using the `generate_bold_gz_files.py` script:
+using the [generate_bold_gz_files.py](/src/arise/barcode/metadata/util/generate_bold_gz_files.py) script:
 
 ```commandline
 python generate_bold_gz_files.py <datapackage.tar.gz> <label>
@@ -168,9 +168,9 @@ Or run it in the container by executing the following command at the root of the
 ```
 # specify the input db filename (must be located in /data/sqlite/)
 export DBFILE=arise-barcode-metadata.db
-docker-compose -f docker-compose.yml run dbtree
+docker compose -f docker-compose.yml run dbtree
 ```
-(docker-compose 1.xx command, try `docker compose -f ...` for [v2.XX](https://github.com/docker/compose))
+(use `docker-compose` for v1.xx, `docker compose -f ...` is for version [v2.XX](https://github.com/docker/compose))
 
 ### 6. Query and visualize the database content using Jupyter Lab
 
@@ -187,15 +187,18 @@ and follow the instructions displayed in the terminal to access the interface.
 To generate the HTML interactive table, run the following command
 
 ```
-python generate_target_list_html.py -db data/sqlite/arise-barcode-metadata.db
+python generate_target_list_html.py -db data/sqlite/arise-barcode-metadata.db --filter-species
 ```
 
 The HTML file `target_list.html` located in `/html/`, can be then opened in the web browser.
 The HTML table is also available online at: https://arise-biodiversity.gitlab.io/sequencing/arise-target-list/
 
 This script also produces a file `coverage_table.tsv` in the current working directory. 
-This table, also integrated inside the HTML document, contains the information
+This table contains the information
 presented on the target list HTML table. i.e. the barcodes count for each taxonomic level.
+
+>Note: the default is now to systematically add the `--filter-species` argument, 
+> to not include artefactual or out-of-scope species from the HTML table.
 
 #### 7.1 Coverage table statistics
 
@@ -204,6 +207,11 @@ with the [dedicated script](/src/arise/barcode/metadata/util/stats_coverage_tabl
 *coverage_table_stats_<date>.tsv*. These statistics are used
 to populate this [Google Drive document](https://docs.google.com/spreadsheets/d/1ZbOblN7XOmeet3WeOV_MB-3uBR8_rbvQ8J44duxWBJg/edit#gid=1362329747)
 (first sheet - second section: Target List content).
+
+Usage:
+```
+python src/arise/barcode/metadata/util/stats_coverage_table.py coverage_table_new.tsv --old_coverage_table coverage_table_old.tsv
+```
 
 It is preferred to call the script with the additional option `--old_coverage_table <file>` in order to
 generate additional statistics about the comparison between the two tables. 

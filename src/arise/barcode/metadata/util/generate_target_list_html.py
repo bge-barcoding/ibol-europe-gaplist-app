@@ -13,6 +13,7 @@ from orm.nsr_species import NsrSpecies
 from orm.barcode import Barcode
 from orm.specimen import Specimen
 import compute_barcode_coverage
+from datetime import datetime
 
 rank_hierarchy = RANK_ORDER[1:]
 
@@ -59,7 +60,7 @@ if __name__ == '__main__':
                                         if e.strip() and e.strip() != "Unknown"])
 
     # export the coverage table to tsv
-    df.to_csv('coverage_table.tsv', sep='\t', quoting=0)
+    df.to_csv("coverage_table_%s.tsv" % "{:%b_%d_%Y}".format(datetime.now()), sep='\t', quoting=0)
 
     # compute the overall completeness
     df_kingdom = df[df['rank'] == 'kingdom']

@@ -15,4 +15,3 @@ python-dateutil~=2.8.2
 taxon_parser~=0.2.3
 python-dwca-reader
 requests
-ete3

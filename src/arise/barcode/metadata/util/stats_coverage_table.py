@@ -1,7 +1,10 @@
 import argparse
+import collections
+
 import pandas as pd
 import csv
 from datetime import datetime
+
 
 def get_coverage_table_stats(coverage_table):
     stats = {
@@ -11,7 +14,7 @@ def get_coverage_table_stats(coverage_table):
         "barcoded_species": {}
     }
     df = pd.read_csv(coverage_table, sep='\t', error_bad_lines=False, warn_bad_lines=True,
-                          quoting=csv.QUOTE_NONE)
+                     quoting=csv.QUOTE_NONE)
     df.fillna('', inplace=True)
     df = df[~df["kingdom"].isin(["Chromista", "Amoebozoa"])]
 
@@ -23,7 +26,7 @@ def get_coverage_table_stats(coverage_table):
 
         stats["barcoded_species"][k] = {}
         stats["barcoded_species"][k]["arise"] = stats["species"][k][stats["species"][k].arise_bc != 0]["species"]
-        stats["barcoded_species"][k]["non-arise"] = stats["species"][k][stats["species"][k].not_arise_bc != 0]["species"]
+        stats["barcoded_species"][k]["other"] = stats["species"][k][stats["species"][k].not_arise_bc != 0]["species"]
         stats["barcoded_species"][k]["all"] = stats["species"][k][stats["species"][k].total_bc != 0]["species"]
 
         # occurrence status
@@ -39,27 +42,46 @@ def compare_stats(new_stats, old_stats):
         dfn = new_stats["species"][k]
         dfo = old_stats["species"][k]
         common_species_name = set(list(dfn["species"])).intersection(set(list(dfo["species"])))
+
         only_new = set(list(dfn["species"])) - set(list(dfo["species"]))
         only_old = set(list(dfo["species"])) - set(list(dfn["species"]))
 
         dfn_c = dfn[dfn["species"].isin(common_species_name)]
         dfn_c = dfn_c.set_index(["species"])
+        # remove duplicated problematic species
+        dup_index_dfn_c = dfn_c.index.duplicated()
+        if dup_index_dfn_c.any():
+            print("Warning: duplicated species ignored:")
+            print(dfn_c[dup_index_dfn_c])
+            dfn_c = dfn_c[~dup_index_dfn_c]
         dfo_c = dfo[dfo["species"].isin(common_species_name)]
         dfo_c = dfo_c.set_index(["species"])
+
+        # remove duplicated problematic species
+        dup_index_dfo_c = dfo_c.index.duplicated()
+        if dup_index_dfo_c.any():
+            print("Warning: duplicated species ignored:")
+            print(dfo_c[dup_index_dfo_c])
+            dfo_c = dfo_c[~dup_index_dfo_c]
+
         df_n = dfn[dfn["species"].isin(only_new)]
         df_n = df_n.set_index(["species"])
         df_o = dfo[dfo["species"].isin(only_old)]
         df_o = df_o.set_index(["species"])
 
-        concat_dt = pd.concat([dfn_c, dfo_c["total_bc"]], axis=1)
+        concat_dt = pd.concat([dfn_c, dfo_c["total_bc"], dfo_c["arise_bc"]], axis=1)
         cols = list(concat_dt.columns)
-        cols[-1] = "o_total_bc"
+        cols[-1] = "o_arise_bc"
+        cols[-2] = "o_total_bc"
         concat_dt.columns = cols
 
         comparison_stats[k] = {
             "common": {
                 "list": common_species_name,
-                "new_barcoded": list(concat_dt[(concat_dt.total_bc != 0) & (concat_dt.o_total_bc == 0)].index),
+                "new_barcoded": {
+                    "all": list(concat_dt[(concat_dt.total_bc != 0) & (concat_dt.o_total_bc == 0)].index),
+                    "arise": list(concat_dt[(concat_dt.arise_bc != 0) & (concat_dt.o_arise_bc == 0)].index),
+                },
                 "lost_barcoded": list(concat_dt[(concat_dt.total_bc == 0) & (concat_dt.o_total_bc != 0)].index),
             },
             "new": {
@@ -127,11 +149,12 @@ if __name__ == '__main__':
         old_stats = get_coverage_table_stats(args.old_coverage_table)
         comparison_stats = compare_stats(stats, old_stats)
 
-        with open("coverage_table_stats.tsv", "a+") as fw:
+        with open("coverage_table_stats_%s.tsv" % "{:%b_%d_%Y}".format(datetime.now()), "a+") as fw:
             fw.write("\n")
             for k in sorted(stats["ranks"]):
                 bc_sp = comparison_stats[k]['common']['list']
-                bc_sp_n = comparison_stats[k]['common']['new_barcoded']
+                bc_sp_n = comparison_stats[k]['common']['new_barcoded']["all"]
+                bc_sp_n_a = comparison_stats[k]['common']['new_barcoded']["arise"]
                 bc_sp_r = comparison_stats[k]['common']['lost_barcoded']
                 n_sp = comparison_stats[k]['new']['list']
                 n_sp_ab = comparison_stats[k]['new']['barcoded_arise']
@@ -139,9 +162,9 @@ if __name__ == '__main__':
                 l_sp = comparison_stats[k]['removed']['list']
                 l_sp_ab = comparison_stats[k]['removed']['barcoded_arise']
                 l_sp_ob = comparison_stats[k]['removed']['barcoded_other']
-
                 fw.write(f"{k}_shared_species\t{len(bc_sp)}\n")
                 fw.write(f"{k}_new_barcoded_species\t{len(bc_sp_n)}\t{'; '.join(bc_sp_n)}\n")
+                fw.write(f"{k}_new_barcoded_species_arise\t{len(bc_sp_n_a)}\t{'; '.join(bc_sp_n_a)}\n")
                 fw.write(f"{k}_lost_barcoded_species\t{len(bc_sp_r)}\t{'; '.join(bc_sp_r)}\n")
                 fw.write(f"{k}_new_species\t{len(n_sp)}\t{'; '.join(n_sp)}\n")
                 fw.write(f"{k}_new_species_barcoded_arise\t{len(n_sp_ab)}\t{'; '.join(n_sp_ab)}\n")

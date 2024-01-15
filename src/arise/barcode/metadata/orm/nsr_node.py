@@ -73,6 +73,18 @@ class NsrNode(Base):
         nodes = q.all()
 
         if not nodes:
+            if rank == "species":
+                # check for duplicated species name in the same kingdom
+                dupl = q.filter(
+                    NsrNode.kingdom == kingdom, NsrNode.species == species, NsrNode.rank == rank
+                ).first()
+                if dupl:
+                    nsm_logger.error('duplicated species name in NSR file: "%s"' % species)
+                    nsm_logger.error('matches existing entry: %s' % dupl)
+                    print('duplicated species name in NSR file: "%s"' % species)
+                    print('matches existing entry: %s' % dupl)
+                    exit()
+
             node = NsrNode(id=id, rank='class' if rank == 't_class' else rank,
                            name=ranks[rank], species_id=species_id, parent=2, **ranks)
             session.add(node)
@@ -104,8 +116,10 @@ class NsrNode(Base):
             nsr_species_nodes = query.all()
 
             if len(nsr_species_nodes) > 1:
+                # case of duplicate species names with different taxonomy in NSR
                 nsm_logger.error('multiple species match using name: "%s"' % cleaned)
-                nsm_logger.error('matches:', list(nsr_species_nodes))
+                nsm_logger.error('matches: %s' % list(nsr_species_nodes))
+                # return None
                 exit()
 
             # check also synonyms regardless if a species node was found or not

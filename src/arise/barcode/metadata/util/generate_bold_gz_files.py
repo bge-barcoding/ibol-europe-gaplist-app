@@ -32,7 +32,6 @@ if __name__ == '__main__':
         fp = utf8reader(tar.extractfile(bold_tsv_file))
 
         bold_tsv_file = None
-        # encoding = 'ISO-8859-1' ?
         for df in pd.read_csv(fp, sep='\t', encoding='UTF-8', error_bad_lines=False,
                               warn_bad_lines=True, quoting=csv.QUOTE_NONE, chunksize=500000):
             df.fillna('', inplace=True)
@@ -63,8 +62,10 @@ if __name__ == '__main__':
                 else:
                     entry_other += 1
 
-    print("Entries without kingdom:", entry_no_kingdom)
+
     print("Entries with Fungi:", entry_fungi)
     print("Entries with Plantae:", entry_plantea)
     print("Entries with Animalia:", entry_animalia)
+    print("Entries without kingdom (ignored):", entry_no_kingdom)
     print("Entries with other (ignored):", entry_other)
+

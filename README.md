@@ -13,9 +13,9 @@ the following:
 ✅ Ingest NSR synonyms from tab-separated tables
 
 ✅ Harvest remote data and metadata accessible through 
-   [BOLD datapackage files](https://www.boldsystems.org/index.php/datapackages)   
+   [BOLD datapackage files](https://www.boldsystems.org/index.php/datapackages)
    
-✅ Integrate data ([FASTA/BLAST DB](https://www.ncbi.nlm.nih.gov/books/NBK279690/)) 
+✅ Integrate data ([FASTA/BLAST DB](https://www.ncbi.nlm.nih.gov/books/NBK279690/))
    and metadata ([SQLite](https://www.sqlite.org/index.html)) to enrich sequence records
    
 ✅ Ingest on-disk, file-based data (FASTA) and metadata (CSV/TSV) managed 

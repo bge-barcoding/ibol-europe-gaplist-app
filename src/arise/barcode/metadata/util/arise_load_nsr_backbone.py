@@ -66,6 +66,9 @@ def load_backbone(infile, white_filter=None):
         "Null": 0,
     }
     line_count = 0
+    # a list to keep to of which species name and ID was added, or discarded (and why)
+    # the list is written in a file that is used by the get_clb_issues_priority.py script
+    species_name_status = []
 
     for row in df.itertuples(name='Entry'):
         line_count += 1
@@ -73,11 +76,13 @@ def load_backbone(infile, white_filter=None):
             # ignore *many* rows with only genus and species information
             ignored_entries_kingdom += 1
             ignored_entries += 1
+            species_name_status.append([row.taxonID, "", "DISCARDED", "NO KINGDOM"])
             continue
         if row.taxonomicStatus != "accepted name" and row.taxonomicStatus not in NsrSynonym.taxonomic_status_set:
             # synonyms
             lbb_logger.warning('ignore row index %s with taxonomicStatus=%s' % (row.index, row.taxonomicStatus))
             ignored_synonyms += 1
+            species_name_status.append([row.taxonID, "", "DISCARDED", "IGNORED SYNONYM"])
             continue
 
         if row.taxonomicStatus == "accepted name":
@@ -107,6 +112,7 @@ def load_backbone(infile, white_filter=None):
             if row.infraspecificEpithet:
                 lbb_logger.warning(f"ignore synonym '{row.species}' with infraspecificEpithet")
                 ignored_synonyms += 1
+                species_name_status.append([row.taxonID, row.species, "DISCARDED", "IGNORED SYNONYM (INFRA)"])
                 continue
             ref_id = row.acceptedNameUsageId
             # this assumes synonyms & co are at the end of the file
@@ -119,6 +125,7 @@ def load_backbone(infile, white_filter=None):
                     synonyms_created += 1
                 else:
                     existing_synonyms += 1
+            species_name_status.append([row.taxonID, row.species, "ADDED", "AS SYNONYM"])
             continue
 
         # create the nsr_nodes if the node do not already exist,
@@ -150,6 +157,7 @@ def load_backbone(infile, white_filter=None):
                 if level == 'species':
                     existing_species += 1
                     lbb_logger.info('species "%s" already in the database' % row.species)
+                    species_name_status.append([row.taxonID, row.species, "DISCARDED", "ALREADY INSERTED"])
                 break
 
             prev_node = node
@@ -176,6 +184,7 @@ def load_backbone(infile, white_filter=None):
                 session.add(nsr_species)
                 session.flush()
                 species_created += 1
+                species_name_status.append([row.taxonID, row.species, "ADDED", ""])
 
                 # update the node species_id
                 node.species_id = nsr_species.id
@@ -284,6 +293,11 @@ def load_backbone(infile, white_filter=None):
         st.write(f"sp_name_species\t{sp_species}\n")
         for occ, count in occ_status_species_dict.items():
             st.write(f"occ_status_{occ}\t{count}\n")
+
+    with open("species_names_added_status.tsv", "w") as fw:
+        fw.write("taxon_id\tspecies_name\tstatus\treason\n")
+        for reason in species_name_status:
+            fw.write('%s\n' % "\t".join(reason))
 
 
 @event.listens_for(Engine, "connect")

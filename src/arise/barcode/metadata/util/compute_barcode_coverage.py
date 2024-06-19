@@ -95,7 +95,8 @@ def get_specimen_locality(session, filter_species):
     d = dict()
     for e, loc in query.all():
         loc = '; '.join(
-            [fix_locality_dict[c] if c in fix_locality_dict else c for c in sorted(loc.split(','))]
+            [fix_locality_dict[c.strip()] if c.strip() in fix_locality_dict else c.strip()
+             for c in sorted(loc.split(',')) if c.strip() and c.strip() != "None" and "Exception" not in c]
         )
         d[e] = loc
     return d

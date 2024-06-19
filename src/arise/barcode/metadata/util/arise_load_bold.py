@@ -26,7 +26,7 @@ lbd_logger = logging.getLogger('load_bold')
 # initializes a dict with the fields that should go in barcode and specimen table, or None if any of the checks fail
 def init_record_fields(row):
     record = {}
-    if not row['nucraw']:
+    if not row['nuc']:
         return
 
     # check taxon names
@@ -53,12 +53,12 @@ def init_record_fields(row):
     record['catalognum'] = row['museumid']
     record['institution_storing'] = row['inst']
     record['identification_provided_by'] = row['identified_by']
-    record['locality'] = row['country']
+    record['locality'] = row['country/ocean']
     record['kingdom'] = row['kingdom']
 
     # distinguish between bold and ncbi
-    if row['gb_acs']:
-        record['external_id'] = row['gb_acs']
+    if row['insdc_acs']:
+        record['external_id'] = row['insdc_acs']
         lbd_logger.info("Record for %s was harvested from NCBI: %s" % (record['taxon'], record['external_id']))
     else:
         record['external_id'] = row['processid']
@@ -148,7 +148,7 @@ def load_bold(input_file, kingdom=None, encoding='UTF-8'):
 
             # set database field value
             database = DataSource.BOLD
-            if row['gb_acs']:
+            if row['insdc_acs']:
                 # does it necessary means it was harvested from NCBI?
                 database = DataSource.NCBI
 

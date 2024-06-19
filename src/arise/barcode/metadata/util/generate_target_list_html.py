@@ -44,7 +44,8 @@ if __name__ == '__main__':
     coverage_table = compute_barcode_coverage.add_count_features(session, ete_tree_of_life, max_rank,
                                                                  args.filter_species)
     # convert the table to json using pandas
-    df = pd.DataFrame(coverage_table, columns=rank_hierarchy + ['rank', 'total_sp', 'sp_w_bc', 'total_bc', 'coverage',
+    df = pd.DataFrame(coverage_table, columns=['nsr_id'] + rank_hierarchy +
+                                                               ['rank', 'total_sp', 'sp_w_bc', 'total_bc', 'coverage',
                                                                 'arise_bc', 'coverage_arise', 'not_arise_bc',
                                                                 'coverage_not_arise', 'locality', 'occ_status'])
     # add id column for slickgrid dataview
@@ -61,10 +62,12 @@ if __name__ == '__main__':
 
     # export the coverage table to tsv
     df.to_csv("coverage_table_%s.tsv" % "{:%b_%d_%Y}".format(datetime.now()), sep='\t', quoting=0)
+    # remove the nsr_id column, not needed for the HTML file
+    df = df.drop('nsr_id', axis=1)
 
     # compute the overall completeness
     df_kingdom = df[df['rank'] == 'kingdom']
-    # use only three kingdoms!
+    # but use only three kingdoms!
     overall_completeness = df_kingdom[df_kingdom.kingdom.isin(['Animalia', 'Plantae', 'Fungi'])]['coverage'].mean()
 
     html = open('html/target_list.html').read() \

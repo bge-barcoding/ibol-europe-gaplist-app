@@ -164,11 +164,13 @@ def add_count_features(session, tree, max_rank, filter_species) -> list:
         coverage_not_arise = 0  # etc
         occurrence_status = None
         locality = None
+        nsr_id = None
         if node.rank == max_rank:
             if max_rank == 'species':
                 # special case, species is the max level, meaning the number of species = 1
                 total_sp = 1
                 nsr_node = session.query(NsrNode).filter(NsrNode.id == node.id).first()
+                nsr_id = nsr_node.nsr_id
                 if nsr_node.species_id and nsr_node.species_id in species_occ_status_dict:
                     occurrence_status = species_occ_status_dict[nsr_node.species_id]
 
@@ -233,7 +235,7 @@ def add_count_features(session, tree, max_rank, filter_species) -> list:
 
         add_features(node, total_sp, sp_with_bc, sp_with_bc_arise, sp_with_bc_not_arise, total_bc, arise_bc, not_arise_bc)
         if node.name != "All of life":
-            coverage_table.append(make_ancestors_list(node, max_rank) +
+            coverage_table.append([nsr_id] + make_ancestors_list(node, max_rank) +
                                                               [node.rank, total_sp, sp_with_bc,
                                                                total_bc, coverage,
                                                                arise_bc, coverage_arise,

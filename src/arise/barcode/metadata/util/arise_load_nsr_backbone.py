@@ -143,15 +143,20 @@ def load_backbone(infile, white_filter=None):
             taxonomy = {e: getattr(row, e) for e in taxon_levels[taxon_levels.index(level):]}
 
             node, created = NsrNode.get_or_create_node(
-                session, node_counter, level, 0 if level == 'species' else None, **taxonomy
+                session,
+                node_counter,  # table primary ID
+                row.taxonID,  # nsr ID
+                level,
+                0 if level == 'species' else None,  # species_id (map to nsr_species.id)
+                **taxonomy
                 # species must have a valid species_id (should be id that references the NsrSpecies table)
                 # see nsr_node.validates_fields
-                # but the species entry is not yet created, so we use 0 temporary
+                # but the nsr_species entry is not yet created, so we use 0 temporary
                 # the correct species_id will be set a few lines below once the nsr_species entry is created
             )
 
             if prev_node:
-                # default parent is 2 ('life' node) because kingdom nodes will not get the parent updated
+                # the default parent is 2 ('life' node) because kingdom nodes will not get the parent updated
                 prev_node.parent = node.id
             if not created:
                 if level == 'species':

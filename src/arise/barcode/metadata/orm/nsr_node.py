@@ -36,6 +36,7 @@ class NsrNode(Base):
 
     __tablename__ = 'node'
     id = Column(Integer, primary_key=True, autoincrement=True)
+    nsr_id = Column(String(100))
     parent = Column(Integer, index=True, nullable=False)
     left = Column(Integer, index=True, unique=True)
     right = Column(Integer, index=True, unique=True)
@@ -62,7 +63,7 @@ class NsrNode(Base):
                                        name='uc_classification'),)
 
     @classmethod
-    def get_or_create_node(cls, session, id, rank, species_id, kingdom=None, phylum=None, t_class=None,
+    def get_or_create_node(cls, session, id, nsr_id, rank, species_id, kingdom=None, phylum=None, t_class=None,
                            order=None, family=None, genus=None, species=None):
         ranks = locals()
         [ranks.pop(key) for key in list(ranks.keys()) if key not in RANK_ORDER]
@@ -85,13 +86,21 @@ class NsrNode(Base):
                     print('matches existing entry: %s' % dupl)
                     exit()
 
-            node = NsrNode(id=id, rank='class' if rank == 't_class' else rank,
-                           name=ranks[rank], species_id=species_id, parent=2, **ranks)
+            node = NsrNode(id=id,
+                           nsr_id=nsr_id if rank == 'species' else None,
+                           rank='class' if rank == 't_class' else rank,
+                           name=ranks[rank],
+                           species_id=species_id,
+                           parent=2,
+                           **ranks)
             session.add(node)
             session.flush()
             created = True
         else:
             node = nodes[0]
+            if rank == "species":
+                node.nsr_id += "; " + nsr_id
+                session.commit()
         return node, created
 
 

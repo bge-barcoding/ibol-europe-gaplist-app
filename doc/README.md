@@ -222,3 +222,24 @@ be also inserted in the Google Drive document, at the end of the table, first sh
 ### Helper script
 
 To build the database in one command, run `sh make_db.sh` in the root of the project. You'll need to activate the virtual environment first.
+
+## FAQ
+#### Why the occ. status can differ from the occ. status on the NSR website
+
+It is not known how the occurrence status (OS) is determined on the NSR website, 
+but, for some species, it does not correspond to the OS found in the list 
+of NSR species downloaded from the NBA link (`Taxa.txt`).
+
+In the NSR backbone computed in this project, we discard the subspecies, varietas, etc...
+Only species remain in the database as the lowest rank.
+However, the OSs of the discarded subspecies & Co are considered, 
+and they can be used as OS for the species node. The following priority is taken
+into account:
+
+0a > 1[ab] > 2[abcd] > 3[abcd] > 4x > 0 > Null
+
+Example: When parsing the `Taxa.txt` file sequentially, if a species entry has an
+`empty` (Null) OS, we create the node with that status.
+Now, if later during the parsing we found a subspecies entries with OS=`0` we replace the OS.
+Again, later during the parsing, we found another subspecies with an occ. status `1a`,
+then the `1a` is retained.

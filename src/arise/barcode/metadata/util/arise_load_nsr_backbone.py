@@ -22,10 +22,24 @@ from collections import defaultdict
 import loggers
 from datetime import datetime
 
-
 DEFAULT_URL = "http://api.biodiversitydata.nl/v2/taxon/dwca/getDataSet/nsr"
 main_logger = logging.getLogger('main')
 lbb_logger = logging.getLogger('load_backbone')
+
+# create an occ status index, to define the preferences when parsing a species and its subspecies
+# The preferred values are (in order) 0a, 1x, 2x, 3x, 4, 0, null
+occ_status_index = sorted(list(NsrSpecies.occurrence_status_set))
+occ_status_index = occ_status_index[1:] + [occ_status_index[0]]
+
+# To count the frequency of status
+occ_status_species_dict = {
+    "0": 0, "0a": 0,
+    "1": 0, "1a": 0, "1b": 0,
+    "2": 0, "2a": 0, "2b": 0, "2c": 0, "2d": 0,
+    "3a": 0, "3b": 0, "3c": 0, "3d": 0,
+    "4": 0,
+    "Null": 0,
+}
 
 
 def download_and_extract(url):
@@ -33,6 +47,16 @@ def download_and_extract(url):
     r = requests.get(url)
     z = zipfile.ZipFile(io.BytesIO(r.content))
     z.extractall()
+
+
+def fix_occurrence_status(occ_status, species):
+    if occ_status:
+        occurrence_status = occ_status.split(' ')[0]
+        if occurrence_status == '3cE':
+            occurrence_status = '3c'  # fix invalid status
+        return occurrence_status
+    lbb_logger.warning('occurrence status is null for species "%s"' % species)
+    return None
 
 
 def load_backbone(infile, white_filter=None):
@@ -57,14 +81,6 @@ def load_backbone(infile, white_filter=None):
     ignored_synonyms = 0
     existing_species = 0
     existing_synonyms = 0
-    occ_status_species_dict = {
-        "0": 0, "0a": 0,
-        "1": 0, "1a": 0, "1b": 0,
-        "2": 0, "2a": 0, "2b": 0, "2c": 0, "2d": 0,
-        "3a": 0, "3b": 0, "3c": 0, "3d": 0,
-        "4": 0,
-        "Null": 0,
-    }
     line_count = 0
     # a list to keep to of which species name and ID was added, or discarded (and why)
     # the list is written in a file that is used by the get_clb_issues_priority.py script
@@ -128,7 +144,7 @@ def load_backbone(infile, white_filter=None):
             species_name_status.append([row.taxonID, row.species, "ADDED", "AS SYNONYM"])
             continue
 
-        # create the nsr_nodes if the node do not already exist,
+        # create the nsr_nodes if the node does not already exist,
         # insert each level as a node, starting from "species"
         prev_node = None
         for level in taxon_levels:  # start from species up to kingdom
@@ -163,6 +179,28 @@ def load_backbone(infile, white_filter=None):
                     existing_species += 1
                     lbb_logger.info('species "%s" already in the database' % row.species)
                     species_name_status.append([row.taxonID, row.species, "DISCARDED", "ALREADY INSERTED"])
+
+                    # if the current entry is a taxonRank "species" (not a subspecies),
+                    # the occurrence status previously inserted
+                    # (assuming it was the occ. status of a "subspecies" or "variety" entry)
+                    # is replaced with the current occ. status
+                    if row.occurrenceStatus:
+                        assert row.occurrenceStatus not in ['None', 'none']
+                        occurrence_status = fix_occurrence_status(row.occurrenceStatus, row.species)
+                        old_occ_status = session.query(NsrSpecies). \
+                                          filter(NsrSpecies.id == node.species_id).one().occurrence_status
+                        if (old_occ_status is None or
+                                occ_status_index.index(occurrence_status) < occ_status_index.index(old_occ_status)):
+                            # fix the stats, decrement the old occ status
+                            occ_status_species_dict[occurrence_status] += 1
+                            if not old_occ_status:
+                                occ_status_species_dict["Null"] -= 1
+                            else:
+                                occ_status_species_dict[old_occ_status] -= 1
+                            session.query(NsrSpecies).filter(NsrSpecies.id == node.species_id) \
+                                .update({"occurrence_status": occurrence_status})
+                            session.flush()
+
                 break
 
             prev_node = node
@@ -175,15 +213,11 @@ def load_backbone(infile, white_filter=None):
 
             if level == 'species':
                 # create also the species entry
-                if row.occurrenceStatus:
-                    occurrence_status = row.occurrenceStatus.split(' ')[0]
-                    if occurrence_status == '3cE':
-                        occurrence_status = '3c'  # fix invalid status
+                occurrence_status = fix_occurrence_status(row.occurrenceStatus, row.species)
+                if occurrence_status:
                     occ_status_species_dict[occurrence_status] += 1
                 else:
-                    occurrence_status = None
                     occ_status_species_dict["Null"] += 1
-                    lbb_logger.warning('occurrence status is null for species "%s"' % row.species)
 
                 nsr_species = NsrSpecies(canonical_name=row.species, occurrence_status=occurrence_status)
                 session.add(nsr_species)

@@ -12,7 +12,7 @@ from orm.nsr_node import NsrNode
 from orm.nsr_species import NsrSpecies
 from orm.barcode import Barcode
 from orm.specimen import Specimen
-import compute_barcode_coverage
+from compute_barcode_coverage import add_count_features, valid_occ_statuses
 from datetime import datetime
 
 rank_hierarchy = RANK_ORDER[1:]
@@ -41,7 +41,7 @@ if __name__ == '__main__':
     ete_tree_of_life = nsr_root.to_ete(session, until_rank=max_rank, remove_empty_rank=True,
                                        remove_incertae_sedis_rank=True)
 
-    coverage_table = compute_barcode_coverage.add_count_features(session, ete_tree_of_life, max_rank,
+    coverage_table = add_count_features(session, ete_tree_of_life, max_rank,
                                                                  args.filter_species)
     # convert the table to json using pandas
     df = pd.DataFrame(coverage_table, columns=['nsr_id'] + rank_hierarchy +
@@ -90,7 +90,7 @@ if __name__ == '__main__':
             .filter(
                 and_(
                     NsrSpecies.canonical_name.not_like("% sp."),
-                    NsrSpecies.occurrence_status.in_(["0a", "1", "1a", "1b", "2a", "2b", "2c", "2d"]),
+                    NsrSpecies.occurrence_status.in_(valid_occ_statuses),
                 )
             ).one())
         stats += list(session.query(
@@ -102,7 +102,7 @@ if __name__ == '__main__':
                       .filter(
                             and_(
                                 NsrSpecies.canonical_name.not_like("% sp."),
-                                NsrSpecies.occurrence_status.in_(["0a", "1", "1a", "1b", "2a", "2b", "2c", "2d"]),
+                                NsrSpecies.occurrence_status.in_(valid_occ_statuses),
                             )
                         )
                       .filter(Barcode.database.in_([DataSource.NATURALIS, DataSource.WFBI])).one())

@@ -13,7 +13,7 @@ from orm.specimen import Specimen
 from orm.marker import Marker
 
 rank_hierarchy = RANK_ORDER[1:]
-
+valid_occ_statuses = ["0a", "1", "1a", "1b", "2", "2a", "2b", "2c", "2d"]
 
 #
 def make_ancestors_list(node, max_rank):
@@ -51,7 +51,7 @@ def get_species_barcode_count(session, filter_species):
             .where(
                 and_(
                     NsrSpecies.canonical_name.not_like("% sp."),
-                    NsrSpecies.occurrence_status.in_(["0a", "1", "1a", "1b", "2a", "2b", "2c", "2d"]),
+                    NsrSpecies.occurrence_status.in_(valid_occ_statuses),
                 )
             ).group_by(Specimen.species_id))
     else:
@@ -84,7 +84,7 @@ def get_specimen_locality(session, filter_species):
          .where(
             and_(
                 NsrSpecies.canonical_name.not_like("% sp."),
-                NsrSpecies.occurrence_status.in_(["0a", "1", "1a", "1b", "2a", "2b", "2c", "2d"])
+                NsrSpecies.occurrence_status.in_(valid_occ_statuses)
             )
         ).group_by(Specimen.species_id))
     else:
@@ -112,7 +112,7 @@ def get_species_occ_status(session, filter_species):
               .where(
                   and_(
                       NsrSpecies.canonical_name.not_like("% sp."),
-                      NsrSpecies.occurrence_status.in_(["0a", "1", "1a", "1b", "2a", "2b", "2c", "2d"])
+                      NsrSpecies.occurrence_status.in_(valid_occ_statuses)
                   )
               )
           )
@@ -183,7 +183,7 @@ def add_count_features(session, tree, max_rank, filter_species) -> list:
 
                 if filter_species and (
                         nsr_node.name.endswith(" sp.") or
-                        occurrence_status not in ["0a", "1", "1a", "1b", "2a", "2b", "2c", "2d"]
+                        occurrence_status not in valid_occ_statuses
                     ):
                     add_features(node, 0, 0, 0, 0, 0, 0, 0)
                     continue
@@ -271,8 +271,8 @@ if __name__ == '__main__':
     parser.add_argument('-db', default="arise-barcode-metadata.db", help="Input file: SQLite DB")
     parser.add_argument('--filter-species', action="store_true",
                         help="Do not include in the coverage table: "
-                             " - <genus> sp. species created by the pipeline or in NSR,"
-                             " - species with occurrence status not being 0a, 1 or 2")
+                             " - <genus> sp. species created by the pipeline or in NSR"
+                             " - species with occurrence status not being 0a, 1x or 2x")
 
     args = parser.parse_args()
 

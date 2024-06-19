@@ -13,7 +13,7 @@ https://drive.google.com/drive/folders/1K8lnQkQfhRAu4X45hgMoOaiLTM3lZt9O?usp=sha
 
 List of files on Gdrive:
 
-- BOLD/ - this is a recent export from BOLD's datapackage [January 2024]
+- BOLD/ - this is a recent export from BOLD's datapackage [May 2024]
     - BOLD_<date>_<kingdom>.tsv.gz - the above file has been parsed and split into 3 files, one per kingdom of interest for the target list. These are the files ingested in the current target list
 - KLASSE/*.txt - Geneious/Klasse export ot Naturalis barcodes for Animalia and Plants [Summer 2022]
 - Fungi barcodes Jorinde.xlsx - Fungi barcode data from Jorinde. Note: only ITS barcodes in that file are inserted in the DB [August 2022]

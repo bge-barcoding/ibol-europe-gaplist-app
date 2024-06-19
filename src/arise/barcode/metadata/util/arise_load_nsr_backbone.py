@@ -106,10 +106,10 @@ def load_backbone(infile, white_filter=None):
             ignore_entry = False
             for i, level in enumerate(taxon_levels):
                 higher_taxon = getattr(row, level).lower()
-                # ignore taxon branches using the white lists, if specified
+                # ignore taxon branches using the whitelists, if specified
                 if white_filter and \
-                   level in white_filter and \
-                   higher_taxon not in [e.lower() for e in white_filter[level]]:
+                        level in white_filter and \
+                        higher_taxon not in [e.lower() for e in white_filter[level]]:
                     ignore_entry = True
                     break
             if ignore_entry:
@@ -122,7 +122,7 @@ def load_backbone(infile, white_filter=None):
         except Exception as e:
             lbb_logger.error('Cannot create binomial name for index', row.index)
             lbb_logger.error(e)
-            exit()
+            exit(1)
 
         if row.taxonomicStatus != "accepted name":
             if row.infraspecificEpithet:

@@ -288,4 +288,4 @@ if __name__ == '__main__':
     max_rank = 'species'
     ete_tree_of_life = nsr_root.to_ete(session, until_rank=max_rank, remove_empty_rank=True,
                                        remove_incertae_sedis_rank=True)
-    add_count_features(session, ete_tree_of_life, max_rank, args.filter_species)
+    print(add_count_features(session, ete_tree_of_life, max_rank, args.filter_species))

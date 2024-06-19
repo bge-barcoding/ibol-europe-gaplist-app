@@ -1,6 +1,7 @@
 # activate the env first:
 # source venv/bin/activate (or use the conda env)
 # export PYTHONPATH=./src/
+set -e
 
 rm -f data/sqlite/ignored/arise-barcode-metadata.db
 python src/arise/barcode/metadata/util/arise_create_barcode_metadata_db.py -outfile data/sqlite/ignored/arise-barcode-metadata.db &&

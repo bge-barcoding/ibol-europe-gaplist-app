@@ -61,7 +61,7 @@ if __name__ == '__main__':
                                         if e.strip() and e.strip() != "Unknown"])
 
     # export the coverage table to tsv
-    df.to_csv("coverage_table_%s.tsv" % "{:%b_%d_%Y}".format(datetime.now()), sep='\t', quoting=0)
+    df.to_csv("coverage_table_%s.tsv" % "{:%b_%d_%Y}".format(datetime.now()), sep='\t', quoting=0, index=False)
     # remove the nsr_id column, not needed for the HTML file
     df = df.drop('nsr_id', axis=1)
 

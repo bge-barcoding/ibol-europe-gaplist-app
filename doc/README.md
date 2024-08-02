@@ -194,12 +194,17 @@ and follow the instructions displayed in the terminal to access the interface.
 To generate the HTML interactive table, run the following command:
 
 ```commandline
-python src/arise/barcode/metadata/util/generate_target_list_html.py -db data/sqlite/arise-barcode-metadata.db --filter-species
+python src/arise/barcode/metadata/util/generate_target_list_html.py -db data/sqlite/arise-barcode-metadata.db 
+--filter-species --template-ARISE-Wes "September 2022" --template-ARISE-Nat "July 2024" --template-BOLD-date 30/07/24
+ --template-NSR-date 30/07/24
 ```
+
+The "date" arguments are required, and used to update the dates on the "About page" of the interface
 
 >Note: the default is now to systematically add the `--filter-species` argument, 
 > to not include artefactual or out-of-scope species from the HTML table and the coverage_table.tsv.
 > See the --help of the script for more info.
+
 
 > **Important**: if you wish to update/commit `target_list.html` generated, and update the online interface 
 > (read [here](#target-list-interfaces))
@@ -274,7 +279,7 @@ Once the `make_db.sh` is finished, the database file `<name>.db` can be moved on
 
 ## FAQ
 
-#### What are "ARISE" and "Other" barcodes?
+### What are "ARISE" and "Other" barcodes?
 
 Barcodes are associated with specimen inserted under the 
 "Naturalis Biodiversity Center" or "Westerdijk Fungal Biodiversity 
@@ -288,7 +293,7 @@ These barcodes come from five different sources:
 
 "Other" are all barcodes that are not ARISE.
 
-#### Why the occ. status can differ from the occ. status on the NSR website
+### Why the occ. status can differ from the occ. status on the NSR website?
 
 It is not known how the occurrence status (OS) is determined on the NSR website, 
 but, for some species, it does not correspond to the OS found in the list 

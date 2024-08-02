@@ -26,6 +26,15 @@ if __name__ == '__main__':
                         help="Do not include in the coverage table"
                              "<genus> sp. species created by the pipeline or present in NSR AND "
                              "species with occurrence status not being 0a, 1 or 2")
+    parser.add_argument('--template-NSR-date', required=True,
+                        help="date of the NSR data, to put in the HTML, e.g., 29/05/2024")
+    parser.add_argument('--template-BOLD-date', required=True,
+                        help="date of the BOLD data, to put in the HTML, e.g., 29/05/2024")
+    parser.add_argument('--template-ARISE-Naturalis-date', required=True,
+                        help="date of the Naturalis data, to put in the HTML, e.g., January 2024")
+    parser.add_argument('--template-ARISE-Westerdijk-date', required=True,
+                        help="date of the Westerdijk data, to put in the HTML, e.g., January 2024")
+
     args = parser.parse_args()
 
     # create connection/engine to database file
@@ -54,6 +63,16 @@ if __name__ == '__main__':
     df[['coverage', 'coverage_arise', 'coverage_not_arise']] = \
         df[['coverage', 'coverage_arise', 'coverage_not_arise']].apply(lambda x: round(x, 1))
     shutil.copyfile('html/target_list_template.html', 'html/target_list.html')
+
+    # update the dates
+    html = open('html/target_list.html').read() \
+        .replace('##nsr_data_date##', args.template_NSR_date) \
+        .replace('##bold_data_date##', args.template_BOLD_date) \
+        .replace('##naturalis_data_date##', args.template_ARISE_Naturalis_date) \
+        .replace('##westerdijk_data_date##', args.template_ARISE_Westerdijk_date) \
+        .replace('##current_date##', "{:%d/%m/%y}".format(datetime.now()))
+    with open('html/target_list.html', 'w') as fw:
+        fw.write(html)
 
     # build a list a distinct localities, remove empty and "Unknown"
     localities = set()

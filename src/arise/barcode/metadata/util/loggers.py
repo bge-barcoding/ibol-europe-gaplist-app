@@ -2,7 +2,7 @@ import logging
 import sys
 
 formatter = logging.Formatter('%(asctime)s %(levelname)s - %(message)s')
-no_console = False
+no_console = True
 
 
 class LevelFilter(object):

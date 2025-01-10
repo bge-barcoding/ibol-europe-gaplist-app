@@ -15,7 +15,7 @@ from orm.marker import Marker
 rank_hierarchy = RANK_ORDER[1:]
 valid_occ_statuses = ["0a", "1", "1a", "1b", "2", "2a", "2b", "2c", "2d"]
 
-#
+
 def make_ancestors_list(node, max_rank):
     """
         build an ordered list of taxon name from ancestor nodes

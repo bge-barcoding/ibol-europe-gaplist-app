@@ -132,11 +132,16 @@ def load_backbone(infile, white_filter=None):
                 continue
             ref_id = row.acceptedNameUsageId
             # this assumes synonyms & co are at the end of the file
-            # if red_id in taxid_node_dict, it means the species node has been created,
+            # if ref_id in taxid_node_dict, it means the species node has been created,
             # and that the current row is a synomyn/basionym/etc... linked to that node
             if ref_id in taxid_node_dict:
                 synonym, created = NsrSynonym.insert_synonym(
-                    session, row.species, row.taxonomicStatus, taxid_node_dict[ref_id].species_id)
+                    session,
+                    row.species,
+                    row.taxonID,
+                    row.taxonomicStatus,
+                    taxid_node_dict[ref_id].id,
+                    taxid_node_dict[ref_id].species_id)
                 if created:
                     synonyms_created += 1
                 else:

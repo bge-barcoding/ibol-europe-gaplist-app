@@ -208,8 +208,6 @@ The "date" arguments are required, and used to update the dates on the "About pa
 
 > **Important**: if you wish to update/commit `target_list.html` generated, and update the online interface 
 > (read [here](#target-list-interfaces))
-> it is important that you update the dates in the `target_list_template.html` as well. Check the commits
-> introducing modifications to that file to see what dates should be modified.
 
 The HTML file `target_list.html` located in `/html/`, can be then opened in the web browser.
 

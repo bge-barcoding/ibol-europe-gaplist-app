@@ -34,6 +34,9 @@ if __name__ == '__main__':
                         help="date of the Naturalis data, to put in the HTML, e.g., January 2024")
     parser.add_argument('--template-ARISE-Westerdijk-date', required=True,
                         help="date of the Westerdijk data, to put in the HTML, e.g., January 2024")
+    parser.add_argument('--all-occ-statuses', action="store_true",
+                        help="use all occurrence statues (instead of 0a to 2)")
+
 
     args = parser.parse_args()
 
@@ -51,7 +54,7 @@ if __name__ == '__main__':
                                        remove_incertae_sedis_rank=True)
 
     coverage_table = add_count_features(session, ete_tree_of_life, max_rank,
-                                                                 args.filter_species)
+                                        args.filter_species, args.all_occ_statuses)
     # convert the table to json using pandas
     df = pd.DataFrame(coverage_table, columns=['nsr_id'] + rank_hierarchy +
                                                                ['rank', 'total_sp', 'sp_w_bc', 'total_bc', 'coverage',
@@ -100,31 +103,52 @@ if __name__ == '__main__':
 
     # compute stats
     if args.filter_species:
-        stats = list(session.query(
-            func.count(distinct(Specimen.id)),
-            func.count(distinct(Barcode.id)),
-            func.count(distinct(Barcode.marker_id)),
-        ).join(Barcode, Barcode.specimen_id == Specimen.id)
-         .join(NsrSpecies, NsrSpecies.id == Specimen.species_id)
-            .filter(
-                and_(
+        if not args.all_occ_statuses:
+            stats = list(session.query(
+                func.count(distinct(Specimen.id)),
+                func.count(distinct(Barcode.id)),
+                func.count(distinct(Barcode.marker_id)),
+            ).join(Barcode, Barcode.specimen_id == Specimen.id)
+             .join(NsrSpecies, NsrSpecies.id == Specimen.species_id)
+                .filter(
+                    and_(
+                        NsrSpecies.canonical_name.not_like("% sp."),
+                        NsrSpecies.occurrence_status.in_(valid_occ_statuses),
+                    )
+                ).one())
+            stats += list(session.query(
+                func.count(distinct(Specimen.id)),
+                func.count(distinct(Barcode.id)),
+                func.count(distinct(Barcode.marker_id)),
+            ).join(Barcode, Barcode.specimen_id == Specimen.id)
+             .join(NsrSpecies, NsrSpecies.id == Specimen.species_id)
+                          .filter(
+                                and_(
+                                    NsrSpecies.canonical_name.not_like("% sp."),
+                                    NsrSpecies.occurrence_status.in_(valid_occ_statuses),
+                                )
+                            )
+                          .filter(Barcode.database.in_([DataSource.NATURALIS, DataSource.WFBI])).one())
+        else:
+            stats = list(session.query(
+                func.count(distinct(Specimen.id)),
+                func.count(distinct(Barcode.id)),
+                func.count(distinct(Barcode.marker_id)),
+            ).join(Barcode, Barcode.specimen_id == Specimen.id)
+             .join(NsrSpecies, NsrSpecies.id == Specimen.species_id)
+                .filter(
                     NsrSpecies.canonical_name.not_like("% sp."),
-                    NsrSpecies.occurrence_status.in_(valid_occ_statuses),
-                )
-            ).one())
-        stats += list(session.query(
-            func.count(distinct(Specimen.id)),
-            func.count(distinct(Barcode.id)),
-            func.count(distinct(Barcode.marker_id)),
-        ).join(Barcode, Barcode.specimen_id == Specimen.id)
-         .join(NsrSpecies, NsrSpecies.id == Specimen.species_id)
-                      .filter(
-                            and_(
-                                NsrSpecies.canonical_name.not_like("% sp."),
+                ).one())
+            stats += list(session.query(
+                func.count(distinct(Specimen.id)),
+                func.count(distinct(Barcode.id)),
+                func.count(distinct(Barcode.marker_id)),
+            ).join(Barcode, Barcode.specimen_id == Specimen.id)
+             .join(NsrSpecies, NsrSpecies.id == Specimen.species_id)
+                          .filter(
                                 NsrSpecies.occurrence_status.in_(valid_occ_statuses),
                             )
-                        )
-                      .filter(Barcode.database.in_([DataSource.NATURALIS, DataSource.WFBI])).one())
+                          .filter(Barcode.database.in_([DataSource.NATURALIS, DataSource.WFBI])).one())
     else:
         stats = list(session.query(
             func.count(distinct(Specimen.id)),

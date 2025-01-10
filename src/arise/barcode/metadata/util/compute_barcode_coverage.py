@@ -30,30 +30,48 @@ def make_ancestors_list(node, max_rank):
     return l
 
 
-def get_species_barcode_count(session, filter_species):
+def get_species_barcode_count(session, filter_species, all_occ_statuses):
     """
         get the number of barcode per species id
     """
     if filter_species:
-        query = (session.query(
-            Specimen.species_id,
-            func.count(),
-            func.sum(case(
-                (Barcode.database.in_([DataSource.NATURALIS, DataSource.WFBI]), 1),  # ARISE barcodes
-                else_=0
-            )),
-            func.sum(case(
-                (Barcode.database.not_in([DataSource.NATURALIS, DataSource.WFBI]), 1),  # Other barcodes
-                else_=0
-            ))
-        ).join(Barcode, Barcode.specimen_id == Specimen.id)
-         .join(NsrSpecies, NsrSpecies.id == Specimen.species_id)
-            .where(
-                and_(
+        if not all_occ_statuses:
+            query = (session.query(
+                Specimen.species_id,
+                func.count(),
+                func.sum(case(
+                    (Barcode.database.in_([DataSource.NATURALIS, DataSource.WFBI]), 1),  # ARISE barcodes
+                    else_=0
+                )),
+                func.sum(case(
+                    (Barcode.database.not_in([DataSource.NATURALIS, DataSource.WFBI]), 1),  # Other barcodes
+                    else_=0
+                ))
+            ).join(Barcode, Barcode.specimen_id == Specimen.id)
+             .join(NsrSpecies, NsrSpecies.id == Specimen.species_id)
+                .where(
+                    and_(
+                        NsrSpecies.canonical_name.not_like("% sp."),
+                        NsrSpecies.occurrence_status.in_(valid_occ_statuses),
+                    )
+                ).group_by(Specimen.species_id))
+        else:
+            query = (session.query(
+                Specimen.species_id,
+                func.count(),
+                func.sum(case(
+                    (Barcode.database.in_([DataSource.NATURALIS, DataSource.WFBI]), 1),  # ARISE barcodes
+                    else_=0
+                )),
+                func.sum(case(
+                    (Barcode.database.not_in([DataSource.NATURALIS, DataSource.WFBI]), 1),  # Other barcodes
+                    else_=0
+                ))
+            ).join(Barcode, Barcode.specimen_id == Specimen.id)
+             .join(NsrSpecies, NsrSpecies.id == Specimen.species_id)
+                .where(
                     NsrSpecies.canonical_name.not_like("% sp."),
-                    NsrSpecies.occurrence_status.in_(valid_occ_statuses),
-                )
-            ).group_by(Specimen.species_id))
+                ).group_by(Specimen.species_id))
     else:
         query = session.query(
             Specimen.species_id,
@@ -70,23 +88,32 @@ def get_species_barcode_count(session, filter_species):
     return {e: [ab, nb, ob] for e, ab, nb, ob in query.all()}
 
 
-def get_specimen_locality(session, filter_species):
+def get_specimen_locality(session, filter_species, all_occ_statuses):
     fix_locality_dict = {
         'USA': "United State of America",
         'United States': "United State of America",
         'Faeroe Islands': 'Faroe Islands'
     }
     if filter_species:
-        query = (session.query(
-            Specimen.species_id,
-            func.group_concat(Specimen.locality.distinct())
-        ).join(NsrSpecies, NsrSpecies.id == Specimen.species_id)
-         .where(
-            and_(
+        if not all_occ_statuses:
+            query = (session.query(
+                Specimen.species_id,
+                func.group_concat(Specimen.locality.distinct())
+            ).join(NsrSpecies, NsrSpecies.id == Specimen.species_id)
+             .where(
+                and_(
+                    NsrSpecies.canonical_name.not_like("% sp."),
+                    NsrSpecies.occurrence_status.in_(valid_occ_statuses)
+                )
+            ).group_by(Specimen.species_id))
+        else:
+            query = (session.query(
+                Specimen.species_id,
+                func.group_concat(Specimen.locality.distinct())
+            ).join(NsrSpecies, NsrSpecies.id == Specimen.species_id)
+             .where(
                 NsrSpecies.canonical_name.not_like("% sp."),
-                NsrSpecies.occurrence_status.in_(valid_occ_statuses)
-            )
-        ).group_by(Specimen.species_id))
+            ).group_by(Specimen.species_id))
     else:
         query = (session.query(
             Specimen.species_id,
@@ -102,20 +129,27 @@ def get_specimen_locality(session, filter_species):
     return d
 
 
-def get_species_occ_status(session, filter_species):
+def get_species_occ_status(session, filter_species, all_occ_statuses):
     query = session.query(
         NsrSpecies.id,
         NsrSpecies.occurrence_status
     )
     if filter_species:
-        (query.join(NsrSpecies, NsrSpecies.id == Specimen.species_id)
-              .where(
-                  and_(
-                      NsrSpecies.canonical_name.not_like("% sp."),
-                      NsrSpecies.occurrence_status.in_(valid_occ_statuses)
+        if not all_occ_statuses:
+            (query.join(NsrSpecies, NsrSpecies.id == Specimen.species_id)
+                  .where(
+                      and_(
+                          NsrSpecies.canonical_name.not_like("% sp."),
+                          NsrSpecies.occurrence_status.in_(valid_occ_statuses)
+                      )
                   )
               )
-          )
+        else:
+            (query.join(NsrSpecies, NsrSpecies.id == Specimen.species_id)
+                  .where(
+                      NsrSpecies.canonical_name.not_like("% sp."),
+                  )
+              )
     return {e: ocs for e, ocs in query.all()}
 
 
@@ -134,17 +168,18 @@ def add_features(node, total_sp, sp_with_bc, sp_with_bc_arise, sp_with_bc_not_ar
 
 
 # does postorder traversal, propagating total species and total barcodes from tips to root
-def add_count_features(session, tree, max_rank, filter_species) -> list:
+def add_count_features(session, tree, max_rank, filter_species, all_occ_statuses) -> list:
     """
     :param session: SQLite session
     :param tree: ETE tree of life
     :param max_rank: the lowest rank level to consider
     :param filter_species: see argument parser description :p
+    :param all_occ_statuses: see argument parser description :p
     :return: Coverage table
     """
-    species_bc_dict = get_species_barcode_count(session, filter_species)
-    specimen_loc_dict = get_specimen_locality(session, filter_species)
-    species_occ_status_dict = get_species_occ_status(session, filter_species)
+    species_bc_dict = get_species_barcode_count(session, filter_species, all_occ_statuses)
+    specimen_loc_dict = get_specimen_locality(session, filter_species, all_occ_statuses)
+    species_occ_status_dict = get_species_occ_status(session, filter_species, all_occ_statuses)
 
     """
     does postorder traversal, propagating total species and total barcodes from tips to root
@@ -183,7 +218,7 @@ def add_count_features(session, tree, max_rank, filter_species) -> list:
 
                 if filter_species and (
                         nsr_node.name.endswith(" sp.") or
-                        occurrence_status not in valid_occ_statuses
+                        ((occurrence_status not in valid_occ_statuses) if not all_occ_statuses else False)
                     ):
                     add_features(node, 0, 0, 0, 0, 0, 0, 0)
                     continue
@@ -273,6 +308,8 @@ if __name__ == '__main__':
                         help="Do not include in the coverage table: "
                              " - <genus> sp. species created by the pipeline or in NSR"
                              " - species with occurrence status not being 0a, 1x or 2x")
+    parser.add_argument('--all-occ-statuses', action="store_true",
+                        help="use all occurrence statues (instead of 0a to 2)")
 
     args = parser.parse_args()
 
@@ -287,5 +324,5 @@ if __name__ == '__main__':
 
     max_rank = 'species'
     ete_tree_of_life = nsr_root.to_ete(session, until_rank=max_rank, remove_empty_rank=True,
-                                       remove_incertae_sedis_rank=True)
-    print(add_count_features(session, ete_tree_of_life, max_rank, args.filter_species))
+                                       remove_incertae_sedis_rank=True, all_occ_status=args.all_occ_statuses)
+    print(add_count_features(session, ete_tree_of_life, max_rank, args.filter_species, args.all_occ_statuses))

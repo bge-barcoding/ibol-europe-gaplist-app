@@ -17,6 +17,9 @@ This section describes how to populate the DB with data from various sources. Th
 6. Query and visualize the database content using Jupyter Lab
 7. Generate the HTML interface and tables
 
+the steps are summarized in the following diagram:
+https://app.diagrams.net/#G1osQ88MxWIJnJZTuG6PlH1Gfgbef230ri#%7B%22pageId%22%3A%22ZA6U4iEFEnMeinx4D3bx%22%7D
+
 ### 1. Initializing a new database
 
 A new, empty SQLite database file that implements the database schema as implied by the object-relational mapping
@@ -213,7 +216,8 @@ The HTML file `target_list.html` located in `/html/`, can be then opened in the 
 
 This script also produces a file `coverage_table_<date>.tsv` in the current working directory. 
 This table contains the information
-presented on the target list HTML table. i.e. the barcodes count for each taxonomic level.
+presented on the target list HTML table. i.e. the barcodes count for each taxonomic level. 
+See the [faq](#faq) to get the link of the strategy diagram that explains how the table is computed.
 
 This table is used by a Naturalis process to update the [official interface](#target-list-interfaces).
 It must be sent to this Gdrive location
@@ -287,7 +291,7 @@ These barcodes come from five different sources:
    - Naturalis Fungi data (Jorinde excel file) - 4.3
    - Westerdijk barcodes - 4.4
    - Nanopore barcodes - 4.5
-   - a (small) part of the BOLD barcodes - 4.1  
+   - a part of the BOLD barcodes - 4.1, the one with 'institution_storing' equals to 'Naturalis Biodiversity Center'
 
 "Other" are all barcodes that are not ARISE.
 
@@ -310,6 +314,11 @@ Example: When parsing the `Taxa.txt` file sequentially, if a species entry has a
 Now, if later during the parsing we found a subspecies entries with OS=`0` we replace the OS.
 Again, later during the parsing, we found another subspecies with an occ. status `1a`,
 then the `1a` is retained.
+
+### How is compared Bold taxon names against NSR names
+
+It is explained, among other processes, in the Strategy Diagram available here:
+https://app.diagrams.net/#G1W2fx_kojLfuWB4rG3W-8gkB0lLj2tG50#%7B%22pageId%22%3A%22qImfoJmsj7zwDUo-WXS4%22%7D
 
 ## TODO
 

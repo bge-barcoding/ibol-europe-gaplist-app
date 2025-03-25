@@ -151,7 +151,8 @@ def load_bold(input_file, kingdom=None, encoding='UTF-8'):
             if row['insdc_acs']:
                 # does it necessary means it was harvested from NCBI?
                 database = DataSource.NCBI
-            if record['institution_storing'] == 'Naturalis Biodiversity Center':
+            if (record['institution_storing'] == 'Naturalis Biodiversity Center' or
+                    (record['catalognum'].startswith("RMNH:") or record['catalognum'].startswith("RMNH."))):
                 database = DataSource.NATURALIS
 
             index = f"{specimen_id}-{database}-{marker.id}-{record['external_id']}"

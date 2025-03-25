@@ -41,7 +41,7 @@ def init_record_fields(row):
             return
 
     # check marker name
-    if row['marker_code']:
+    if row['marker_code'] and row['marker_code'] != "None":
         record['marker'] = row['marker_code']
     else:
         lbd_logger.warning('The marker code is undefined, skip record "%s / %s"' %
@@ -49,8 +49,8 @@ def init_record_fields(row):
         return
 
     # we use process ID as external identifier because it can be resolved for inspection, other fields are for specimens
-    record['sampleid'] = row['sampleid']
-    record['catalognum'] = row['museumid']
+    record['sampleid'] = str(row['sampleid'])
+    record['catalognum'] = str(row['museumid'])
     record['institution_storing'] = row['inst']
     record['identification_provided_by'] = row['identified_by']
     record['locality'] = row['country/ocean']

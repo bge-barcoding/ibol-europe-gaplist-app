@@ -13,11 +13,13 @@ fi
 rm -f data/sqlite/ignored/arise-barcode-metadata.db
 
 # create the database
-python src/arise/barcode/metadata/util/arise_create_barcode_metadata_db.py -outfile data/sqlite/ignored/arise-barcode-metadata.db
+python src/arise/barcode/metadata/util/arise_create_barcode_metadata_db.py \
+  -outfile data/sqlite/ignored/arise-barcode-metadata.db
 
 # fetch the backbone data using curl from:
 # https://raw.githubusercontent.com/bge-barcoding/gaplist-data/refs/heads/main/data/Gap_list_all_updated.csv
-curl -L https://raw.githubusercontent.com/bge-barcoding/gaplist-data/refs/heads/main/data/Gap_list_all_updated.csv -o data/input_files/Gap_list_all_updated.csv
+curl -L https://raw.githubusercontent.com/bge-barcoding/gaplist-data/refs/heads/main/data/Gap_list_all_updated.csv \
+  -o data/input_files/Gap_list_all_updated.csv
 
 # load the backbone data
 python src/arise/barcode/metadata/util/bge_load_targetlist.py \

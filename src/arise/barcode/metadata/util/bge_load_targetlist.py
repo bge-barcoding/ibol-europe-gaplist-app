@@ -284,7 +284,7 @@ def process_record(
     ]
 
     # Start with kingdom Animalia
-    parent_id = animalia_node['id']
+    parent_id = animalia_node.id
     classification = {'kingdom': 'Animalia'}
 
     # Process each level in the taxonomic hierarchy
@@ -341,7 +341,8 @@ def get_or_create_species(session: Session, data: List[Dict[str, str]]) -> Dict[
             session.add(species)
             session.flush()
         else:
-            raise ValueError(f"Species already exists: {species_name}")
+            logger.error(f"Species already exists: {species_name}")
+            continue
 
         species_map[species_name] = species.id
         if len(species_map) % 1000 == 0:

@@ -300,7 +300,7 @@ def process_record(
         species_id = None
         if level['rank'] == 'species':
             species_id = species_map.get(species_name)
-            logger.info(f"Inserting species: {species_name}")
+            logger.debug(f"Inserting species: {species_name}")
 
         # Get or create node
         node = get_or_create_taxonomic_node(
@@ -437,8 +437,12 @@ def main() -> None:
         species_map = get_or_create_species(session, data)
 
         # Build taxonomic tree
+        i = 1
         for record in data:
             process_record(session, record, animalia_node, species_map)
+            if i % 1000 == 0:
+                logger.info(f"Processed {i} records")
+            i += 1
 
         # Compute tree indexes
         compute_tree_indexes(session)

@@ -13,11 +13,7 @@ from typing import Dict, List, Optional, Tuple, Set
 
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker, Session
-
-# Import ORM models
-from orm.nsr_species import NsrSpecies
-from orm.nsr_node import NsrNode
-from orm.common import Base
+from sqlalchemy.orm.session import close_all_sessions
 
 # Configure logging
 logging.basicConfig(
@@ -28,6 +24,11 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger('taxonomy_importer')
+
+# Import only what we need directly
+from orm.common import Base
+from orm.nsr_species import NsrSpecies
+from orm.nsr_node import NsrNode
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -40,7 +41,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument('--db', type=str, required=True, help='Path to SQLite database file')
     parser.add_argument('--input', type=str, required=True, help='Path to input CSV file')
     parser.add_argument('--delimiter', type=str, default=';', help='CSV delimiter (default: ;)')
-    parser.add_argument('--encoding', type=str, default='latin-1', help='Force specific file encoding (e.g., latin-1, utf-8)')
+    parser.add_argument('--encoding', type=str, help='Force specific file encoding (e.g., latin-1, utf-8)')
     parser.add_argument('--log-level', type=str, default='INFO',
                         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help='Set logging level')
@@ -54,9 +55,18 @@ def setup_database(db_path: str) -> Session:
     :param db_path: Path to SQLite database file
     :return: SQLAlchemy session
     """
+    # Close any existing sessions to avoid conflicts
+    close_all_sessions()
+
+    # Connect to the database
     engine = create_engine(f'sqlite:///{db_path}')
-    Session = sessionmaker(bind=engine)
-    return Session()
+
+    # Create session
+    SessionMaker = sessionmaker(bind=engine)
+    session = SessionMaker()
+
+    # No need to create tables as they should already exist
+    return session
 
 
 def read_csv_data(file_path: str, delimiter: str = ';', forced_encoding: str = None) -> List[Dict[str, str]]:
@@ -123,21 +133,23 @@ def create_initial_nodes(session: Session) -> Tuple[NsrNode, NsrNode]:
     :param session: SQLAlchemy session
     :return: Tuple of (root_node, animalia_node)
     """
-    # Check for root node (id=1)
-    root_node = session.query(NsrNode).filter(NsrNode.id == 1).first()
-    if not root_node:
+    # Use direct SQL queries to avoid relationship loading
+    result = session.execute("SELECT id, name, parent, rank FROM node WHERE id = 1").first()
+
+    if not result:
         logger.info("Creating root node")
         root_node = NsrNode(id=1, name='root', parent=0, rank='life')
         session.add(root_node)
         session.flush()
+    else:
+        root_id, root_name, root_parent, root_rank = result
+        root_node = NsrNode(id=root_id, name=root_name, parent=root_parent, rank=root_rank)
 
     # Check for Animalia node
-    animalia_node = session.query(NsrNode).filter(
-        NsrNode.name == 'Animalia',
-        NsrNode.rank == 'kingdom'
-    ).first()
+    result = session.execute(
+        "SELECT id, name, parent, rank, kingdom FROM node WHERE name = 'Animalia' AND rank = 'kingdom'").first()
 
-    if not animalia_node:
+    if not result:
         logger.info("Creating Animalia node")
         animalia_node = NsrNode(
             name='Animalia',
@@ -147,6 +159,10 @@ def create_initial_nodes(session: Session) -> Tuple[NsrNode, NsrNode]:
         )
         session.add(animalia_node)
         session.flush()
+    else:
+        anim_id, anim_name, anim_parent, anim_rank, anim_kingdom = result
+        animalia_node = NsrNode(id=anim_id, name=anim_name, parent=anim_parent,
+                                rank=anim_rank, kingdom=anim_kingdom)
 
     return root_node, animalia_node
 
@@ -164,7 +180,7 @@ def get_or_create_taxonomic_node(
         family: Optional[str] = None,
         genus: Optional[str] = None,
         species: Optional[str] = None
-) -> NsrNode:
+) -> Dict:
     """
     Look up or create a node at a specific taxonomic level.
 
@@ -180,57 +196,95 @@ def get_or_create_taxonomic_node(
     :param family: Family name
     :param genus: Genus name
     :param species: Species name
-    :return: Node object
+    :return: Dictionary with node information
     """
-    # Query based on classification fields
-    query = session.query(NsrNode)
+    # Build query conditions for SQL
+    conditions = ["rank = ?"]
+    params = [rank]
 
     if kingdom:
-        query = query.filter(NsrNode.kingdom == kingdom)
+        conditions.append("kingdom = ?")
+        params.append(kingdom)
     if phylum:
-        query = query.filter(NsrNode.phylum == phylum)
+        conditions.append("phylum = ?")
+        params.append(phylum)
     if t_class:
-        query = query.filter(NsrNode.t_class == t_class)
+        conditions.append("\"class\" = ?")
+        params.append(t_class)
     if order:
-        query = query.filter(NsrNode.order == order)
+        conditions.append("\"order\" = ?")
+        params.append(order)
     if family:
-        query = query.filter(NsrNode.family == family)
+        conditions.append("family = ?")
+        params.append(family)
     if genus:
-        query = query.filter(NsrNode.genus == genus)
+        conditions.append("genus = ?")
+        params.append(genus)
     if species:
-        query = query.filter(NsrNode.species == species)
+        conditions.append("species = ?")
+        params.append(species)
 
-    # Add rank filter
-    query = query.filter(NsrNode.rank == rank)
+    # Build the query
+    query = f"SELECT id FROM node WHERE {' AND '.join(conditions)}"
 
     # Check if node exists
-    node = query.first()
+    result = session.execute(query, params).first()
 
-    if not node:
+    if not result:
         logger.debug(f"Creating {rank}: {name}")
-        node = NsrNode(
-            name=name,
-            parent=parent_id,
-            rank=rank,
-            species_id=species_id,
-            kingdom=kingdom,
-            phylum=phylum,
-            t_class=t_class,
-            order=order,
-            family=family,
-            genus=genus,
-            species=species
-        )
-        session.add(node)
-        session.flush()
 
-    return node
+        # Build columns and values for insert
+        columns = ["name", "parent", "rank"]
+        values = [name, parent_id, rank]
+
+        if species_id is not None:
+            columns.append("species_id")
+            values.append(species_id)
+        if kingdom:
+            columns.append("kingdom")
+            values.append(kingdom)
+        if phylum:
+            columns.append("phylum")
+            values.append(phylum)
+        if t_class:
+            columns.append("\"class\"")
+            values.append(t_class)
+        if order:
+            columns.append("\"order\"")
+            values.append(order)
+        if family:
+            columns.append("family")
+            values.append(family)
+        if genus:
+            columns.append("genus")
+            values.append(genus)
+        if species:
+            columns.append("species")
+            values.append(species)
+
+        # Execute insert
+        placeholders = ", ".join(["?" for _ in values])
+        insert_query = f"INSERT INTO node ({', '.join(columns)}) VALUES ({placeholders}) RETURNING id"
+        result = session.execute(insert_query, values).first()
+
+        if not result:
+            # Fallback if RETURNING is not supported
+            insert_query = f"INSERT INTO node ({', '.join(columns)}) VALUES ({placeholders})"
+            session.execute(insert_query, values)
+            result = session.execute("SELECT last_insert_rowid()").first()
+
+        node_id = result[0]
+    else:
+        node_id = result[0]
+
+    # Return node as dictionary
+    return {"id": node_id, "name": name, "rank": rank, "parent": parent_id}
 
 
 def process_record(
         session: Session,
         record: Dict[str, str],
-        animalia_node: NsrNode,
+        animalia_node: Dict,
         species_map: Dict[str, int]
 ) -> None:
     """
@@ -238,7 +292,7 @@ def process_record(
 
     :param session: SQLAlchemy session
     :param record: Record dictionary from CSV
-    :param animalia_node: Animalia node
+    :param animalia_node: Animalia node dictionary
     :param species_map: Map of species names to species_id
     """
     species_name = record['species'].strip()
@@ -255,7 +309,7 @@ def process_record(
     ]
 
     # Start with kingdom Animalia
-    parent_id = animalia_node.id
+    parent_id = animalia_node['id']
     classification = {'kingdom': 'Animalia'}
 
     # Process each level in the taxonomic hierarchy
@@ -283,7 +337,7 @@ def process_record(
         )
 
         # Update parent_id for next level
-        parent_id = node.id
+        parent_id = node['id']
 
 
 def get_or_create_species(session: Session, data: List[Dict[str, str]]) -> Dict[str, int]:
@@ -299,18 +353,33 @@ def get_or_create_species(session: Session, data: List[Dict[str, str]]) -> Dict[
     for record in data:
         species_name = record['species'].strip()
 
-        # Check if species already exists
-        species = session.query(NsrSpecies).filter(
-            NsrSpecies.canonical_name == species_name
+        # Check if species already exists using direct SQL
+        result = session.execute(
+            "SELECT id FROM nsr_species WHERE canonical_name = ?",
+            (species_name,)
         ).first()
 
-        if not species:
+        if not result:
             logger.debug(f"Creating species: {species_name}")
-            species = NsrSpecies(canonical_name=species_name)
-            session.add(species)
-            session.flush()
+            # Insert species record
+            result = session.execute(
+                "INSERT INTO nsr_species (canonical_name) VALUES (?) RETURNING id",
+                (species_name,)
+            ).first()
 
-        species_map[species_name] = species.id
+            if not result:
+                # Fallback if RETURNING is not supported
+                session.execute(
+                    "INSERT INTO nsr_species (canonical_name) VALUES (?)",
+                    (species_name,)
+                )
+                result = session.execute("SELECT last_insert_rowid()").first()
+
+            species_id = result[0]
+        else:
+            species_id = result[0]
+
+        species_map[species_name] = species_id
 
     logger.info(f"Processed {len(species_map)} species")
     return species_map
@@ -324,11 +393,13 @@ def compute_tree_indexes(session: Session) -> None:
     """
     logger.info("Computing tree indexes")
 
-    # Get root node
-    root = session.query(NsrNode).filter(NsrNode.id == 1).first()
-    if not root:
+    # Get root node using direct SQL
+    result = session.execute("SELECT id FROM node WHERE id = 1").first()
+    if not result:
         logger.error("Root node not found")
         return
+
+    root_id = result[0]
 
     # Compute indexes recursively
     counter = [1]  # Use list to allow modification in nested function
@@ -340,33 +411,33 @@ def compute_tree_indexes(session: Session) -> None:
         :param node_id: Current node ID
         :return: Next index after processing
         """
-        # Get current node
-        node = session.query(NsrNode).filter(NsrNode.id == node_id).first()
-        if not node:
+        # Get current node using direct SQL
+        node_result = session.execute("SELECT id FROM node WHERE id = ?", (node_id,)).first()
+        if not node_result:
             return counter[0]
 
         # Set left index (pre-order)
-        node.left = counter[0]
+        session.execute("UPDATE node SET \"left\" = ? WHERE id = ?", (counter[0], node_id))
         counter[0] += 1
 
         # Process children
-        children = session.query(NsrNode).filter(NsrNode.parent == node_id).all()
+        children_results = session.execute("SELECT id FROM node WHERE parent = ?", (node_id,)).fetchall()
 
-        if not children:
+        if not children_results:
             # Leaf node - left equals right
-            node.right = node.left
+            session.execute("UPDATE node SET \"right\" = \"left\" WHERE id = ?", (node_id,))
         else:
-            for child in children:
-                traverse(child.id)
+            for child_result in children_results:
+                traverse(child_result[0])
 
             # Set right index (post-order)
-            node.right = counter[0]
+            session.execute("UPDATE node SET \"right\" = ? WHERE id = ?", (counter[0], node_id))
             counter[0] += 1
 
         return counter[0]
 
     # Start traversal from root
-    traverse(root.id)
+    traverse(root_id)
     session.commit()
 
     logger.info(f"Computed tree indexes up to {counter[0]}")

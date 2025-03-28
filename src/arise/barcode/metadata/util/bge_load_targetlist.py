@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Script to import taxonomic data into the database schema.
 Builds a hierarchical taxonomic tree and computes nested set indexes.

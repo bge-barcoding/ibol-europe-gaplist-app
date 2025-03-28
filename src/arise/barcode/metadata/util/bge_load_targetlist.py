@@ -40,6 +40,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument('--db', type=str, required=True, help='Path to SQLite database file')
     parser.add_argument('--input', type=str, required=True, help='Path to input CSV file')
     parser.add_argument('--delimiter', type=str, default=';', help='CSV delimiter (default: ;)')
+    parser.add_argument('--encoding', type=str, default='latin-1', help='Force specific file encoding (e.g., latin-1, utf-8)')
     parser.add_argument('--log-level', type=str, default='INFO',
                         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help='Set logging level')
@@ -58,24 +59,45 @@ def setup_database(db_path: str) -> Session:
     return Session()
 
 
-def read_csv_data(file_path: str, delimiter: str = ';') -> List[Dict[str, str]]:
+def read_csv_data(file_path: str, delimiter: str = ';', forced_encoding: str = None) -> List[Dict[str, str]]:
     """
     Read and parse CSV input file.
 
     :param file_path: Path to input CSV file
     :param delimiter: CSV delimiter character
+    :param forced_encoding: Optional specific encoding to use
     :return: List of dictionaries representing rows
     """
-    data = []
-    with open(file_path, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f, delimiter=delimiter)
-        for row in reader:
-            # Skip rows that only have the family name
-            if row['species'] and '.' not in row['species'] and row['Phylum']:
-                data.append(row)
+    # If encoding is specified, use only that one
+    if forced_encoding:
+        encodings = [forced_encoding]
+    else:
+        encodings = ['utf-8', 'latin-1', 'windows-1252', 'iso-8859-1']
 
-    logger.info(f"Read {len(data)} valid records from {file_path}")
-    return data
+    last_error = None
+    for encoding in encodings:
+        try:
+            data = []
+            with open(file_path, 'r', encoding=encoding) as f:
+                reader = csv.DictReader(f, delimiter=delimiter)
+                for row in reader:
+                    # Skip rows that only have the family name
+                    if row.get('species') and '.' not in row['species'] and row.get('Phylum'):
+                        data.append(row)
+
+            logger.info(f"Read {len(data)} valid records from {file_path} using {encoding} encoding")
+            return data
+        except UnicodeDecodeError as e:
+            last_error = e
+            logger.warning(f"Failed to read file with {encoding} encoding, trying next...")
+        except KeyError as e:
+            logger.error(f"CSV file has incorrect headers. Expected 'species' and 'Phylum' columns. Error: {e}")
+            raise ValueError(f"CSV file has incorrect headers. Expected 'species' and 'Phylum' columns.")
+
+    # If all encodings fail
+    logger.error(f"Unable to read {file_path} with any of the attempted encodings: {encodings}")
+    logger.error(f"Last error: {last_error}")
+    raise ValueError(f"Unable to read {file_path} with any of the attempted encodings: {encodings}")
 
 
 def extract_genus(species_name: str) -> str:
@@ -370,7 +392,7 @@ def main() -> None:
 
     try:
         # Read CSV data
-        data = read_csv_data(args.input, args.delimiter)
+        data = read_csv_data(args.input, args.delimiter, args.encoding)
 
         # Create initial nodes
         root_node, animalia_node = create_initial_nodes(session)

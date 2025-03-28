@@ -376,6 +376,9 @@ def compute_tree_indexes(session: Session) -> None:
         :param node_id: Current node ID
         :return: Next index after processing
         """
+        if counter[0] % 1000 == 0:
+            logger.info(f"Processed {counter[0]} nodes")
+
         # Get current node using ORM
         node = session.query(NsrNode).filter(NsrNode.id == node_id).first()
         if not node:
@@ -390,7 +393,7 @@ def compute_tree_indexes(session: Session) -> None:
 
         if not children:
             # Leaf node - left equals right
-            node.right = node.left
+                node.right = node.left
         else:
             for child in children:
                 traverse(child.id)

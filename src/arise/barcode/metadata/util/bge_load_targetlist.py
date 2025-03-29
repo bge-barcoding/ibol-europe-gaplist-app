@@ -93,7 +93,7 @@ def read_csv_data(file_path: str, delimiter: str = ';', forced_encoding: str = N
                 reader = csv.DictReader(f, delimiter=delimiter)
                 for row in reader:
                     # Skip rows that only have the family name
-                    if row.get('species') and '.' not in row['species'] and row.get('Phylum'):
+                    if row.get('species') and row.get('Phylum'):
                         data.append(row)
 
             logger.info(f"Read {len(data)} valid records from {file_path} using {encoding} encoding")

@@ -27,3 +27,8 @@ python src/arise/barcode/metadata/util/bge_load_targetlist.py \
   --input data/input_files/Gap_list_all_updated.csv \
   --delimiter ";" \
   --log-level DEBUG
+
+# fetch the synonyms data using curl from:
+# https://raw.githubusercontent.com/bge-barcoding/gaplist-data/refs/heads/main/data/all_specs_and_syn.csv
+curl -L https://raw.githubusercontent.com/bge-barcoding/gaplist-data/refs/heads/main/data/all_specs_and_syn.csv \
+  -o data/input_files/all_specs_and_syn.csv

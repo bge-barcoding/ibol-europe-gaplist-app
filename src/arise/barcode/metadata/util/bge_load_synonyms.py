@@ -228,6 +228,8 @@ def clean_taxonomic_name(name: str) -> str:
         r' sl\.',
         r' s\.s\.',
         r' parth\.',
+        r' \(bisex\. Form\)',
+        r' \(parth\. Form\)',
         r'"',
         r' \?',
         r','

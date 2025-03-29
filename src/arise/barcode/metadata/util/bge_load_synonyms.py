@@ -11,6 +11,7 @@ import re
 import sys
 from typing import Dict, List, Optional, Set, Tuple
 
+import chardet
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.orm.session import close_all_sessions
@@ -30,6 +31,8 @@ from orm.common import Base
 from orm.nsr_species import NsrSpecies
 from orm.nsr_node import NsrNode
 from orm.nsr_synonym import NsrSynonym
+from orm.specimen import Specimen
+from orm.barcode import Barcode
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -70,27 +73,31 @@ def setup_database(db_path: str) -> Session:
     return session
 
 
-def read_synonym_data(file_path: str, delimiter: str = ';', forced_encoding: str = None) -> List[List[str]]:
+def read_synonym_data(
+        file_path: str,
+        delimiter: str = ';',
+        forced_encoding: str = None,
+        confidence_threshold: float = 0.7
+) -> List[List[str]]:
     """
     Read and parse input file with canonical names and synonyms.
+    Handles mixed encodings on a field-by-field basis.
 
     :param file_path: Path to input file
     :param delimiter: Field delimiter character
     :param forced_encoding: Optional specific encoding to use
+    :param confidence_threshold: Minimum confidence for encoding detection
     :return: List of lines, each containing a list of names
     """
-    # If encoding is specified, use only that one
-    if forced_encoding:
-        encodings = [forced_encoding]
-    else:
-        encodings = ['utf-8', 'latin-1', 'windows-1252', 'iso-8859-1']
+    # Define default encodings to try if detection fails
+    fallback_encodings = ['utf-8', 'latin-1', 'windows-1252', 'iso-8859-1']
+    delimiter_byte = delimiter.encode('ascii')  # Since delimiter is ASCII, this is safe
 
-    last_error = None
-    for encoding in encodings:
+    # If encoding is specified, use only that one for the whole file
+    if forced_encoding:
         try:
-            data = []
-            with open(file_path, 'r', encoding=encoding) as f:
-                # Read lines directly since the file is not a standard CSV
+            with open(file_path, 'r', encoding=forced_encoding) as f:
+                data = []
                 for line in f:
                     # Split by delimiter and strip whitespace
                     names = [name.strip() for name in line.strip().split(delimiter)]
@@ -99,16 +106,97 @@ def read_synonym_data(file_path: str, delimiter: str = ';', forced_encoding: str
                     if names:  # Only add non-empty lines
                         data.append(names)
 
-            logger.info(f"Read {len(data)} records from {file_path} using {encoding} encoding")
+            logger.info(f"Read {len(data)} records from {file_path} using {forced_encoding} encoding")
             return data
         except UnicodeDecodeError as e:
-            last_error = e
-            logger.warning(f"Failed to read file with {encoding} encoding, trying next...")
+            logger.warning(f"Failed to read file with {forced_encoding} encoding: {e}")
+            logger.info("Falling back to mixed encoding detection")
 
-    # If all encodings fail
-    logger.error(f"Unable to read {file_path} with any of the attempted encodings: {encodings}")
-    logger.error(f"Last error: {last_error}")
-    raise ValueError(f"Unable to read {file_path} with any of the attempted encodings: {encodings}")
+    # If no forced encoding or it failed, try mixed encoding approach
+    try:
+        with open(file_path, 'rb') as f:
+            binary_content = f.read()
+
+        # Split binary content into lines
+        if b'\r\n' in binary_content:
+            binary_lines = binary_content.split(b'\r\n')
+        else:
+            binary_lines = binary_content.split(b'\n')
+
+        data = []
+        line_count = 0
+
+        for binary_line in binary_lines:
+            line_count += 1
+            if not binary_line:  # Skip empty lines
+                continue
+
+            process_line(binary_line, confidence_threshold, data, delimiter_byte, fallback_encodings, line_count)
+
+        logger.info(f"Read {len(data)} records from {file_path} using mixed encoding detection")
+        return data
+
+    except Exception as e:
+        logger.error(f"Error reading file with mixed encoding approach: {str(e)}")
+        raise ValueError(f"Unable to read {file_path} with mixed encoding approach: {str(e)}")
+
+
+def process_line(binary_line, confidence_threshold, data, delimiter_byte, fallback_encodings, line_count):
+    """
+    Process a single line of binary data, attempting to decode it with various encodings.
+
+    :param binary_line: Binary line to process
+    :param confidence_threshold: Minimum confidence for encoding detection
+    :param data: List to append decoded fields
+    :param delimiter_byte: Byte representation of the delimiter
+    :param fallback_encodings: List of fallback encodings to try
+    :param line_count: Current line number for logging
+    """
+    # Split line by delimiter
+    binary_fields = binary_line.split(delimiter_byte)
+    decoded_fields = []
+    for binary_field in binary_fields:
+        if not binary_field:  # Skip empty fields
+            continue
+
+        # Use chardet to detect encoding
+        detection = chardet.detect(binary_field)
+        detected_encoding = detection['encoding']
+        confidence = detection['confidence']
+
+        if detected_encoding and confidence >= confidence_threshold:
+            try:
+                decoded_field = binary_field.decode(detected_encoding).strip()
+                logger.debug(
+                    f"Line {line_count}, Field decoded with {detected_encoding} (confidence: {confidence:.2f})")
+            except UnicodeDecodeError:
+                logger.debug(
+                    f"Line {line_count}, Failed to decode with detected encoding {detected_encoding}, trying fallbacks")
+                decoded_field = None
+        else:
+            logger.debug(f"Line {line_count}, Low detection confidence ({confidence:.2f}), trying fallbacks")
+            decoded_field = None
+
+        # If detection failed or had low confidence, try fallback encodings
+        if decoded_field is None:
+            for encoding in fallback_encodings:
+                try:
+                    decoded_field = binary_field.decode(encoding).strip()
+                    logger.debug(f"Line {line_count}, Field decoded with fallback {encoding}")
+                    break
+                except UnicodeDecodeError:
+                    continue
+
+        # If all encodings failed, use 'replace' error handler with utf-8
+        if decoded_field is None:
+            decoded_field = binary_field.decode('utf-8', errors='replace').strip()
+            logger.warning(
+                f"Line {line_count}, Field decoded with utf-8 and 'replace' after all attempts failed")
+
+        if decoded_field:
+            decoded_fields.append(decoded_field)
+    if decoded_fields:  # Only add non-empty lines
+        data.append(decoded_fields)
 
 
 def clean_taxonomic_name(name: str) -> str:
@@ -131,11 +219,17 @@ def clean_taxonomic_name(name: str) -> str:
         r' sp\.',
         r' ssp\.',
         r' form ',
+        r' cfr\. ',
+        r' aff\. ',
+        r' pr\. ',
+        r' gr\. ',
         r' s\. lato',
         r' s\.l\.',
+        r' sl\.',
         r' s\.s\.',
+        r' parth\.',
         r'"',
-        r'\?',
+        r' \?',
         r','
     ]
 

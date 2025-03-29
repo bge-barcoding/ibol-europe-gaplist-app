@@ -138,35 +138,57 @@ def import_specimens(session: Session, data: pd.DataFrame) -> Tuple[int, int]:
     """
     total_specimens = 0
     created_specimens = 0
+    animal_phyla = { 'Annelida', 'Arthropoda', 'Brachiopoda', 'Bryozoa', 'Chordata', 'Cnidaria', 'Ctenophora',
+                     'Echinodermata', 'Mollusca', 'Nematoda', 'Nemertea', 'Platyhelminthes', 'Porifera', 'Rotifera'
+                     'Xenacoelomorpha'}
 
     for _, row in data.iterrows():
         try:
             total_specimens += 1
 
-            # Get required fields
+            # Get taxonomy information
+            phylum = row.get('Phylum', '')
+            if phylum not in animal_phyla:
+                logger.info(f"Phylum '{phylum}' are not animals, skipping")
+                continue
+
+            # Get species name
+            species_name = row.get('Species', '')
+
+            # Get sample ID
             sample_id = row['Sample ID']
+
+            # Check if species name is NaN or empty
+            if pd.isna(species_name) or species_name == '':
+                logger.info(f"No species name provided for Sample ID: {sample_id}, skipping")
+                continue
+
+            # Convert to string to ensure proper handling, check string for sp. suffix
+            species_name = str(species_name).strip()
+            if species_name.endswith(' sp.'):
+                logger.info(f"Not a true species identification (ends with sp.): {sample_id}, skipping")
+                continue
+
+            # Find species_id
+            species_id = find_species_id_by_name(session, species_name)
+            if not species_id:
+                logger.warning(f"Could not find species_id for '{species_name} ({phylum})', skipping {sample_id}")
+                continue
 
             # For catalognum, use Museum ID if available, otherwise use Field ID
             museum_id = row.get('Museum ID')
             field_id = row.get('Field ID')
             catalog_num = museum_id if pd.notna(museum_id) and museum_id else field_id
 
+            # Check if catalog_num is NaN or empty
+            if pd.isna(catalog_num) or catalog_num == '':
+                catalog_num = sample_id # BGE_00445_D05
+
             institution_storing = row.get('Institution Storing', '')
             identifier = row.get('Identifier', '')
 
             # Set locality to 'BGE' as required
             locality = 'BGE'
-
-            # Get species name and find species_id
-            species_name = row.get('Species', '')
-            if not species_name:
-                logger.warning(f"Missing species name for Sample ID: {sample_id}, skipping")
-                continue
-
-            species_id = find_species_id_by_name(session, species_name)
-            if not species_id:
-                logger.warning(f"Could not find species_id for '{species_name}', skipping Sample ID: {sample_id}")
-                continue
 
             # Create or get specimen
             specimen, created = Specimen.get_or_create_specimen(

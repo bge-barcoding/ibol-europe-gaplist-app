@@ -327,6 +327,7 @@ def get_or_create_species(session: Session, data: List[Dict[str, str]]) -> Dict[
 
     for record in data:
         species_name = record['species'].strip()
+        source = record['source'].strip()
 
         # Check if species already exists using ORM
         species = session.query(NsrSpecies).filter(

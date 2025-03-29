@@ -266,10 +266,12 @@ def process_subgenus_variants(clean_name: str) -> Set[str]:
         subgenus_part = clean_name.split('(')[1].split(')')[0].strip()
         species_part = clean_name.split(')')[-1].strip()
 
-        # Create variants
-        variants.add(f"{genus_part} {species_part}".strip())
-        variants.add(f"{subgenus_part} {species_part}".strip())
-        variants.add(clean_name.strip())
+        # Create variants, avoid empty strings, e.g. when `Apterona crenulella (bisex. Form)`
+        # to avoid constructing the garbled `bisex. Form` to be added as a variant
+        if genus_part and species_part:
+            variants.add(f"{genus_part} {species_part}".strip())
+        if subgenus_part and species_part:
+            variants.add(f"{subgenus_part} {species_part}".strip())
 
     return variants
 

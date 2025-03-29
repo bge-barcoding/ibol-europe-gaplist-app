@@ -80,11 +80,12 @@ def load_data(voucher_path: str, taxonomy_path: str, delimiter: str = '\t') -> p
     """
     try:
         # Load voucher data
-        voucher_df = pd.read_csv(voucher_path, delimiter=delimiter)
+        voucher_df = pd.read_csv(voucher_path, delimiter=delimiter, low_memory=False)
         logger.info(f"Loaded {len(voucher_df)} records from voucher file: {voucher_path}")
 
         # Load taxonomy data
-        taxonomy_df = pd.read_csv(taxonomy_path, delimiter=delimiter)
+        # Set low_memory=False to avoid DtypeWarning for mixed types in column 9
+        taxonomy_df = pd.read_csv(taxonomy_path, delimiter=delimiter, low_memory=False)
         logger.info(f"Loaded {len(taxonomy_df)} records from taxonomy file: {taxonomy_path}")
 
         # Join the dataframes on Sample ID
@@ -124,7 +125,6 @@ def find_species_id_by_name(session: Session, species_name: str) -> Optional[int
         logger.debug(f"Found synonym match for '{species_name}' in NsrSynonym: species_id={synonym.species_id}")
         return synonym.species_id
 
-    logger.warning(f"No match found for species name: '{species_name}'")
     return None
 
 

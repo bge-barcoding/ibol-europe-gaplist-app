@@ -246,7 +246,7 @@ def clean_taxonomic_name(name: str) -> str:
     return cleaned_name
 
 
-def process_subgenus_variants(name: str) -> Set[str]:
+def process_subgenus_variants(clean_name: str) -> Set[str]:
     """
     Generate variants for names with subgenus notation.
 
@@ -254,11 +254,10 @@ def process_subgenus_variants(name: str) -> Set[str]:
     - "Genus species"
     - "Genus subgenus"
 
-    :param name: Original species name
+    :param clean_name: Original species name
     :return: Set of name variants
     """
-    # First clean the name
-    clean_name = clean_taxonomic_name(name)
+    # Begin the set
     variants = {clean_name}
 
     if '(' in clean_name and ')' in clean_name:
@@ -270,6 +269,7 @@ def process_subgenus_variants(name: str) -> Set[str]:
         # Create variants
         variants.add(f"{genus_part} {species_part}".strip())
         variants.add(f"{subgenus_part} {species_part}".strip())
+        variants.add(clean_name.strip())
 
     return variants
 
@@ -292,19 +292,20 @@ def build_synonym_map(data: List[List[str]]) -> Dict[str, Set[str]]:
         if not canonical_name:
             continue
 
-        # Clean and collect all synonyms from the line
+        # Create a full set of clean and dirty names, including canonical
         synonyms = set()
         for name in line:
+            synonyms.add(name) # Store the verbatim name
             cleaned_name = clean_taxonomic_name(name)
-            if cleaned_name:
+            if cleaned_name and cleaned_name != name:
                 synonyms.add(cleaned_name)
 
-        # Add subgenus variants
+        # Make all variants of the _Genus (Subgenus) species_ pattern
         all_variants = set()
         for name in synonyms:
             all_variants.update(process_subgenus_variants(name))
 
-        # Update synonym map
+        # If the canonical name is already in the map, update its synonyms
         if canonical_name in synonym_map:
             synonym_map[canonical_name].update(all_variants)
         else:
@@ -314,12 +315,13 @@ def build_synonym_map(data: List[List[str]]) -> Dict[str, Set[str]]:
     return synonym_map
 
 
-def get_species_id(session: Session, canonical_name: str) -> Optional[int]:
+def get_species_id(session: Session, canonical_name: str, warn_if_not_found: bool=True) -> Optional[int]:
     """
     Get species ID for a canonical name.
 
     :param session: SQLAlchemy session
     :param canonical_name: Canonical species name
+    :param warn_if_not_found: Whether to log a warning if the name is not found
     :return: Species ID or None if not found
     """
     species = session.query(NsrSpecies).filter(
@@ -329,7 +331,8 @@ def get_species_id(session: Session, canonical_name: str) -> Optional[int]:
     if species:
         return species.id
     else:
-        logger.warning(f"Canonical name not found in nsr_species: {canonical_name}")
+        if warn_if_not_found:
+            logger.info(f"Canonical name not found in nsr_species: {canonical_name}")
         return None
 
 
@@ -368,9 +371,20 @@ def insert_synonyms(
     created_synonyms = 0
 
     for canonical_name, synonyms in synonym_map.items():
+
         # Get species_id for canonical name
         species_id = get_species_id(session, canonical_name)
         if not species_id:
+
+            # Try to find species_id for each synonym
+            for synonym in synonyms:
+                species_id = get_species_id(session, synonym, warn_if_not_found=False)
+                if species_id:
+                    logger.info(f"Found species_id {species_id} for synonym {synonym}")
+                    break
+
+        if not species_id:
+            logger.warning(f"Species ID not found for canonical name {canonical_name} or any of {synonyms}")
             continue
 
         # Get node_id for species_id

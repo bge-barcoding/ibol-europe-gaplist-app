@@ -209,7 +209,7 @@ def clean_taxonomic_name(name: str) -> str:
     # Define patterns to remove
     patterns = [
         r' f\. ',
-        r' var\. ',
+        r' var\.',
         r' cf\. ',
         r' \[.+\] ',
         r' group',
@@ -269,7 +269,7 @@ def process_subgenus_variants(name: str) -> Set[str]:
 
         # Create variants
         variants.add(f"{genus_part} {species_part}".strip())
-        variants.add(f"{genus_part} {subgenus_part}".strip())
+        variants.add(f"{subgenus_part} {species_part}".strip())
 
     return variants
 

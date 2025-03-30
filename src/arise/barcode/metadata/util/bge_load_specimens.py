@@ -187,7 +187,9 @@ def import_specimens(session: Session, data: pd.DataFrame) -> Tuple[int, int]:
             institution_storing = row.get('Institution Storing', '')
             identifier = row.get('Identifier', '')
 
-            # Set locality to 'BGE' as required
+            # Set locality to 'BGE'. The barcodes that are going to map against the
+            # target list from public snapshots but that are from other specimens
+            # will be annotated as 'BOLD'.
             locality = 'BGE'
 
             # Create or get specimen

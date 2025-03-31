@@ -30,7 +30,7 @@ python src/arise/barcode/metadata/util/bge_load_targetlist.py \
   --db data/sqlite/ignored/arise-barcode-metadata.db \
   --input data/input_files/Gap_list_all_updated.csv \
   --delimiter ";" \
-  --log-level DEBUG
+  --log-level INFO
 
 # fetch the synonyms data using curl from:
 # https://raw.githubusercontent.com/bge-barcoding/gaplist-data/refs/heads/main/data/all_specs_and_syn.csv
@@ -42,7 +42,7 @@ python src/arise/barcode/metadata/util/bge_load_synonyms.py \
   --db data/sqlite/ignored/arise-barcode-metadata.db \
   --input data/input_files/all_specs_and_syn.csv \
   --delimiter ";" \
-  --log-level DEBUG
+  --log-level INFO
 
 # fetch the BOLD taxonomy data (for Species, Identifier) using curl from:
 # https://raw.githubusercontent.com/bge-barcoding/gaplist-data/refs/heads/main/data/bold/taxonomy.tsv
@@ -60,3 +60,11 @@ curl -L https://raw.githubusercontent.com/bge-barcoding/gaplist-data/refs/heads/
 # set locality to BGE
 curl -L https://raw.githubusercontent.com/bge-barcoding/gaplist-data/refs/heads/main/data/bold/voucher.tsv \
   -o data/input_files/voucher.tsv
+
+# load the voucher data
+python src/arise/barcode/metadata/util/bge_load_specimens.py \
+  --db data/sqlite/ignored/arise-barcode-metadata.db \
+  --voucher data/input_files/voucher.tsv \
+  --taxonomy data/input_files/taxonomy.tsv \
+  --out-file ./addendum.csv \
+  --log-level WARNING

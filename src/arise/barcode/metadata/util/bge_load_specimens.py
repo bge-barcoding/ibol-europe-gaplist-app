@@ -43,6 +43,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument('--voucher', type=str, required=True, help='Path to voucher TSV file')
     parser.add_argument('--taxonomy', type=str, required=True, help='Path to taxonomy TSV file')
     parser.add_argument('--delimiter', type=str, default='\t', help='TSV delimiter (default: \\t)')
+    parser.add_argument('--out-file', type=str, default='addendum.csv', help='Output CSV file')
     parser.add_argument('--log-level', type=str, default='INFO',
                         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help='Set logging level')
@@ -128,16 +129,17 @@ def find_species_id_by_name(session: Session, species_name: str) -> Optional[int
     return None
 
 
-def import_specimens(session: Session, data: pd.DataFrame) -> Tuple[int, int]:
+def import_specimens(session: Session, data: pd.DataFrame) -> Tuple[int, int, Dict[str, List[str]]]:
     """
     Import specimen data into the database.
 
     :param session: SQLAlchemy session
     :param data: DataFrame containing joined specimen data
-    :return: Tuple of (total_specimens, created_specimens)
+    :return: Tuple of (total_specimens, created_specimens, addendum)
     """
     total_specimens = 0
     created_specimens = 0
+    addendum = {}
     animal_phyla = { 'Annelida', 'Arthropoda', 'Brachiopoda', 'Bryozoa', 'Chordata', 'Cnidaria', 'Ctenophora',
                      'Echinodermata', 'Mollusca', 'Nematoda', 'Nemertea', 'Platyhelminthes', 'Porifera', 'Rotifera'
                      'Xenacoelomorpha'}
@@ -173,6 +175,15 @@ def import_specimens(session: Session, data: pd.DataFrame) -> Tuple[int, int]:
             species_id = find_species_id_by_name(session, species_name)
             if not species_id:
                 logger.warning(f"Could not find species_id for '{species_name} ({phylum})', skipping {sample_id}")
+
+                # Squash unmapped species names into a dict key, store the lineage for future target list imports
+                addendum[species_name] = [
+                    phylum if pd.notna(phylum) else '',
+                    row.get('Class', '') if pd.notna(row.get('Class', '')) else '',
+                    row.get('Order', '') if pd.notna(row.get('Order', '')) else '',
+                    row.get('Family', '') if pd.notna(row.get('Family', '')) else '',
+                    ';;;;;;;;;;;;;;'
+                ]
                 continue
 
             # For catalognum, use Museum ID if available, otherwise use Field ID
@@ -221,7 +232,7 @@ def import_specimens(session: Session, data: pd.DataFrame) -> Tuple[int, int]:
     session.commit()
     logger.info(f"Total processed: {total_specimens} specimens ({created_specimens} created)")
 
-    return total_specimens, created_specimens
+    return total_specimens, created_specimens, addendum
 
 
 def main() -> None:
@@ -250,7 +261,13 @@ def main() -> None:
         joined_data = load_data(args.voucher, args.taxonomy, args.delimiter)
 
         # Import specimens
-        total, created = import_specimens(session, joined_data)
+        total, created, addendum = import_specimens(session, joined_data)
+
+        # Write addendum to CSV file --out-file
+        if addendum:
+            with open(args.out_file, 'w') as f:
+                for species_name, lineage in addendum.items():
+                    f.write(f"{species_name};{';'.join(lineage)}\n")
 
         logger.info(f"Import completed successfully. Processed {total} specimens, created {created} new entries.")
 

@@ -68,3 +68,7 @@ python src/arise/barcode/metadata/util/bge_load_specimens.py \
   --taxonomy data/input_files/taxonomy.tsv \
   --out-file ./addendum.csv \
   --log-level WARNING
+
+# download the BOLD data
+python src/arise/barcode/metadata/util/bge_fetch_bold.py
+tar -xzf data/input_files/BOLD_Public.28-Mar-2025.zip -C data/input_files

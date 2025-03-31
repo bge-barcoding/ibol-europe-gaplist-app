@@ -6,6 +6,8 @@ import time
 from bs4 import BeautifulSoup
 from datetime import datetime
 
+# TODO: probably kill me because retrieve_latest_bold_datapackage.py already exists
+
 # Base URL for BOLD API datapackage retrieval
 url_base = 'https://v4.boldsystems.org/index.php/API_Datapackage?id='
 # URL to fetch the latest version of BOLD data packages

@@ -16,3 +16,5 @@ taxon_parser~=0.2.3
 python-dwca-reader
 requests
 chardet
+wget
+bs4

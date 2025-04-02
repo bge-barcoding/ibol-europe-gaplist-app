@@ -1,6 +1,6 @@
 """
 Script to import specimen data into the database schema.
-Reads two TSV files (voucher and taxonomy) and joins them to populate the specimen table.
+Reads three TSV files (voucher, taxonomy, and lab) and joins them to populate the specimen and barcode tables.
 """
 
 import argparse
@@ -10,7 +10,7 @@ import pandas as pd
 import sys
 from typing import Dict, List, Optional, Tuple
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, Engine, event
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.orm.session import close_all_sessions
 
@@ -25,11 +25,12 @@ logging.basicConfig(
 logger = logging.getLogger('specimen_importer')
 
 # Import ORM models
-from orm.common import Base
+from orm.common import Base, DataSource
 from orm.nsr_species import NsrSpecies
 from orm.nsr_synonym import NsrSynonym
 from orm.specimen import Specimen
 from orm.barcode import Barcode
+from orm.marker import Marker
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -42,6 +43,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument('--db', type=str, required=True, help='Path to SQLite database file')
     parser.add_argument('--voucher', type=str, required=True, help='Path to voucher TSV file')
     parser.add_argument('--taxonomy', type=str, required=True, help='Path to taxonomy TSV file')
+    parser.add_argument('--lab', type=str, required=True, help='Path to lab TSV file with sequence data')
     parser.add_argument('--delimiter', type=str, default='\t', help='TSV delimiter (default: \\t)')
     parser.add_argument('--out-file', type=str, default='addendum.csv', help='Output CSV file')
     parser.add_argument('--log-level', type=str, default='INFO',
@@ -60,8 +62,21 @@ def setup_database(db_path: str) -> Session:
     # Close any existing sessions to avoid conflicts
     close_all_sessions()
 
-    # Connect to the database
+    # Set up SQLite performance optimizations
+    @event.listens_for(Engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute('pragma journal_mode=OFF')
+        cursor.execute('PRAGMA synchronous=OFF')
+        cursor.execute('PRAGMA cache_size=100000')
+        cursor.execute('PRAGMA temp_store = MEMORY')
+        cursor.close()
+
+    # Connect to the database (create if it doesn't exist)
     engine = create_engine(f'sqlite:///{db_path}')
+
+    # Create tables if they don't exist
+    Base.metadata.create_all(engine)
 
     # Create session
     SessionMaker = sessionmaker(bind=engine)
@@ -70,14 +85,16 @@ def setup_database(db_path: str) -> Session:
     return session
 
 
-def load_data(voucher_path: str, taxonomy_path: str, delimiter: str = '\t') -> pd.DataFrame:
+def load_data(voucher_path: str, taxonomy_path: str, lab_path: str, delimiter: str = '\t') -> Tuple[
+    pd.DataFrame, pd.DataFrame]:
     """
-    Load and join voucher and taxonomy data from TSV files.
+    Load and join voucher, taxonomy, and lab data from TSV files.
 
     :param voucher_path: Path to voucher TSV file
     :param taxonomy_path: Path to taxonomy TSV file
+    :param lab_path: Path to lab TSV file with sequence data
     :param delimiter: Field delimiter character
-    :return: Joined DataFrame
+    :return: Tuple of (joined_specimen_df, lab_df)
     """
     try:
         # Load voucher data
@@ -89,11 +106,15 @@ def load_data(voucher_path: str, taxonomy_path: str, delimiter: str = '\t') -> p
         taxonomy_df = pd.read_csv(taxonomy_path, delimiter=delimiter, low_memory=False)
         logger.info(f"Loaded {len(taxonomy_df)} records from taxonomy file: {taxonomy_path}")
 
-        # Join the dataframes on Sample ID
-        joined_df = pd.merge(voucher_df, taxonomy_df, on='Sample ID', how='inner')
-        logger.info(f"Joined data contains {len(joined_df)} records")
+        # Load lab data
+        lab_df = pd.read_csv(lab_path, delimiter=delimiter, low_memory=False)
+        logger.info(f"Loaded {len(lab_df)} records from lab file: {lab_path}")
 
-        return joined_df
+        # Join the specimen dataframes on Sample ID
+        joined_specimen_df = pd.merge(voucher_df, taxonomy_df, on='Sample ID', how='inner')
+        logger.info(f"Joined specimen data contains {len(joined_specimen_df)} records")
+
+        return joined_specimen_df, lab_df
 
     except Exception as e:
         logger.error(f"Error loading data: {str(e)}")
@@ -129,16 +150,17 @@ def find_species_id_by_name(session: Session, species_name: str) -> Optional[int
     return None
 
 
-def import_specimens(session: Session, data: pd.DataFrame) -> Tuple[int, int, Dict[str, List[str]]]:
+def import_specimens(session: Session, data: pd.DataFrame) -> Tuple[int, int, Dict[str, List[str]], Dict[str, int]]:
     """
     Import specimen data into the database.
 
     :param session: SQLAlchemy session
     :param data: DataFrame containing joined specimen data
-    :return: Tuple of (total_specimens, created_specimens, addendum)
+    :return: Tuple of (total_specimens, created_specimens, addendum, specimen_id_map)
     """
     total_specimens = 0
     created_specimens = 0
+    specimen_id_map = {}
     addendum = {}
     animal_phyla = { 'Annelida', 'Arthropoda', 'Brachiopoda', 'Bryozoa', 'Chordata', 'Cnidaria', 'Ctenophora',
                      'Echinodermata', 'Mollusca', 'Nematoda', 'Nemertea', 'Platyhelminthes', 'Porifera', 'Rotifera'
@@ -151,7 +173,9 @@ def import_specimens(session: Session, data: pd.DataFrame) -> Tuple[int, int, Di
             # Get taxonomy information
             phylum = row.get('Phylum', '')
             if phylum not in animal_phyla:
-                logger.info(f"Phylum '{phylum}' are not animals, skipping")
+
+                # This is very common, so reduce verbosity
+                logger.debug(f"Phylum '{phylum}' are not animals, skipping")
                 continue
 
             # Get species name
@@ -162,7 +186,9 @@ def import_specimens(session: Session, data: pd.DataFrame) -> Tuple[int, int, Di
 
             # Check if species name is NaN or empty
             if pd.isna(species_name) or species_name == '':
-                logger.info(f"No species name provided for Sample ID: {sample_id}, skipping")
+
+                # This is very common, e.g. from malaise traps - so reduce verbosity
+                logger.debug(f"No species name provided for Sample ID: {sample_id}, skipping")
                 continue
 
             # Convert to string to ensure proper handling, check string for sp. suffix
@@ -217,8 +243,11 @@ def import_specimens(session: Session, data: pd.DataFrame) -> Tuple[int, int, Di
             if created:
                 created_specimens += 1
 
-            # Commit every 100 specimens to avoid large transactions
-            if total_specimens % 100 == 0:
+            # Store specimen id in map for barcode creation
+            specimen_id_map[sample_id] = specimen.id
+
+            # Commit every 1000 specimens to avoid large transactions
+            if total_specimens % 1000 == 0:
                 session.commit()
                 logger.info(f"Processed {total_specimens} specimens ({created_specimens} created)")
 
@@ -232,7 +261,87 @@ def import_specimens(session: Session, data: pd.DataFrame) -> Tuple[int, int, Di
     session.commit()
     logger.info(f"Total processed: {total_specimens} specimens ({created_specimens} created)")
 
-    return total_specimens, created_specimens, addendum
+    return total_specimens, created_specimens, addendum, specimen_id_map
+
+
+def import_barcodes(session: Session, lab_data: pd.DataFrame, specimen_id_map: Dict[str, int]) -> Tuple[int, int]:
+    """
+    Import barcode data into the database.
+
+    :param session: SQLAlchemy session
+    :param lab_data: DataFrame containing lab data with sequence information
+    :param specimen_id_map: Dictionary mapping Sample ID to specimen.id
+    :return: Tuple of (total_barcodes, created_barcodes)
+    """
+    total_barcodes = 0
+    created_barcodes = 0
+
+    # Get or create the COI-5P marker once and reuse it
+    coi_marker, _ = Marker.get_or_create_marker('COI-5P', session)
+    marker_id = coi_marker.id
+    logger.info(f"Using marker '{coi_marker.name}' with ID {marker_id}")
+
+    # Use BOLD as the database source
+    database = DataSource.BOLD.value
+
+    # Set constant defline
+    defline = 'BGE'
+
+    for _, row in lab_data.iterrows():
+        try:
+            # Get sample ID and process ID
+            sample_id = row.get('Sample ID')
+            process_id = row.get('Process ID')
+
+            if not process_id or pd.isna(process_id):
+                logger.warning(f"Missing Process ID for Sample ID: {sample_id}, skipping barcode creation")
+                continue
+
+            # Skip if there's no sequence data
+            coi_seq_length = row.get('COI-5P Seq. Length', '0[n]')
+            if coi_seq_length == '0[n]':
+                logger.debug(f"No COI-5P sequence for Sample ID: {sample_id}, skipping")
+                continue
+
+            # Check if we have a specimen id for this sample
+            if sample_id not in specimen_id_map:
+
+                # This is probably normal: we don't create a specimen if it doesn't have species identification
+                logger.debug(f"No specimen record found for Sample ID: {sample_id}, skipping barcode creation")
+                continue
+
+            specimen_id = specimen_id_map[sample_id]
+
+            # Create or get barcode
+            barcode, created = Barcode.get_or_create_barcode(
+                specimen_id=specimen_id,
+                database=database,
+                marker_id=marker_id,
+                defline=defline,
+                external_id=process_id,
+                session=session
+            )
+
+            total_barcodes += 1
+            if created:
+                created_barcodes += 1
+
+            # Commit every 1000 barcodes to avoid large transactions
+            if total_barcodes % 1000 == 0:
+                session.commit()
+                logger.info(f"Processed {total_barcodes} barcodes ({created_barcodes} created)")
+
+        except Exception as e:
+            logger.error(f"Error processing barcode: {str(e)}")
+            logger.debug(f"Problematic row: {row}")
+            # Continue with next row
+            continue
+
+    # Final commit
+    session.commit()
+    logger.info(f"Total processed: {total_barcodes} barcodes ({created_barcodes} created)")
+
+    return total_barcodes, created_barcodes
 
 
 def main() -> None:
@@ -246,30 +355,35 @@ def main() -> None:
     logger.setLevel(getattr(logging, args.log_level))
 
     # Check if input files exist
-    if not os.path.exists(args.voucher):
-        logger.error(f"Voucher file not found: {args.voucher}")
-        sys.exit(1)
-    if not os.path.exists(args.taxonomy):
-        logger.error(f"Taxonomy file not found: {args.taxonomy}")
-        sys.exit(1)
+    for file_path, file_name in [(args.voucher, "Voucher"), (args.taxonomy, "Taxonomy"), (args.lab, "Lab")]:
+        if not os.path.exists(file_path):
+            logger.error(f"{file_name} file not found: {file_path}")
+            sys.exit(1)
 
     # Set up database session
     session = setup_database(args.db)
 
     try:
         # Load and join data
-        joined_data = load_data(args.voucher, args.taxonomy, args.delimiter)
+        joined_data, lab_data = load_data(args.voucher, args.taxonomy, args.lab, args.delimiter)
 
         # Import specimens
-        total, created, addendum = import_specimens(session, joined_data)
+        total_specimens, created_specimens, addendum, specimen_id_map = import_specimens(session, joined_data)
 
-        # Write addendum to CSV file --out-file
+        # Import barcodes
+        total_barcodes, created_barcodes = import_barcodes(session, lab_data, specimen_id_map)
+
+        # Write addendum to CSV file
         if addendum:
             with open(args.out_file, 'w') as f:
                 for species_name, lineage in addendum.items():
                     f.write(f"{species_name};{';'.join(lineage)}\n")
+            logger.info(f"Wrote {len(addendum)} unmapped species to {args.out_file}")
 
-        logger.info(f"Import completed successfully. Processed {total} specimens, created {created} new entries.")
+        logger.info(
+            f"Import completed successfully. Processed {total_specimens} specimens, created {created_specimens} new entries.")
+        logger.info(
+            f"Barcode import completed successfully. Processed {total_barcodes} barcodes, created {created_barcodes} new entries.")
 
     except Exception as e:
         logger.error(f"Error during import: {str(e)}")

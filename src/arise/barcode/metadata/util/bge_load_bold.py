@@ -12,6 +12,8 @@ import sys
 from typing import Dict, List, Optional, Tuple
 from enum import IntEnum
 
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.orm.session import close_all_sessions
@@ -67,6 +69,16 @@ def setup_database(db_path: str) -> Session:
     """
     # Close any existing sessions to avoid conflicts
     close_all_sessions()
+
+    # Set up SQLite performance optimizations
+    @event.listens_for(Engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute('pragma journal_mode=OFF')
+        cursor.execute('PRAGMA synchronous=OFF')
+        cursor.execute('PRAGMA cache_size=100000')
+        cursor.execute('PRAGMA temp_store = MEMORY')
+        cursor.close()
 
     # Connect to the database (create if it doesn't exist)
     engine = create_engine(f'sqlite:///{db_path}')

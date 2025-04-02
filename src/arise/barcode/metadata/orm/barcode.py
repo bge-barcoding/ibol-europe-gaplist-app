@@ -24,7 +24,8 @@ class Barcode(Base):
     # - http://www.boldsystems.org/index.php/Public_RecordView?processid=$ID
     # - http://ncbi.nlm.nih.gov/nuccore/$ID
     # - internal ID that doesn't resolve
-    external_id = Column(String, nullable=False)
+    # - should be indexed, e.g. to check if a barcode from a BOLD data package was already loaded from a container
+    external_id = Column(String, nullable=False, index=True)
 
     # find or create barcode object
     @classmethod

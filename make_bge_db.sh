@@ -61,11 +61,21 @@ curl -L https://raw.githubusercontent.com/bge-barcoding/gaplist-data/refs/heads/
 curl -L https://raw.githubusercontent.com/bge-barcoding/gaplist-data/refs/heads/main/data/bold/voucher.tsv \
   -o data/input_files/voucher.tsv
 
+# fetch the BOLD lab data using curl from:
+# https://raw.githubusercontent.com/bge-barcoding/gaplist-data/refs/heads/main/data/bold/lab.tsv
+# Mapping:
+# `Sample ID` -> `sampleid`
+# `Museum ID` -> `catalognum` (if empty, use `Field ID`)
+# `Institution Storing` -> `institution_storing`
+curl -L https://raw.githubusercontent.com/bge-barcoding/gaplist-data/refs/heads/main/data/bold/lab.tsv \
+  -o data/input_files/lab.tsv
+
 # load the voucher data
 python src/arise/barcode/metadata/util/bge_load_specimens.py \
   --db data/sqlite/ignored/arise-barcode-metadata.db \
   --voucher data/input_files/voucher.tsv \
   --taxonomy data/input_files/taxonomy.tsv \
+  --lab data/input_files/lab.tsv \
   --out-file ./addendum.csv \
   --log-level WARNING
 

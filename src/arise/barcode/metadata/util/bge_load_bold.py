@@ -79,12 +79,28 @@ def get_csv_reader(bold_tsv_path: str, delimiter: str = '\t', chunksize: int = 1
     """
     try:
         # Create a CSV reader that processes the file in chunks
-        csv_reader = pd.read_csv(
-            bold_tsv_path,
-            delimiter=delimiter,
-            low_memory=False,
-            chunksize=chunksize
-        )
+        # Adding error_bad_lines=False (for pandas <1.3) or on_bad_lines='warn' (for pandas >=1.3)
+        # to continue processing despite malformed lines
+        try:
+            # For pandas >=1.3
+            csv_reader = pd.read_csv(
+                bold_tsv_path,
+                delimiter=delimiter,
+                low_memory=False,
+                chunksize=chunksize,
+                on_bad_lines='warn'  # This will skip bad lines and issue warnings
+            )
+        except TypeError:
+            # For pandas <1.3
+            csv_reader = pd.read_csv(
+                bold_tsv_path,
+                delimiter=delimiter,
+                low_memory=False,
+                chunksize=chunksize,
+                error_bad_lines=False,  # Skip bad lines
+                warn_bad_lines=True  # Issue warnings for bad lines
+            )
+
         logger.info(f"Created CSV reader for file: {bold_tsv_path} with chunk size: {chunksize}")
         return csv_reader
 

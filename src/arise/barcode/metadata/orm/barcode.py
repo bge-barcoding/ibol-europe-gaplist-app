@@ -38,7 +38,13 @@ class Barcode(Base):
             barcode = False
 
         if not barcode:
-            barcode = Barcode(specimen_id=specimen_id, database=database, marker_id=marker_id, external_id=external_id)
+            barcode = Barcode(
+                specimen_id=specimen_id,
+                database=database,
+                marker_id=marker_id,
+                defline=defline,
+                external_id=external_id
+            )
             session.add(barcode)
             session.flush()
             created = True

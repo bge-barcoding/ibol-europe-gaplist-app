@@ -82,3 +82,9 @@ python src/arise/barcode/metadata/util/bge_load_specimens.py \
 # download the BOLD data
 python src/arise/barcode/metadata/util/bge_fetch_bold.py
 tar -xzf data/input_files/BOLD_Public.*.zip -C data/input_files
+
+# load the BOLD data
+python src/arise/barcode/metadata/util/bge_load_bold.py \
+  --db data/sqlite/ignored/arise-barcode-metadata.db \
+  --bold-tsv data/input_files/BOLD_Public.*.tsv \
+  --log-level INFO

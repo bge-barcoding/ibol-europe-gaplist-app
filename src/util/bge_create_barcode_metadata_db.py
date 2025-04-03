@@ -18,7 +18,7 @@ main_logger = logging.getLogger('main')
 if __name__ == '__main__':
     # process command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('-outfile', default="arise-barcode-metadata.db", help="Output file: SQLite DB")
+    parser.add_argument('-outfile', default="bge-barcode-metadata.db", help="Output file: SQLite DB")
     args = parser.parse_args()
 
     # create connection/engine to database file

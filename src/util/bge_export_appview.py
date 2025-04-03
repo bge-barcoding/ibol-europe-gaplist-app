@@ -1,6 +1,7 @@
 """
 Script to extract species statistics into a single-pane view TSV file.
 For each species, provides taxonomy information and counts of barcodes and specimens.
+Optimized for better performance.
 """
 
 import argparse
@@ -9,8 +10,8 @@ import os
 import sys
 from typing import Dict, List, Set, Tuple
 
-from sqlalchemy import create_engine, Engine, event, func, and_, or_, not_
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy import create_engine, Engine, event, func, and_, or_, not_, select
+from sqlalchemy.orm import sessionmaker, Session, aliased
 from sqlalchemy.orm.session import close_all_sessions
 
 # Configure logging
@@ -40,6 +41,8 @@ def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Extract species statistics to a TSV file')
     parser.add_argument('--db', type=str, required=True, help='Path to SQLite database file')
     parser.add_argument('--output', type=str, default='species_stats.tsv', help='Output TSV file path')
+    parser.add_argument('--batch-size', type=int, default=500,
+                        help='Number of species to process in a batch (default: 500)')
     parser.add_argument('--log-level', type=str, default='INFO',
                         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help='Set logging level')
@@ -62,12 +65,13 @@ def setup_database(db_path: str) -> Session:
         cursor = dbapi_connection.cursor()
         cursor.execute('pragma journal_mode=WAL')
         cursor.execute('PRAGMA synchronous=NORMAL')
-        cursor.execute('PRAGMA cache_size=100000')
+        cursor.execute('PRAGMA cache_size=500000')  # Increased cache size
         cursor.execute('PRAGMA temp_store=MEMORY')
+        cursor.execute('PRAGMA mmap_size=30000000000')  # 30GB, adjust based on system RAM
         cursor.close()
 
-    # Connect to the database
-    engine = create_engine(f'sqlite:///{db_path}')
+    # Connect to the database with optimized settings
+    engine = create_engine(f'sqlite:///{db_path}', pool_pre_ping=True, pool_size=10, max_overflow=20)
 
     # Create session
     SessionMaker = sessionmaker(bind=engine)
@@ -76,127 +80,174 @@ def setup_database(db_path: str) -> Session:
     return session
 
 
-def get_species_nodes(session: Session) -> List[Tuple[NsrSpecies, NsrNode]]:
+def get_species_nodes(session: Session, offset: int = 0, limit: int = None) -> List[Tuple[NsrSpecies, NsrNode]]:
     """
-    Get all species entries with their corresponding node information.
+    Get species entries with their corresponding node information, with pagination.
 
     :param session: SQLAlchemy session
+    :param offset: Query offset for pagination
+    :param limit: Query limit for pagination
     :return: List of tuples (species, node)
     """
     # Join nsr_species with node where node.species_id = nsr_species.id
-    query = session.query(NsrSpecies, NsrNode)\
-        .join(NsrNode, NsrNode.species_id == NsrSpecies.id)\
+    query = session.query(NsrSpecies, NsrNode) \
+        .join(NsrNode, NsrNode.species_id == NsrSpecies.id) \
         .filter(NsrNode.rank == 'species')
-    
+
+    # Apply pagination if limit is provided
+    if limit is not None:
+        query = query.offset(offset).limit(limit)
+
     return query.all()
 
 
-def find_subspecies_nodes(session: Session, species_node: NsrNode) -> List[NsrNode]:
+def find_subspecies_ids(session: Session, species_node: NsrNode) -> List[int]:
     """
-    Find all subspecies nodes for a given species node.
+    Find subspecies IDs for a given species node.
 
     :param session: SQLAlchemy session
     :param species_node: The species node to find subspecies for
-    :return: List of subspecies nodes
+    :return: List of subspecies IDs
     """
     # If left == right, there are no subspecies
     if species_node.left == species_node.right:
         return []
-    
-    # Find all nodes where parent = species_node.id
-    subspecies = session.query(NsrNode)\
-        .filter(NsrNode.parent == species_node.id)\
+
+    # Find all nodes where parent = species_node.id and get their species_id
+    subspecies = session.query(NsrNode.species_id) \
+        .filter(NsrNode.parent == species_node.id) \
         .all()
-    
-    return subspecies
+
+    return [subsp[0] for subsp in subspecies]
 
 
-def get_barcode_and_specimen_counts(
-    session: Session, 
-    species_id: int, 
-    subspecies_ids: List[int]
-) -> Tuple[int, int, int]:
+def get_barcode_and_specimen_counts_optimized(
+        session: Session,
+        species_ids: List[int]
+) -> Dict[int, Tuple[int, int, int]]:
     """
-    Get the counts of BGE barcodes, other barcodes, and collected specimens.
+    Get the counts of BGE barcodes, other barcodes, and collected specimens for multiple species.
+    This optimized version processes multiple species at once to reduce database queries.
 
     :param session: SQLAlchemy session
-    :param species_id: Species ID
-    :param subspecies_ids: List of subspecies IDs
-    :return: Tuple of (arise_barcodes, other_barcodes, collected)
+    :param species_ids: List of species IDs to process
+    :return: Dictionary mapping species_id to (arise_barcodes, other_barcodes, collected)
     """
-    # All relevant IDs
-    all_ids = [species_id] + subspecies_ids
-    
-    # Get specimen IDs for this species and its subspecies
-    specimen_query = session.query(Specimen.id)\
-        .filter(Specimen.species_id.in_(all_ids))
-    
-    # Add locality condition for the "Collected" count
-    specimen_with_locality_query = specimen_query.filter(Specimen.locality == 'BGE')
-    
-    # Get specimen IDs with barcodes
-    specimen_with_barcode_query = session.query(Barcode.specimen_id.distinct())\
-        .filter(Barcode.specimen_id.in_(specimen_query.subquery()))
-    
-    # Count BGE barcodes
-    arise_barcodes = session.query(func.count(Barcode.id))\
-        .filter(
-            Barcode.specimen_id.in_(specimen_query.subquery()),
-            Barcode.defline == 'BGE'
-        ).scalar()
-    
-    # Count other barcodes (BOLD)
-    other_barcodes = session.query(func.count(Barcode.id))\
-        .filter(
-            Barcode.specimen_id.in_(specimen_query.subquery()),
-            Barcode.defline == 'BOLD'
-        ).scalar()
-    
-    # Count specimens without barcodes
-    collected = session.query(func.count(Specimen.id))\
-        .filter(
-            Specimen.id.in_(specimen_with_locality_query.subquery()),
-            not_(Specimen.id.in_(specimen_with_barcode_query.subquery()))
-        ).scalar()
-    
-    return arise_barcodes, other_barcodes, collected
+    if not species_ids:
+        return {}
+
+    results = {species_id: (0, 0, 0) for species_id in species_ids}
+
+    # Create aliased tables for complex queries
+    SpecimenAlias = aliased(Specimen)
+    BarcodeAlias = aliased(Barcode)
+
+    # Get all specimens for these species
+    specimens = session.query(
+        SpecimenAlias.id,
+        SpecimenAlias.species_id,
+        SpecimenAlias.locality
+    ).filter(
+        SpecimenAlias.species_id.in_(species_ids)
+    ).all()
+
+    # Create mapping of specimen_id to species_id
+    specimen_to_species = {s.id: s.species_id for s in specimens}
+    specimen_ids = list(specimen_to_species.keys())
+
+    # Get BGE locality specimens
+    bge_specimen_ids = [s.id for s in specimens if s.locality == 'BGE']
+
+    if not specimen_ids:
+        return results
+
+    # Get all barcodes for these specimens
+    barcodes = session.query(
+        BarcodeAlias.specimen_id,
+        BarcodeAlias.defline
+    ).filter(
+        BarcodeAlias.specimen_id.in_(specimen_ids)
+    ).all()
+
+    # Count barcodes by type and species
+    barcoded_specimen_ids = set()
+    for barcode in barcodes:
+        specimen_id = barcode.specimen_id
+        species_id = specimen_to_species[specimen_id]
+        barcoded_specimen_ids.add(specimen_id)
+
+        arise_count, other_count, collected_count = results[species_id]
+
+        if barcode.defline == 'BGE':
+            results[species_id] = (arise_count + 1, other_count, collected_count)
+        elif barcode.defline == 'BOLD':
+            results[species_id] = (arise_count, other_count + 1, collected_count)
+
+    # Count BGE specimens without barcodes
+    for specimen_id in bge_specimen_ids:
+        if specimen_id not in barcoded_specimen_ids:
+            species_id = specimen_to_species[specimen_id]
+            arise_count, other_count, collected_count = results[species_id]
+            results[species_id] = (arise_count, other_count, collected_count + 1)
+
+    return results
 
 
-def extract_species_stats(session: Session) -> List[Dict]:
+def process_species_batch(
+        session: Session,
+        species_nodes: List[Tuple[NsrSpecies, NsrNode]]
+) -> List[Dict]:
     """
-    Extract species statistics for all species.
+    Process a batch of species and collect their statistics.
 
     :param session: SQLAlchemy session
+    :param species_nodes: List of (species, node) tuples to process
     :return: List of dictionaries with species statistics
     """
     results = []
-    total_species = session.query(func.count(NsrSpecies.id)).scalar()
-    
-    # Get all species with their nodes
-    species_nodes = get_species_nodes(session)
-    logger.info(f"Processing {len(species_nodes)} species entries (out of {total_species} total)")
-    
-    for i, (species, node) in enumerate(species_nodes, 1):
-        if i % 100 == 0:
-            logger.info(f"Processed {i}/{len(species_nodes)} species")
-        
+
+    # First, collect all species IDs and their subspecies IDs
+    all_species_ids = []
+    species_to_subspecies = {}
+
+    for species, node in species_nodes:
+        # Get subspecies for this species
+        subspecies_ids = find_subspecies_ids(session, node)
+
+        # Store mapping from species to subspecies
+        species_to_subspecies[species.id] = subspecies_ids
+
+        # Add all IDs to the list for batch processing
+        all_species_ids.append(species.id)
+        all_species_ids.extend(subspecies_ids)
+
+    # Get counts for all species and subspecies in one batch
+    all_counts = get_barcode_and_specimen_counts_optimized(session, all_species_ids)
+
+    # Process results for each species
+    for species, node in species_nodes:
         try:
-            # Get subspecies for this species
-            subspecies_nodes = find_subspecies_nodes(session, node)
-            subspecies_ids = [subnode.species_id for subnode in subspecies_nodes] if subspecies_nodes else []
-            
-            # Get barcode and specimen counts
-            arise_barcodes, other_barcodes, collected = get_barcode_and_specimen_counts(
-                session, species.id, subspecies_ids
-            )
-            
+            # Get subspecies IDs
+            subspecies_ids = species_to_subspecies[species.id]
+
+            # Get counts for the species itself
+            species_counts = all_counts.get(species.id, (0, 0, 0))
+            arise_barcodes, other_barcodes, collected = species_counts
+
+            # Add counts for all subspecies
+            for subsp_id in subspecies_ids:
+                subsp_counts = all_counts.get(subsp_id, (0, 0, 0))
+                arise_barcodes += subsp_counts[0]
+                other_barcodes += subsp_counts[1]
+                collected += subsp_counts[2]
+
             # Calculate total (sum of barcodes only, not including collected specimens)
             species_total = arise_barcodes + other_barcodes
-            
+
             # Create result entry
             result = {
                 'Kingdom': node.kingdom,
-                'Phylum': node.phylum, 
+                'Phylum': node.phylum,
                 'Class': node.t_class,  # Using t_class as per ORM mapping
                 'Order': node.order,
                 'Family': node.family,
@@ -207,14 +258,49 @@ def extract_species_stats(session: Session) -> List[Dict]:
                 'OtherBarcodes': other_barcodes,
                 'Collected': collected
             }
-            
+
             results.append(result)
-            
+
         except Exception as e:
             logger.error(f"Error processing species {species.canonical_name}: {str(e)}")
             continue
-    
+
     return results
+
+
+def extract_species_stats(session: Session, batch_size: int = 500) -> List[Dict]:
+    """
+    Extract species statistics for all species using batch processing.
+
+    :param session: SQLAlchemy session
+    :param batch_size: Number of species to process in a batch
+    :return: List of dictionaries with species statistics
+    """
+    all_results = []
+
+    # Count total species
+    total_species = session.query(func.count(NsrSpecies.id)).scalar()
+    logger.info(f"Found {total_species} total species to process")
+
+    # Process species in batches
+    offset = 0
+    while True:
+        # Get a batch of species
+        species_batch = get_species_nodes(session, offset, batch_size)
+        if not species_batch:
+            break
+
+        logger.info(f"Processing batch of {len(species_batch)} species (offset: {offset})")
+
+        # Process the batch
+        batch_results = process_species_batch(session, species_batch)
+        all_results.extend(batch_results)
+
+        # Update offset for next batch
+        offset += batch_size
+        logger.info(f"Completed batch. Processed {len(all_results)}/{total_species} species so far")
+
+    return all_results
 
 
 def write_results_to_tsv(results: List[Dict], output_path: str) -> None:
@@ -229,19 +315,19 @@ def write_results_to_tsv(results: List[Dict], output_path: str) -> None:
         'Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species',
         'SpeciesTotal', 'AriseBarcodes', 'OtherBarcodes', 'Collected'
     ]
-    
+
     try:
         with open(output_path, 'w') as f:
             # Write header
             f.write('\t'.join(columns) + '\n')
-            
+
             # Write data
             for result in results:
                 line = '\t'.join(str(result.get(col, '')) for col in columns)
                 f.write(line + '\n')
-        
-        logger.info(f"Successfully wrote results to {output_path}")
-    
+
+        logger.info(f"Successfully wrote {len(results)} results to {output_path}")
+
     except Exception as e:
         logger.error(f"Error writing results to TSV: {str(e)}")
         raise
@@ -267,13 +353,13 @@ def main() -> None:
 
     try:
         # Extract species statistics
-        logger.info("Extracting species statistics...")
-        results = extract_species_stats(session)
-        
+        logger.info(f"Extracting species statistics with batch size {args.batch_size}...")
+        results = extract_species_stats(session, args.batch_size)
+
         # Write results to TSV
         logger.info(f"Writing {len(results)} species entries to {args.output}")
         write_results_to_tsv(results, args.output)
-        
+
         logger.info("Extraction completed successfully.")
 
     except Exception as e:

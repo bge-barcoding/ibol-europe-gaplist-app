@@ -17,7 +17,7 @@ rm -f data/input_files/taxonomy.tsv
 rm -f data/input_files/voucher.tsv
 
 # create the database
-python src/arise/barcode/metadata/util/arise_create_barcode_metadata_db.py \
+python src/util/arise_create_barcode_metadata_db.py \
   -outfile data/sqlite/ignored/arise-barcode-metadata.db
 
 # fetch the target list data using curl from:
@@ -26,7 +26,7 @@ curl -L https://raw.githubusercontent.com/bge-barcoding/gaplist-data/refs/heads/
   -o data/input_files/Gap_list_all_updated.csv
 
 # load the target list data
-python src/arise/barcode/metadata/util/bge_load_targetlist.py \
+python src/util/bge_load_targetlist.py \
   --db data/sqlite/ignored/arise-barcode-metadata.db \
   --input data/input_files/Gap_list_all_updated.csv \
   --delimiter ";" \
@@ -38,7 +38,7 @@ curl -L https://raw.githubusercontent.com/bge-barcoding/gaplist-data/refs/heads/
   -o data/input_files/all_specs_and_syn.csv
 
 # load the synonyms data
-python src/arise/barcode/metadata/util/bge_load_synonyms.py \
+python src/util/bge_load_synonyms.py \
   --db data/sqlite/ignored/arise-barcode-metadata.db \
   --input data/input_files/all_specs_and_syn.csv \
   --delimiter ";" \
@@ -71,7 +71,7 @@ curl -L https://raw.githubusercontent.com/bge-barcoding/gaplist-data/refs/heads/
   -o data/input_files/lab.tsv
 
 # load the voucher data
-python src/arise/barcode/metadata/util/bge_load_specimens.py \
+python src/util/bge_load_specimens.py \
   --db data/sqlite/ignored/arise-barcode-metadata.db \
   --voucher data/input_files/voucher.tsv \
   --taxonomy data/input_files/taxonomy.tsv \
@@ -84,7 +84,7 @@ python src/arise/barcode/metadata/util/bge_fetch_bold.py
 tar -xzf data/input_files/BOLD_Public.*.zip -C data/input_files
 
 # load the BOLD data
-python src/arise/barcode/metadata/util/bge_load_bold.py \
+python src/util/bge_load_bold.py \
   --db data/sqlite/ignored/arise-barcode-metadata.db \
   --bold-tsv data/input_files/BOLD_Public.*.tsv \
   --log-level INFO

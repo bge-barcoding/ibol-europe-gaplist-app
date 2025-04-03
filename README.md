@@ -24,7 +24,7 @@ structured reporting (i.e. a tabular view) that can be used to update iBOL Europ
    [manually curated version](https://github.com/bge-barcoding/gaplist-data/commits/main/data/Gap_list_all_updated.csv) 
    of Fabian Deister's name table. This curated version is located
    [here](https://github.com/bge-barcoding/gaplist-data/blob/main/data/Gap_list_all_updated.csv)
-   in a different repository. Further improvements to this data set *must** take place
+   in a different repository. Further improvements to this data set *must* take place
    in that repository, so that coding and taxonomic curation are separated.
 3. [Import BGE's synonyms](src/util/bge_load_synonyms.py). Here, the synonyms are mapped
    against the canonical names and imported in the synonyms table. In this step, some

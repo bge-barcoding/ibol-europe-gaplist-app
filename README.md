@@ -103,7 +103,9 @@ The following steps are going to be necessary:
   by: skipping the ORM and doing SQL directly; optimising some of the SQLite pragmas;
   parallel processing of BCDM chunks in separate threads. None of these changes are
   trivial, however.
-
+- Pipelining. A shell script is provided to document the processing steps. However, a
+  more robust approach that involves better environment management and error handling
+  would be welcome. E.g. a simple snakemake pipeline or something.
 
 ## Notice
 

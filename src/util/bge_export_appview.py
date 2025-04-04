@@ -242,7 +242,8 @@ def process_species_batch(
                 collected += subsp_counts[2]
 
             # Calculate total (sum of barcodes only, not including collected specimens)
-            species_total = arise_barcodes + other_barcodes
+            # species_total = arise_barcodes + other_barcodes
+            species_total = 1 # magic number that propagates up the taxonomy for totals at higher levels
 
             # Create result entry
             result = {

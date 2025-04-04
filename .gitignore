@@ -1,3 +1,5 @@
+.env
+
 # No R helper files
 .RData
 .Rhistory

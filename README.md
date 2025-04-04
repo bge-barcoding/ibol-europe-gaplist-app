@@ -1,4 +1,6 @@
-# BGE target list
+<img src='https://iboleurope.org/wp-content/uploads/2023/12/cropped-iBOL_eur_logo-white-800x399.png' style='width:100px;height:50px' />
+
+# iBOL Europe Gap List App
 
 This repository contains code to aggregate taxonomy, synonym, voucher, lab, and 
 barcode metadata in a normalised relational model out of which reports can be 

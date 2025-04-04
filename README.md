@@ -14,9 +14,78 @@ structured reporting (i.e. a tabular view) that can be used to update iBOL Europ
 
 ## Overview of the process
 
+```mermaid
+erDiagram
+    nsr_species ||--o{ nsr_synonym : "has"
+    nsr_species ||--o{ node : "has_taxonomy"
+    nsr_species ||--o{ specimen : "identified_as"
+    specimen ||--|{ barcode : "has"
+    marker ||--|{ barcode : "used_for"
+    
+    nsr_species {
+        integer id PK
+        varchar canonical_name
+        varchar occurrence_status
+    }
+    
+    nsr_synonym {
+        integer id PK
+        varchar nsr_id
+        varchar name
+        varchar taxonomic_status
+        integer node_id FK
+        integer species_id FK
+    }
+    
+    node {
+        integer id PK
+        varchar nsr_id
+        integer parent
+        integer left
+        integer right
+        varchar name
+        float length
+        float height
+        varchar rank
+        integer species_id FK
+        varchar kingdom
+        varchar phylum
+        varchar class
+        varchar order
+        varchar family
+        varchar genus
+        varchar species
+    }
+    
+    specimen {
+        integer id PK
+        varchar sampleid
+        varchar catalognum
+        varchar institution_storing
+        varchar identification_provided_by
+        varchar locality
+        integer species_id FK
+    }
+    
+    barcode {
+        integer id PK
+        integer specimen_id FK
+        integer database
+        integer marker_id FK
+        varchar defline
+        varchar external_id
+    }
+    
+    marker {
+        integer id PK
+        varchar name
+    }
+```
+*Fig 1. Entity-relationship diagram of the database schema.*
+
 1. [Create an empty SQLite database](src/util/bge_create_barcode_metadata_db.py).
    This database consists of six interrelated tables representing species, synonyms,
-   higher taxonomic structure, specimens, barcodes, and barcode markers. Throughout
+   higher taxonomic structure, specimens, barcodes, and barcode markers (see Fig 1). Throughout
    this project's code, these tables are accessed and updated using object-relational
    mappings (ORM), thereby simplifying the code (which would otherwise mix Python and SQL,
    which is harder to maintain). The ORM classes are in [src/orm](src/orm)
@@ -99,6 +168,7 @@ flowchart TD
     classDef pythonScript fill:#a2d2ff,stroke:#333,stroke-width:1px;
     classDef curlCommand fill:#ffafcc,stroke:#333,stroke-width:1px;
 ```
+*Fig 2. Flowchart of the overall process.*
 
 ## Installation and usage
 

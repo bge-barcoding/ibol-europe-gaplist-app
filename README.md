@@ -56,6 +56,48 @@ structured reporting (i.e. a tabular view) that can be used to update iBOL Europ
    a barcode record is created. Barcodes from the container are decorated with the `BGE`
    flag, others with the `BOLD` flag.
 
+```mermaid
+flowchart TD
+    Start([Start Script]) --> CheckDir{Directory exists?}
+    CheckDir -->|No| CreateDir[Create directory]
+    CheckDir -->|Yes| CleanUp
+    CreateDir --> CleanUp
+
+    subgraph CleanUp[Clean Up]
+        RemoveDB[Remove DB if exists]
+        RemoveGaplist[Remove Gap list if exists]
+        RemoveSynonyms[Remove Synonyms if exists]
+        RemoveTaxonomy[Remove Taxonomy if exists]
+        RemoveVoucher[Remove Voucher if exists]
+        RemoveLab[Remove Lab if exists]
+        RemoveAddendum[Remove Addendum if exists]
+    end
+
+    CleanUp --> CreateDB[Create database]
+    CreateDB --> FetchTargetList[Fetch Gap list data]
+    FetchTargetList --> LoadTargetList[Load Gap list data]
+
+    LoadTargetList --> FetchSynonyms[Fetch synonyms data]
+    FetchSynonyms --> LoadSynonyms[Load synonyms data]
+
+    LoadSynonyms --> FetchTaxonomy[Fetch BOLD taxonomy data]
+    FetchTaxonomy --> FetchVoucher[Fetch BOLD voucher data]
+    FetchVoucher --> FetchLab[Fetch BOLD lab data]
+
+    FetchLab --> LoadSpecimens[Load specimen data]
+    LoadSpecimens --> FetchBold[Download BOLD data]
+    FetchBold --> ExtractBold[Extract BOLD data]
+    ExtractBold --> LoadBold[Load BOLD data]
+
+    LoadBold --> End([End Script])
+
+    class CreateDB,LoadTargetList,LoadSynonyms,LoadSpecimens,FetchBold,LoadBold pythonScript;
+    class FetchTargetList,FetchSynonyms,FetchTaxonomy,FetchVoucher,FetchLab curlCommand;
+
+    classDef pythonScript fill:#a2d2ff,stroke:#333,stroke-width:1px;
+    classDef curlCommand fill:#ffafcc,stroke:#333,stroke-width:1px;
+```
+
 ## Installation and usage
 
 The scripts provided here have some Python dependencies. These are managed with a 

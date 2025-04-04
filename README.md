@@ -15,6 +15,93 @@ structured reporting (i.e. a tabular view) that can be used to update iBOL Europ
 ## Overview of the process
 
 ```mermaid
+flowchart TD
+    Start([Start Script]) --> CheckDir{Directory exists?}
+    CheckDir -->|No| CreateDir[Create directory]
+    CheckDir -->|Yes| CleanUp
+    CreateDir --> CleanUp
+
+    subgraph CleanUp[Clean Up]
+        RemoveDB[Remove DB if exists]
+        RemoveGaplist[Remove Gap list if exists]
+        RemoveSynonyms[Remove Synonyms if exists]
+        RemoveTaxonomy[Remove Taxonomy if exists]
+        RemoveVoucher[Remove Voucher if exists]
+        RemoveLab[Remove Lab if exists]
+        RemoveAddendum[Remove Addendum if exists]
+    end
+
+    CleanUp --> CreateDB[Create database]
+    CreateDB --> FetchTargetList[Fetch Gap list data]
+    FetchTargetList --> LoadTargetList[Load Gap list data]
+
+    LoadTargetList --> FetchSynonyms[Fetch synonyms data]
+    FetchSynonyms --> LoadSynonyms[Load synonyms data]
+
+    LoadSynonyms --> FetchTaxonomy[Fetch BOLD taxonomy data]
+    FetchTaxonomy --> FetchVoucher[Fetch BOLD voucher data]
+    FetchVoucher --> FetchLab[Fetch BOLD lab data]
+
+    FetchLab --> LoadSpecimens[Load specimen data]
+    LoadSpecimens --> FetchBold[Download BOLD data]
+    FetchBold --> ExtractBold[Extract BOLD data]
+    ExtractBold --> LoadBold[Load BOLD data]
+
+    LoadBold --> End([End Script])
+
+    class CreateDB,LoadTargetList,LoadSynonyms,LoadSpecimens,FetchBold,LoadBold pythonScript;
+    class FetchTargetList,FetchSynonyms,FetchTaxonomy,FetchVoucher,FetchLab curlCommand;
+
+    classDef pythonScript fill:#a2d2ff,stroke:#333,stroke-width:1px;
+    classDef curlCommand fill:#ffafcc,stroke:#333,stroke-width:1px;
+```
+*Fig 1. Flowchart of the overall process.*
+
+1. [Create an empty SQLite database](src/util/bge_create_barcode_metadata_db.py).
+   This database consists of six interrelated tables representing species, synonyms,
+   higher taxonomic structure, specimens, barcodes, and barcode markers (see Fig 2). Throughout
+   this project's code, these tables are accessed and updated using object-relational
+   mappings (ORM), thereby simplifying the code (which would otherwise mix Python and SQL,
+   which is harder to maintain). The ORM classes are in [src/orm](src/orm)
+2. [Import BGE's canonical target list names](src/util/bge_load_targetlist.py).
+   In this step, the canonical names and their higher lineages are imported in the
+   species and higher taxonomic structure tables. The input for this step is a 
+   [manually curated version](https://github.com/bge-barcoding/gaplist-data/commits/main/data/Gap_list_all_updated.csv) 
+   of Fabian Deister's name table. This curated version is located
+   [here](https://github.com/bge-barcoding/gaplist-data/blob/main/data/Gap_list_all_updated.csv)
+   in a different repository. Further improvements to this data set *must* take place
+   in that repository, so that coding and taxonomic curation are separated.
+3. [Import BGE's synonyms](src/util/bge_load_synonyms.py). Here, the synonyms are mapped
+   against the canonical names and imported in the synonyms table. In this step, some
+   further expansions are enacted. For example, for entries such as 
+   *Genus (Subgenus) species*, the synonyms table will have this original entry, as well
+   as *Genus species* and *Subgenus species*. The input data is from a 
+   [manually curated](https://github.com/bge-barcoding/gaplist-data/commits/main/data/all_specs_and_syn.csv)
+   version of Fabian Deister's synonyms list. This table is also kept in a separate repo
+   for any further curation, located 
+   [here](https://github.com/bge-barcoding/gaplist-data/blob/main/data/all_specs_and_syn.csv).
+4. [Import BGE container data](src/util/bge_load_specimens.py). The BGE project has its 
+   own, overarching [space](https://bench.boldsystems.org/index.php/MAS_Management_DataConsole?codes=BGE) 
+   within the BOLD workbench. In that space, data exports can be produced showing the 
+   status of the lab, specimen, voucher and taxonomy facets of the overall process under
+   'Downloads > Data Spreadsheets'. Such exports should include all data and be in the
+   'multi-sheet' format (i.e. not an Excel spreadsheet but a folder with TSV files).
+   A snapshot of such an export in the data repo's
+   [bold](https://github.com/bge-barcoding/gaplist-data/tree/main/data/bold) folder.
+   When re-running the code presented here in order to reflect the current status, 
+   a new download of the sheet data needs to be enacted as described above, and the
+   TSV files then must be added to the bold folder, overwriting previous versions.
+5. [Import public BOLD data](src/util/bge_load_bold.py). In this step, a public BOLD
+   data package is imported in the database. The process checks to see if the encountered
+   records aren't already imported from the lab sheets (same process ID), if they are the
+   wanted marker (COI-5P), and if they match any of the synonyms. Then, a check is done
+   to see if this isn't a record from an already known specimen (by way of the catalogue
+   number). If that's the case, it's fine, but it means resequencing of the same specimen.
+   If it's an unseen specimen, a new specimen is created in the database. Either way,
+   a barcode record is created. Barcodes from the container are decorated with the `BGE`
+   flag, others with the `BOLD` flag.
+
+```mermaid
 erDiagram
     nsr_species ||--o{ nsr_synonym : "has"
     nsr_species ||--o{ node : "has_taxonomy"
@@ -81,94 +168,7 @@ erDiagram
         varchar name
     }
 ```
-*Fig 1. Entity-relationship diagram of the database schema.*
-
-1. [Create an empty SQLite database](src/util/bge_create_barcode_metadata_db.py).
-   This database consists of six interrelated tables representing species, synonyms,
-   higher taxonomic structure, specimens, barcodes, and barcode markers (see Fig 1). Throughout
-   this project's code, these tables are accessed and updated using object-relational
-   mappings (ORM), thereby simplifying the code (which would otherwise mix Python and SQL,
-   which is harder to maintain). The ORM classes are in [src/orm](src/orm)
-2. [Import BGE's canonical target list names](src/util/bge_load_targetlist.py).
-   In this step, the canonical names and their higher lineages are imported in the
-   species and higher taxonomic structure tables. The input for this step is a 
-   [manually curated version](https://github.com/bge-barcoding/gaplist-data/commits/main/data/Gap_list_all_updated.csv) 
-   of Fabian Deister's name table. This curated version is located
-   [here](https://github.com/bge-barcoding/gaplist-data/blob/main/data/Gap_list_all_updated.csv)
-   in a different repository. Further improvements to this data set *must* take place
-   in that repository, so that coding and taxonomic curation are separated.
-3. [Import BGE's synonyms](src/util/bge_load_synonyms.py). Here, the synonyms are mapped
-   against the canonical names and imported in the synonyms table. In this step, some
-   further expansions are enacted. For example, for entries such as 
-   *Genus (Subgenus) species*, the synonyms table will have this original entry, as well
-   as *Genus species* and *Subgenus species*. The input data is from a 
-   [manually curated](https://github.com/bge-barcoding/gaplist-data/commits/main/data/all_specs_and_syn.csv)
-   version of Fabian Deister's synonyms list. This table is also kept in a separate repo
-   for any further curation, located 
-   [here](https://github.com/bge-barcoding/gaplist-data/blob/main/data/all_specs_and_syn.csv).
-4. [Import BGE container data](src/util/bge_load_specimens.py). The BGE project has its 
-   own, overarching [space](https://bench.boldsystems.org/index.php/MAS_Management_DataConsole?codes=BGE) 
-   within the BOLD workbench. In that space, data exports can be produced showing the 
-   status of the lab, specimen, voucher and taxonomy facets of the overall process under
-   'Downloads > Data Spreadsheets'. Such exports should include all data and be in the
-   'multi-sheet' format (i.e. not an Excel spreadsheet but a folder with TSV files).
-   A snapshot of such an export in the data repo's
-   [bold](https://github.com/bge-barcoding/gaplist-data/tree/main/data/bold) folder.
-   When re-running the code presented here in order to reflect the current status, 
-   a new download of the sheet data needs to be enacted as described above, and the
-   TSV files then must be added to the bold folder, overwriting previous versions.
-5. [Import public BOLD data](src/util/bge_load_bold.py). In this step, a public BOLD
-   data package is imported in the database. The process checks to see if the encountered
-   records aren't already imported from the lab sheets (same process ID), if they are the
-   wanted marker (COI-5P), and if they match any of the synonyms. Then, a check is done
-   to see if this isn't a record from an already known specimen (by way of the catalogue
-   number). If that's the case, it's fine, but it means resequencing of the same specimen.
-   If it's an unseen specimen, a new specimen is created in the database. Either way,
-   a barcode record is created. Barcodes from the container are decorated with the `BGE`
-   flag, others with the `BOLD` flag.
-
-```mermaid
-flowchart TD
-    Start([Start Script]) --> CheckDir{Directory exists?}
-    CheckDir -->|No| CreateDir[Create directory]
-    CheckDir -->|Yes| CleanUp
-    CreateDir --> CleanUp
-
-    subgraph CleanUp[Clean Up]
-        RemoveDB[Remove DB if exists]
-        RemoveGaplist[Remove Gap list if exists]
-        RemoveSynonyms[Remove Synonyms if exists]
-        RemoveTaxonomy[Remove Taxonomy if exists]
-        RemoveVoucher[Remove Voucher if exists]
-        RemoveLab[Remove Lab if exists]
-        RemoveAddendum[Remove Addendum if exists]
-    end
-
-    CleanUp --> CreateDB[Create database]
-    CreateDB --> FetchTargetList[Fetch Gap list data]
-    FetchTargetList --> LoadTargetList[Load Gap list data]
-
-    LoadTargetList --> FetchSynonyms[Fetch synonyms data]
-    FetchSynonyms --> LoadSynonyms[Load synonyms data]
-
-    LoadSynonyms --> FetchTaxonomy[Fetch BOLD taxonomy data]
-    FetchTaxonomy --> FetchVoucher[Fetch BOLD voucher data]
-    FetchVoucher --> FetchLab[Fetch BOLD lab data]
-
-    FetchLab --> LoadSpecimens[Load specimen data]
-    LoadSpecimens --> FetchBold[Download BOLD data]
-    FetchBold --> ExtractBold[Extract BOLD data]
-    ExtractBold --> LoadBold[Load BOLD data]
-
-    LoadBold --> End([End Script])
-
-    class CreateDB,LoadTargetList,LoadSynonyms,LoadSpecimens,FetchBold,LoadBold pythonScript;
-    class FetchTargetList,FetchSynonyms,FetchTaxonomy,FetchVoucher,FetchLab curlCommand;
-
-    classDef pythonScript fill:#a2d2ff,stroke:#333,stroke-width:1px;
-    classDef curlCommand fill:#ffafcc,stroke:#333,stroke-width:1px;
-```
-*Fig 2. Flowchart of the overall process.*
+*Fig 2. Entity-relationship diagram of the database schema.*
 
 ## Installation and usage
 

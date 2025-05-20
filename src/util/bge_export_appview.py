@@ -232,18 +232,14 @@ def process_species_batch(
 
             # Get counts for the species itself
             species_counts = all_counts.get(species.id, (0, 0, 0))
-            arise_barcodes, other_barcodes, collected = species_counts
+            own_barcodes, other_barcodes, collected = species_counts
 
             # Add counts for all subspecies
             for subsp_id in subspecies_ids:
                 subsp_counts = all_counts.get(subsp_id, (0, 0, 0))
-                arise_barcodes += subsp_counts[0]
+                own_barcodes += subsp_counts[0]
                 other_barcodes += subsp_counts[1]
                 collected += subsp_counts[2]
-
-            # Calculate total (sum of barcodes only, not including collected specimens)
-            # species_total = arise_barcodes + other_barcodes
-            species_total = 1 # magic number that propagates up the taxonomy for totals at higher levels
 
             # Create result entry
             result = {
@@ -254,8 +250,8 @@ def process_species_batch(
                 'Family': node.family,
                 'Genus': node.genus,
                 'Species': node.species,
-                'SpeciesTotal': species_total,
-                'AriseBarcodes': arise_barcodes,
+                'AllBarcodes': own_barcodes + other_barcodes,
+                'OwnBarcodes': own_barcodes,
                 'OtherBarcodes': other_barcodes,
                 'Collected': collected
             }
@@ -314,7 +310,7 @@ def write_results_to_tsv(results: List[Dict], output_path: str) -> None:
     # Define column order
     columns = [
         'Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species',
-        'SpeciesTotal', 'AriseBarcodes', 'OtherBarcodes', 'Collected'
+        'AllBarcodes', 'OwnBarcodes', 'OtherBarcodes', 'Collected'
     ]
 
     try:

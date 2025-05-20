@@ -86,8 +86,8 @@ def verify_table_schema(connection: pyodbc.Connection, table_name: str) -> bool:
     :return: True if the schema is valid, False otherwise
     """
     required_columns = {
-        'Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species',
-        'SpeciesTotal', 'AriseBarcodes', 'OtherBarcodes', 'Collected',
+        'Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species', 'Wanted',
+        'AllBarcodes', 'OwnBarcodes', 'OtherBarcodes', 'Collected',
         'DateCreated', 'DateModified'
     }
     
@@ -172,7 +172,7 @@ def upload_data(connection: pyodbc.Connection, table_name: str, data: List[Dict[
         # Column names for the INSERT statement, explicitly listing the columns we want to insert
         columns = [
             'Kingdom', 'Phylum', 'Class', '[Order]', 'Family', 'Genus', 'Species',
-            'SpeciesTotal', 'AriseBarcodes', 'OtherBarcodes', 'Collected',
+            'Wanted', 'OwnBarcodes', 'OtherBarcodes', 'Collected',
             'DateCreated', 'DateModified'
         ]
         
@@ -191,6 +191,11 @@ def upload_data(connection: pyodbc.Connection, table_name: str, data: List[Dict[
             for row in batch:
                 # Fix column name for 'Order' which is a reserved word in SQL Server
                 order_value = row['Order']
+
+                if int(row['AllBarcodes']) < 3:
+                    wanted = True
+                else:
+                    wanted = False
                 
                 # Map values to the columns in the correct order
                 row_values = [
@@ -201,8 +206,8 @@ def upload_data(connection: pyodbc.Connection, table_name: str, data: List[Dict[
                     row['Family'],
                     row['Genus'],
                     row['Species'],
-                    int(row['SpeciesTotal']),
-                    int(row['AriseBarcodes']),
+                    wanted,
+                    int(row['OwnBarcodes']),
                     int(row['OtherBarcodes']),
                     int(row['Collected']),
                     now,

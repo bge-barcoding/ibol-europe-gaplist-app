@@ -192,7 +192,7 @@ def upload_data(connection: pyodbc.Connection, table_name: str, data: List[Dict[
                 # Fix column name for 'Order' which is a reserved word in SQL Server
                 order_value = row['Order']
 
-                if int(row['AllBarcodes']) < 3:
+                if int(row['AllBarcodes']) < 10:
                     wanted = True
                 else:
                     wanted = False

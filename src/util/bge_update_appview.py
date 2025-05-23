@@ -192,10 +192,12 @@ def upload_data(connection: pyodbc.Connection, table_name: str, data: List[Dict[
                 # Fix column name for 'Order' which is a reserved word in SQL Server
                 order_value = row['Order']
 
-                if int(row['AllBarcodes']) < 10:
-                    wanted = True
+                if int(row['AllBarcodes']) < 3:
+                    priority = 2
+                elif int(row['AllBarcodes']) < 10:
+                    priority = 1
                 else:
-                    wanted = False
+                    priority = 0
                 
                 # Map values to the columns in the correct order
                 row_values = [
@@ -206,7 +208,7 @@ def upload_data(connection: pyodbc.Connection, table_name: str, data: List[Dict[
                     row['Family'],
                     row['Genus'],
                     row['Species'],
-                    wanted,
+                    priority,
                     int(row['OwnBarcodes']),
                     int(row['OtherBarcodes']),
                     int(row['Collected']),
